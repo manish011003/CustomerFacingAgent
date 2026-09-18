@@ -76,6 +76,16 @@ of the chain; `LLM_FALLBACK_MODELS` replaces the chain, or `=none` tries exactly
 Check what loaded, without printing the key:
 
 ```bash
+cd backend && .venv/bin/python tools/verify_llm.py
+```
+
+That resolves the provider, authenticates the key, makes one real call, then runs a real turn and
+asserts the three fixed policy outcomes did not move with a model in the loop. The pytest suite
+never touches the network, so this script is the only thing that exercises a provider for real.
+
+The same state is available over HTTP:
+
+```bash
 curl localhost:8000/api/llm/health              # provider, model chain, caps, budget left
 curl localhost:8000/api/llm/health?probe=true   # also confirms the key authenticates
 curl -X POST localhost:8000/api/llm/reload      # re-read .env without a restart

@@ -9,7 +9,6 @@ RATES: dict[str, tuple[float, float]] = {
     "gemini-2.5-flash-lite": (0.10, 0.40),
     "gemini-2.5-pro": (1.25, 10.00),
     "gemini-2.0-flash": (0.10, 0.40),
-    "gemini-2.0-flash-lite": (0.075, 0.30),
     "llama-3.3-70b-versatile": (0.59, 0.79),
     "llama-3.1-8b-instant": (0.05, 0.08),
     "openai/gpt-oss-120b": (0.15, 0.75),

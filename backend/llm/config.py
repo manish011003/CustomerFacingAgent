@@ -32,24 +32,33 @@ PROVIDERS: dict[str, dict[str, str]] = {
 PREFERENCE = ("gemini", "groq", "xai", "openai")
 
 # Models to try, in order, when the one before it is unavailable. A free-tier
-# key runs out of quota per model, not per project, so the whole Gemini family
-# is listed: exhausting 2.5-flash leaves flash-lite and the 2.0 pair still
-# answering. Pro sits last because it is the most expensive of them, and the
-# daily USD ceiling is what stops it running away. A name a provider rejects
-# costs one failed request and the walk moves on, so retiring a model here
-# degrades to the next entry rather than to the template reply.
+# key runs out of quota per model, not per project, so the whole family stands
+# behind the chosen one: exhausting 2.5-flash leaves flash-lite answering.
+#
+# The two `-latest` aliases sit in the middle deliberately. Google retires
+# pinned versions — this key no longer serves the 2.0 pair at all — and an
+# alias always resolves to a current flash, so the chain keeps working through
+# a retirement it was not updated for. They are priced at the conservative
+# unknown-model rate, since what they resolve to changes under us.
+#
+# Pro sits last: it is the most capable and by far the most expensive, so it is
+# the model of last resort and the daily USD ceiling is what bounds it.
 MODEL_CHAINS: dict[str, tuple[str, ...]] = {
     "gemini": (
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
+        "gemini-flash-latest",
+        "gemini-flash-lite-latest",
         "gemini-2.5-pro",
     ),
     "groq": ("llama-3.3-70b-versatile", "llama-3.1-8b-instant"),
     "xai": ("grok-4.3", "grok-3-mini"),
     "openai": ("gpt-4o-mini",),
 }
+
+# Chain entries whose target moves, so no published per-token rate can be
+# pinned to them. `pricing.py` bills these at its conservative default.
+MOVING_MODELS = frozenset({"gemini-flash-latest", "gemini-flash-lite-latest"})
 
 DISABLED = "none"
 
