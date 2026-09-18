@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import os
-
+from factories.llm_factory import LlmFactory
 from products.replies.base import ReplyRenderer
 from products.replies.llm import LlmPolishedReplyRenderer
 from products.replies.template import TemplateReplyRenderer
@@ -14,7 +13,10 @@ class ReplyFactory:
         if kind == "template":
             return template
         if kind == "llm":
-            return LlmPolishedReplyRenderer(fallback=template)
+            return LlmPolishedReplyRenderer(fallback=template, client=LlmFactory.create())
         if kind == "auto":
-            return LlmPolishedReplyRenderer(fallback=template) if os.getenv("OPENAI_API_KEY") else template
+            client = LlmFactory.create()
+            if client.enabled:
+                return LlmPolishedReplyRenderer(fallback=template, client=client)
+            return template
         raise ValueError(f"Unknown reply renderer: {kind}")

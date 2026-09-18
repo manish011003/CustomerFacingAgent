@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 load_dotenv()
 
 from agent.loop import handle_chat, reset_session
+from factories.llm_factory import LlmFactory
 from factories.onboarding_factory import OnboardingFactory
 from kb.store import store
 from models.schemas import BookingIntake, ChatRequest, LoginRequest, SignupRequest
@@ -59,6 +60,22 @@ def _eligibility(customer, booking):
 @app.get("/api/health")
 def health():
     return {"ok": True, "kb_backend": store.backend, "product": "AeroResolve"}
+
+
+@app.get("/api/llm/health")
+def llm_health(probe: bool = False):
+    """Which provider loaded and what budget is left.
+
+    Never returns the key itself. `?probe=true` spends one cheap request to
+    confirm the key actually authenticates.
+    """
+    return LlmFactory.create().health(probe=probe)
+
+
+@app.post("/api/llm/reload")
+def llm_reload():
+    """Re-read provider settings after editing .env, without a server restart."""
+    return LlmFactory.create(refresh=True).health()
 
 
 @app.post("/api/auth/signup")

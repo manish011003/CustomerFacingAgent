@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import os
-
+from factories.llm_factory import LlmFactory
 from products.extractors.base import IntentExtractor
 from products.extractors.heuristic import HeuristicExtractor
 from products.extractors.llm import LlmExtractor
@@ -18,7 +17,8 @@ class ExtractorFactory:
         if kind == "heuristic":
             return heuristic
         if kind == "llm":
-            return LlmExtractor(fallback=heuristic)
+            return LlmExtractor(fallback=heuristic, client=LlmFactory.create())
         if kind == "auto":
-            return LlmExtractor(fallback=heuristic) if os.getenv("OPENAI_API_KEY") else heuristic
+            client = LlmFactory.create()
+            return LlmExtractor(fallback=heuristic, client=client) if client.enabled else heuristic
         raise ValueError(f"Unknown extractor: {kind}")

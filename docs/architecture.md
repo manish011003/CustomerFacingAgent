@@ -31,6 +31,9 @@ AIONOS-style constraint: domain-tuned reasoning grounded in **your** data and po
 - The LLM never receives the other two passengers.
 - The LLM never receives `policies.json` to reinterpret.
 - Entitlements are computed in `policy/engine.py` and injected as facts.
+- The LLM is reachable only through `llm/client.py`, which caps tokens and enforces
+  spend ceilings. Any breach returns nothing and the caller uses its deterministic
+  path, so cost control can degrade phrasing but never correctness.
 
 ## Knowledge base
 
@@ -81,6 +84,7 @@ Graph edges are written as the conversation happens (`HAS_BOOKING`, `HAS_DISRUPT
 | `ReplyRenderer` | template, LLM polish | `ReplyFactory` | `agent/loop.py` |
 | `PolicyHandler` | status, cancel, delay, fare, exceptions | `PolicyHandlerFactory` | `policy/engine.py` |
 | `PassengerKnowledgeStore` | JSON, Elasticsearch | `KnowledgeStoreFactory` | `kb/store.py` singleton |
+| `LlmClient` | Gemini, Groq, xAI, OpenAI, disabled | `LlmFactory` | extractor and reply products |
 | `PlatformChrome` | customer Resolve, manager CRM | `createPlatform` | Next.js pages |
 | `DecisionChrome` | allow/deny/escalate/ask/inform | `createDecisionChrome` | options/queue tables |
 

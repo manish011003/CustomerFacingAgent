@@ -52,7 +52,25 @@ docker compose up -d elasticsearch
 # restart uvicorn so it can ping localhost:9200
 ```
 
-Optional LLM phrasing: copy `.env.example` to `backend/.env` and set `OPENAI_API_KEY`. Demos work with no key (heuristic extract + template reply).
+Optional LLM phrasing: copy `.env.example` to `backend/.env` and set one key. Demos work with
+no key at all (heuristic extract + template reply), and policy outcomes are identical either way.
+
+```bash
+GEMINI_API_KEY=...   # free tier, preferred
+GROQ_API_KEY=...     # free tier
+```
+
+Four providers are supported — Gemini, Groq, xAI, and OpenAI — because all of them speak the
+OpenAI wire format, so only a base URL and model name change. Leave `LLM_PROVIDER` unset and the
+first key present wins, free tiers first. `LLM_PROVIDER=none` forces the deterministic path.
+
+Check what loaded, without printing the key:
+
+```bash
+curl localhost:8000/api/llm/health              # provider, model, caps, budget left
+curl localhost:8000/api/llm/health?probe=true   # also confirms the key authenticates
+curl -X POST localhost:8000/api/llm/reload      # re-read .env without a restart
+```
 
 ```bash
 cd backend && pytest -q
@@ -69,8 +87,6 @@ Sign in on AERO Resolve (`http://localhost:3000/login`). Priya Nair, Arvind Kulk
 Open a new account from **Join** to confirm dynamic onboarding. New members start as Standard and must add their own trip — the agent will not invent a flight number.
 
 The right-hand **This turn's context** panel is the product: identity, retrieved facts, missing slots, decision JSON with reason and source.
-
-Optional Elasticsearch (passenger knowledge base). Without Docker, the same JSON data pack is used:
 
 LLMs handle ambiguity and wording. Deterministic systems handle policy, authority, and irreversible actions.
 
@@ -96,7 +112,7 @@ External airline research informed UX only (progress per interaction, human back
 ## AI tools used
 
 - **Cursor (Grok)** — architecture, context-engineering design, code generation, tests, README, PPT/demo outlines.
-- **Optional OpenAI API** — extract JSON and polish replies if `OPENAI_API_KEY` is set. Policy outcomes are never taken from the model.
+- **Optional Gemini / Groq / xAI / OpenAI** — extract JSON and polish replies when a key is present. Policy outcomes are never taken from the model.
 - All policy numbers, customers, and escalation thresholds were copied from the supplied data pack and covered by pytest.
 
 ## Context engineering (customer agent)
@@ -121,6 +137,28 @@ across the three scenarios (roughly 5,000 to 1,800 tokens).
 Retrieval grounds and cites. It never decides — `policy/engine.py` keeps its own constants,
 and `pytest` asserts retrieval cannot move a policy outcome.
 
+## Cost control
+
+Every model call passes through `backend/llm/`, which is the only place this codebase talks to
+a provider. That single chokepoint carries all the ceilings:
+
+| Ceiling | Default | Env var |
+| --- | --- | --- |
+| Tokens per extract call | 200 | `LLM_MAX_TOKENS_EXTRACT` |
+| Tokens per respond call | 220 | `LLM_MAX_TOKENS_RESPOND` |
+| Request timeout | 8s | `LLM_TIMEOUT_SECONDS` |
+| Calls per conversation | 12 | `LLM_MAX_CALLS_PER_SESSION` |
+| Calls per process per day | 500 | `LLM_MAX_CALLS_PER_PROCESS` |
+| Spend per day | $1.00 | `LLM_DAILY_BUDGET_USD` |
+
+Identical utterances are served from an extraction cache, since extraction runs at temperature 0.
+
+Breaching a ceiling is not an error. `LlmClient.complete` returns nothing and the caller falls
+back to its deterministic path, so the passenger still gets the policy-approved answer and only
+the phrasing degrades. The reason is counted under `degradations` at `/api/llm/health`. Because
+the policy engine never calls a model, no setting here can change a decision — a claim
+`test_llm.py` and `test_policy.py` enforce together.
+
 ## Repository
 
 - `backend/data/` — verbatim pack
@@ -128,6 +166,7 @@ and `pytest` asserts retrieval cannot move a policy outcome.
 - `backend/agent/planner.py` — decides which slices a turn retrieves
 - `backend/agent/retrieve.py` — runs the plan against the knowledge store
 - `backend/agent/context.py` — context assembler and grounded narration
+- `backend/llm/` — provider resolution, token caps, and spend ceilings
 - `backend/products/knowledge/corpus.py` — `policies.json` flattened to clauses
 - `backend/kb/store.py` — Elasticsearch + JSON fallback, same retrieval contract
 - `backend/main.py` — FastAPI
