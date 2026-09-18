@@ -1,18 +1,37 @@
 from __future__ import annotations
 
+import re
+
 from llm.client import LlmClient
 from models.schemas import CustomerAgentContext
 from products.replies.base import ReplyRenderer
 
+# Asked only to "rewrite more naturally", Gemini answered with a menu of
+# options — "Here are a few more natural ways to phrase that reply" — which is
+# a sensible reading of the instruction and useless to a passenger. The shape
+# of the output has to be stated, not implied.
 SYSTEM = (
-    "Rewrite the approved reply more naturally. Do not add benefits, amounts, "
-    "or flights that are not in the provided reply or context packet."
+    "You rewrite an airline support reply so it reads naturally. "
+    "Return ONLY the rewritten reply, as plain prose addressed to the passenger. "
+    "No preamble, no alternatives, no markdown, no commentary. "
+    "Keep every amount, entitlement, and decision exactly as given. "
+    "Do not add benefits, amounts, or flights that are not in the provided reply or context packet."
 )
+
+# Digit groups of three or more, which is every rupee figure in this domain.
+# Smaller numbers are delay hours and flight numbers, and a faithful rewrite is
+# free to spell those as words ("six-hour"), so holding it to those would
+# reject good output.
+MONEY = re.compile(r"\d[\d,]{2,}")
+
+
+def money_amounts(text: str) -> set[str]:
+    return {match.group().replace(",", "") for match in MONEY.finditer(text)}
 
 
 class LlmPolishedReplyRenderer(ReplyRenderer):
     """Phrasing only. The template reply is already policy-approved, and every
-    path that does not produce a model answer returns that reply unchanged."""
+    path that does not produce a faithful rewrite returns that reply unchanged."""
 
     def __init__(self, fallback: ReplyRenderer, client: LlmClient | None = None):
         self._fallback = fallback
@@ -39,6 +58,14 @@ class LlmPolishedReplyRenderer(ReplyRenderer):
             user=render_respond_prompt(ctx, utterance) + "\nApproved reply:\n" + approved,
             session_id=ctx.session_memory.session_id,
         )
-        if result is None:
+        if result is None or not result.text:
             return approved
-        return result.text or approved
+
+        # A rewrite may change any word. It may not change the money, in either
+        # direction: an invented figure misleads, and a dropped one hides a
+        # decision the passenger needs. Either way the approved text is correct,
+        # so there is never a reason to ship the rewrite instead.
+        if money_amounts(result.text) != money_amounts(approved):
+            client.budget.note("respond_amount_drift", ctx.session_memory.session_id)
+            return approved
+        return result.text

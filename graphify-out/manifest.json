@@ -190,8 +190,8 @@
     "semantic_hash": "7da408e31aa1e0107a39cbfd9f01ea21"
   },
   "backend/products/replies/llm.py": {
-    "mtime": 1789747871.667163,
-    "ast_hash": "ac27d9a903e899029e27faff34cfd7b3",
+    "mtime": 1789749351.201286,
+    "ast_hash": "954a2d762da1f276f7b8a854e2462724",
     "semantic_hash": ""
   },
   "backend/products/replies/template.py": {
@@ -335,8 +335,8 @@
     "semantic_hash": "a0670b006deb54787587ddbbf697b5c8"
   },
   "README.md": {
-    "mtime": 1789748732.6289923,
-    "ast_hash": "213ed4e99fa32983ba449986e5a80f6f",
+    "mtime": 1789749643.04657,
+    "ast_hash": "1060a2c3892e8b6811fed45d8f40d6cb",
     "semantic_hash": ""
   },
   "backend/requirements.txt": {
@@ -540,18 +540,18 @@
     "semantic_hash": ""
   },
   "backend/llm/client.py": {
-    "mtime": 1789748661.9047945,
-    "ast_hash": "03e15c54f69fbbb9e5ab85950d89b664",
+    "mtime": 1789749336.629433,
+    "ast_hash": "eac789af71293e73401d05ff601422da",
     "semantic_hash": ""
   },
   "backend/llm/config.py": {
-    "mtime": 1789748276.0820954,
-    "ast_hash": "354db13d6c3aa80ee349a4c8cc699273",
+    "mtime": 1789749311.9978733,
+    "ast_hash": "9201f63c1d4c400e9fc470b054dff315",
     "semantic_hash": ""
   },
   "backend/llm/pricing.py": {
-    "mtime": 1789748420.0578895,
-    "ast_hash": "d99d32c51fbde476de40cfc3fd719c81",
+    "mtime": 1789748814.8683267,
+    "ast_hash": "6bf2b2f4eeccfdcf6d7552c963564961",
     "semantic_hash": ""
   },
   "backend/tests/test_emotion.py": {
@@ -560,18 +560,28 @@
     "semantic_hash": ""
   },
   "backend/tests/test_llm.py": {
-    "mtime": 1789748661.9048014,
-    "ast_hash": "8d98d75923801cc8ee05cd602eab22bf",
-    "semantic_hash": ""
-  },
-  "backend/_probe_models.py": {
-    "mtime": 1789748734.8731372,
-    "ast_hash": "9d7998b16c9895ec111e53c4c5674af5",
+    "mtime": 1789749417.9366271,
+    "ast_hash": "a3e6f8e3c03e84dac4af0bc368eadfa8",
     "semantic_hash": ""
   },
   "backend/tests/test_containment.py": {
     "mtime": 1789748530.7746305,
     "ast_hash": "ec7d72681d4d16735ce88c331cedf5d0",
+    "semantic_hash": ""
+  },
+  "backend/tests/conftest.py": {
+    "mtime": 1789749328.3823063,
+    "ast_hash": "574252403b27ba764edd2f0a1b99d528",
+    "semantic_hash": ""
+  },
+  "backend/tools/probe_models.py": {
+    "mtime": 1789749622.5122898,
+    "ast_hash": "c8313bae96032bc36d15c4b26d637acf",
+    "semantic_hash": ""
+  },
+  "backend/tools/verify_llm.py": {
+    "mtime": 1789748882.1643553,
+    "ast_hash": "190731442c2b0c087350d90d04c46deb",
     "semantic_hash": ""
   }
 }

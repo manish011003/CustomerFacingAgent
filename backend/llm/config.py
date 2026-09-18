@@ -10,6 +10,11 @@ PROVIDERS: dict[str, dict[str, str]] = {
         "key_env": "GEMINI_API_KEY",
         "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
         "default_model": "gemini-2.5-flash",
+        # Gemini 2.5 thinks by default and charges the thinking to max_tokens,
+        # which starved the visible answer and truncated replies mid-word. This
+        # work needs no deliberation: the decision is already made, the model
+        # only rewords it. Only Gemini accepts the parameter, hence per-provider.
+        "reasoning_effort": "none",
     },
     "groq": {
         "key_env": "GROQ_API_KEY",
@@ -31,34 +36,37 @@ PROVIDERS: dict[str, dict[str, str]] = {
 # Free tiers first, so "auto" costs nothing unless nothing free is configured.
 PREFERENCE = ("gemini", "groq", "xai", "openai")
 
-# Models to try, in order, when the one before it is unavailable. A free-tier
-# key runs out of quota per model, not per project, so the whole family stands
-# behind the chosen one: exhausting 2.5-flash leaves flash-lite answering.
+# Models to try, in order, when the one before it is unavailable. A free tier
+# runs out per model, not per project, and on a free key refusal is the normal
+# case rather than the exception: probing this family found 429 "quota
+# exceeded" and 503 "high demand" on roughly half of it at once. So the family
+# stands behind the chosen model, and exhausting 2.5-flash costs flash-lite's
+# slightly plainer wording instead of costing the whole LLM path.
 #
-# The two `-latest` aliases sit in the middle deliberately. Google retires
-# pinned versions — this key no longer serves the 2.0 pair at all — and an
-# alias always resolves to a current flash, so the chain keeps working through
-# a retirement it was not updated for. They are priced at the conservative
-# unknown-model rate, since what they resolve to changes under us.
+# Every name here was confirmed to answer a real request. Appearing in
+# `models.list()` is not enough: gemini-2.5-pro is still listed by this
+# endpoint and 404s as "no longer available" when actually called.
 #
-# Pro sits last: it is the most capable and by far the most expensive, so it is
-# the model of last resort and the daily USD ceiling is what bounds it.
+# The `-latest` aliases sit at the back on purpose. Google retires pinned
+# versions — the 2.0 pair this table first held is already gone — and an alias
+# resolves to a current flash, so the chain survives a retirement nobody
+# updated it for. Their target moves, so `MOVING_MODELS` prices them at the
+# conservative unknown-model rate rather than pretending to know the figure.
 MODEL_CHAINS: dict[str, tuple[str, ...]] = {
     "gemini": (
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
-        "gemini-flash-latest",
         "gemini-flash-lite-latest",
-        "gemini-2.5-pro",
+        "gemini-flash-latest",
     ),
     "groq": ("llama-3.3-70b-versatile", "llama-3.1-8b-instant"),
     "xai": ("grok-4.3", "grok-3-mini"),
     "openai": ("gpt-4o-mini",),
 }
 
-# Chain entries whose target moves, so no published per-token rate can be
-# pinned to them. `pricing.py` bills these at its conservative default.
-MOVING_MODELS = frozenset({"gemini-flash-latest", "gemini-flash-lite-latest"})
+# Chain entries whose target moves, so no published per-token rate belongs to
+# them. `pricing.py` bills these at its conservative default.
+MOVING_MODELS = frozenset({"gemini-flash-lite-latest", "gemini-flash-latest"})
 
 DISABLED = "none"
 
@@ -103,6 +111,7 @@ class LlmConfig:
     daily_budget_usd: float
     fallback_models: tuple[str, ...] = ()
     model_cooldown_seconds: float = 300.0
+    reasoning_effort: str = ""
 
     @property
     def enabled(self) -> bool:
@@ -156,6 +165,21 @@ def _fallback_models(provider: str, base_url: str) -> tuple[str, ...]:
     return MODEL_CHAINS.get(provider, ())
 
 
+def _reasoning_effort(provider: str, base_url: str) -> str:
+    """Whether to ask this provider to skip deliberation.
+
+    Sending the parameter to a provider that does not know it fails the call,
+    so it is opt-in per provider and suppressed on a redirected base URL, where
+    we cannot know what is listening. `LLM_REASONING_EFFORT=` clears it.
+    """
+    requested = os.getenv("LLM_REASONING_EFFORT")
+    if requested is not None:
+        return requested.strip()
+    if base_url != PROVIDERS[provider]["base_url"]:
+        return ""
+    return PROVIDERS[provider].get("reasoning_effort", "")
+
+
 def disabled_config() -> LlmConfig:
     """No provider, no model, no ceilings that could ever be consulted."""
     return LlmConfig(
@@ -195,6 +219,7 @@ def from_env() -> LlmConfig:
         base_url=base_url,
         fallback_models=_fallback_models(provider, base_url),
         model_cooldown_seconds=_float("LLM_MODEL_COOLDOWN_SECONDS", 300.0),
+        reasoning_effort=_reasoning_effort(provider, base_url),
         timeout_seconds=_float("LLM_TIMEOUT_SECONDS", 8.0),
         max_tokens_extract=_int("LLM_MAX_TOKENS_EXTRACT", 200),
         max_tokens_respond=_int("LLM_MAX_TOKENS_RESPOND", 220),

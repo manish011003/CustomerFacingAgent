@@ -65,13 +65,20 @@ Four providers are supported — Gemini, Groq, xAI, and OpenAI — because all o
 OpenAI wire format, so only a base URL and model name change. Leave `LLM_PROVIDER` unset and the
 first key present wins, free tiers first. `LLM_PROVIDER=none` forces the deterministic path.
 
-Free-tier quota runs out per model, not per project, so one model going quiet should not cost the
-whole LLM path. Every Gemini model is kept behind the chosen one — `gemini-2.5-flash`, then
-`flash-lite`, `2.0-flash`, `2.0-flash-lite`, and `2.5-pro` — and an unavailable model hands the
-call to the next name in that chain. At most three are tried per call, so a dead family cannot
-stack up one timeout per model in front of the passenger, and a model that refuses stops leading
-the chain for five minutes rather than being retired. `LLM_MODEL` only moves a model to the head
-of the chain; `LLM_FALLBACK_MODELS` replaces the chain, or `=none` tries exactly one model.
+A free tier runs out per model, not per project, so one model going quiet should not cost the
+whole LLM path. The Gemini family stands behind the chosen model — `gemini-2.5-flash`, then
+`gemini-2.5-flash-lite`, then the `gemini-flash-lite-latest` and `gemini-flash-latest` aliases —
+and a model that will not answer hands the call to the next name in that chain. Probing that
+family on a free key returned 429 "quota exceeded" or 503 "high demand" on about half of it at
+once, which is the case this exists for: exhausting `2.5-flash` now costs `flash-lite`'s plainer
+wording instead of costing the model path entirely. The aliases are last because they survive
+retirement — `gemini-2.5-pro` is still listed by the endpoint and 404s as "no longer available"
+when called, so a chain of pinned versions ages badly.
+
+At most three models are tried per call, so a dead family cannot stack up one timeout per model
+in front of the passenger, and a model that refuses stops leading the chain for five minutes
+rather than being dropped. `LLM_MODEL` only moves a model to the head of the chain;
+`LLM_FALLBACK_MODELS` replaces the chain, and `=none` tries exactly one model.
 
 Check what loaded, without printing the key:
 
@@ -82,6 +89,23 @@ cd backend && .venv/bin/python tools/verify_llm.py
 That resolves the provider, authenticates the key, makes one real call, then runs a real turn and
 asserts the three fixed policy outcomes did not move with a model in the loop. The pytest suite
 never touches the network, so this script is the only thing that exercises a provider for real.
+`tools/probe_models.py` reports which models in the chain your key actually serves.
+
+Two things a live Gemini key taught us, both now handled:
+
+- **Gemini 2.5 thinks by default and bills the thinking to `max_tokens`**, so a 220-token cap left
+  13 tokens for the answer and the passenger got `"I understand this delay is frustrating, Me"` —
+  truncated mid-word. The agent now sends `reasoning_effort=none`, since rewording an
+  already-decided reply requires no deliberation, and refuses any completion that stopped on
+  `length` rather than shipping half a sentence.
+- **Asked only to "rewrite more naturally", the model answered with a menu of options.** The
+  respond prompt now states the required output shape, and a rewrite that adds or drops a money
+  amount is discarded in favour of the approved text. A polish may change any word; it may not
+  change the money.
+
+The free tier allows 5 requests per minute per model, which is what the model chain is for: during
+verification `gemini-2.5-flash` hit its limit mid-turn and `gemini-2.5-flash-lite` answered
+instead, so the turn completed with full policy detail rather than degrading.
 
 The same state is available over HTTP:
 

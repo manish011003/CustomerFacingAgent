@@ -18,6 +18,7 @@ class LlmResult:
     completion_tokens: int
     est_cost_usd: float
     cached: bool = False
+    finish_reason: str = ""
 
 
 class LlmClient:
@@ -165,6 +166,8 @@ class LlmClient:
             }
             if json_mode:
                 request["response_format"] = {"type": "json_object"}
+            if self._config.reasoning_effort:
+                request["reasoning_effort"] = self._config.reasoning_effort
 
             try:
                 completion = self._sdk_client().chat.completions.create(**request)
@@ -178,9 +181,11 @@ class LlmClient:
                 continue
 
             text = ""
+            finish_reason = ""
             choices = getattr(completion, "choices", None) or []
             if choices:
                 text = (getattr(choices[0].message, "content", "") or "").strip()
+                finish_reason = getattr(choices[0], "finish_reason", "") or ""
 
             usage = getattr(completion, "usage", None)
             prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
@@ -193,6 +198,12 @@ class LlmClient:
                 self._budget.note(f"model_unavailable:{model}", session_id)
                 self._sideline(model)
                 continue
+            if finish_reason == "length":
+                # A reply cut off mid-sentence must never reach a passenger, and
+                # half a JSON object cannot be parsed. The cap is ours, so the
+                # next model would truncate identically: degrade, do not walk.
+                self._budget.note(f"{purpose}_truncated", session_id)
+                return None
             if cache:
                 self._budget.cache_put(LlmBudget.cache_key(model, system, user), text)
             self._budget.note_model(model, session_id)
@@ -204,6 +215,7 @@ class LlmClient:
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
                 est_cost_usd=cost,
+                finish_reason=finish_reason,
             )
 
         return None

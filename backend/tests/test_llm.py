@@ -14,11 +14,12 @@ from factories.llm_factory import LlmFactory
 from factories.reply_factory import ReplyFactory
 from llm.budget import LlmBudget
 from llm.client import LlmClient
-from llm.config import MODEL_CHAINS, PROVIDERS, LlmConfig, from_env
+from llm.config import MODEL_CHAINS, MOVING_MODELS, PROVIDERS, LlmConfig, from_env
 from llm.pricing import UNKNOWN_MODEL_RATE, estimate_usd, rate_for
 from models.schemas import CustomerAgentContext, RequestType, SessionMemory
 from products.extractors.heuristic import HeuristicExtractor
 from products.extractors.llm import LlmExtractor
+from products.replies.base import ReplyRenderer
 from products.replies.llm import LlmPolishedReplyRenderer
 from products.replies.template import TemplateReplyRenderer
 
@@ -57,6 +58,8 @@ def config(**overrides) -> LlmConfig:
         "max_calls_per_session": 12,
         "max_calls_per_process": 500,
         "daily_budget_usd": 1.0,
+        # What from_env() resolves for Gemini, so the fixture matches reality.
+        "reasoning_effort": PROVIDERS["gemini"]["reasoning_effort"],
     }
     base.update(overrides)
     return LlmConfig(**base)
@@ -65,11 +68,18 @@ def config(**overrides) -> LlmConfig:
 class StubSdk:
     """Records every request and answers with canned text."""
 
-    def __init__(self, text: str = "polished", prompt_tokens: int = 100, completion_tokens: int = 40):
+    def __init__(
+        self,
+        text: str = "polished",
+        prompt_tokens: int = 100,
+        completion_tokens: int = 40,
+        finish_reason: str = "stop",
+    ):
         self.requests: list[dict] = []
         self._text = text
         self._prompt_tokens = prompt_tokens
         self._completion_tokens = completion_tokens
+        self._finish_reason = finish_reason
         self.chat = self
 
     @property
@@ -79,7 +89,7 @@ class StubSdk:
     def create(self, **kwargs):
         self.requests.append(kwargs)
         message = type("Message", (), {"content": self._text})()
-        choice = type("Choice", (), {"message": message})()
+        choice = type("Choice", (), {"message": message, "finish_reason": self._finish_reason})()
         usage = type(
             "Usage",
             (),
@@ -127,6 +137,20 @@ def client_with(sdk, cfg: LlmConfig | None = None) -> LlmClient:
     client = LlmClient(resolved, LlmBudget(resolved))
     client._sdk = sdk
     return client
+
+
+class Fixed(ReplyRenderer):
+    """Stands in for the policy-approved template reply."""
+
+    def __init__(self, text: str):
+        self._text = text
+
+    def render(self, ctx, utterance: str) -> str:
+        return self._text
+
+
+def ctx_for(session_id: str) -> CustomerAgentContext:
+    return CustomerAgentContext(session_memory=SessionMemory(session_id=session_id), kb_backend="json")
 
 
 # --- provider resolution ---------------------------------------------------
@@ -245,11 +269,25 @@ def test_a_disabled_provider_has_no_models_to_fall_back_to():
     assert from_env().model_chain == ()
 
 
-def test_every_fallback_model_has_a_published_rate():
-    """A chain entry with no rate would be billed at the conservative default."""
-    for chain in MODEL_CHAINS.values():
-        for model in chain:
-            assert rate_for(model) != UNKNOWN_MODEL_RATE, model
+def test_every_pinned_chain_model_has_a_published_rate():
+    """An unpriced entry would be billed at the conservative default silently."""
+    unpriced = [
+        model
+        for chain in MODEL_CHAINS.values()
+        for model in chain
+        if model not in MOVING_MODELS and rate_for(model) == UNKNOWN_MODEL_RATE
+    ]
+    assert unpriced == []
+
+
+def test_moving_aliases_are_knowingly_billed_at_the_default():
+    """An alias points at whatever the provider currently serves, so no rate can
+    be pinned to it. That must be a deliberate choice, not an oversight."""
+    assert MOVING_MODELS
+    for model in MOVING_MODELS:
+        assert rate_for(model) == UNKNOWN_MODEL_RATE, model
+        # And the alias must actually be in a chain, or the exemption is stale.
+        assert any(model in chain for chain in MODEL_CHAINS.values()), model
 
 
 def test_key_is_never_exposed_by_health(monkeypatch):
@@ -370,12 +408,14 @@ def test_the_next_model_answers_when_the_first_is_out_of_quota():
 
 
 def test_the_refusal_is_recorded_against_the_model_that_refused():
-    client = client_with(PickySdk(serves={"gemini-2.0-flash"}), chained())
+    survivor = GEMINI_CHAIN[LlmClient.MAX_ATTEMPTS - 1]
+    client = client_with(PickySdk(serves={survivor}), chained())
     client.complete(purpose="respond", system="s", user="u")
     degradations = client.budget.snapshot()["degradations"]
-    assert degradations["model_unavailable:gemini-2.5-flash"] == 1
-    assert degradations["model_unavailable:gemini-2.5-flash-lite"] == 1
-    assert "model_unavailable:gemini-2.0-flash" not in degradations
+    for refused in GEMINI_CHAIN[: LlmClient.MAX_ATTEMPTS - 1]:
+        assert degradations[f"model_unavailable:{refused}"] == 1
+    # The model that answered is not blamed for the ones that did not.
+    assert f"model_unavailable:{survivor}" not in degradations
 
 
 def test_an_empty_answer_also_moves_down_the_chain():
@@ -387,7 +427,7 @@ def test_an_empty_answer_also_moves_down_the_chain():
 
 
 def test_the_walk_is_capped_so_a_dead_family_cannot_stack_up_timeouts():
-    """Five timeouts in a row would be five times the wait for the passenger."""
+    """One timeout per model would be the whole chain's wait for the passenger."""
     sdk = PickySdk(serves=set())
     client = client_with(sdk, chained())
     assert len(GEMINI_CHAIN) > LlmClient.MAX_ATTEMPTS
@@ -422,7 +462,8 @@ def test_a_cooled_model_leads_again_once_the_cooldown_expires(monkeypatch):
 
 def test_the_walk_spends_one_call_of_the_session_budget_not_three():
     """Falling back is a retry of one turn, so it must not buy extra headroom."""
-    sdk = PickySdk(serves={"gemini-2.0-flash"})
+    # The last model the walk can reach, given MAX_ATTEMPTS.
+    sdk = PickySdk(serves={GEMINI_CHAIN[LlmClient.MAX_ATTEMPTS - 1]})
     client = client_with(sdk, chained(max_calls_per_session=1))
     assert client.complete(purpose="respond", system="s", user="u", session_id="s-1") is not None
     assert client.complete(purpose="respond", system="s", user="u", session_id="s-1") is None
@@ -441,12 +482,14 @@ def test_a_cached_answer_survives_the_model_that_produced_it_being_demoted():
 
 
 def test_health_reports_the_queue_and_who_leads_it():
-    client = client_with(PickySdk(serves={"gemini-2.0-flash"}), chained())
-    assert client.health()["next_models"][0] == "gemini-2.5-flash"
+    survivor = GEMINI_CHAIN[LlmClient.MAX_ATTEMPTS - 1]
+    client = client_with(PickySdk(serves={survivor}), chained())
+    assert client.health()["next_models"][0] == GEMINI_CHAIN[0]
     client.complete(purpose="respond", system="s", user="u")
     report = client.health()
     assert report["model_chain"] == list(GEMINI_CHAIN)
-    assert report["next_models"][0] == "gemini-2.0-flash"
+    # The models that refused are now behind the one that answered.
+    assert report["next_models"][0] == survivor
 
 
 def test_falling_back_cannot_be_reached_by_a_disabled_client():
@@ -554,6 +597,110 @@ def test_an_unused_turn_reports_the_configured_model():
 def test_ending_a_turn_that_was_never_begun_is_harmless():
     usage = client_with(StubSdk()).end_turn("never-started")
     assert usage["calls"] == 0 and usage["est_cost_usd"] == 0.0
+
+
+# --- thinking tokens and truncation ---------------------------------------
+
+
+def test_gemini_is_asked_not_to_deliberate():
+    """Gemini 2.5 charges thinking to max_tokens, which truncated live replies
+    mid-word. Rewording a decided answer needs no deliberation."""
+    sdk = StubSdk()
+    client = client_with(sdk)
+    client.complete(purpose="respond", system="s", user="u")
+    assert sdk.requests[0]["reasoning_effort"] == "none"
+
+
+def test_providers_that_would_reject_the_parameter_never_see_it(monkeypatch):
+    monkeypatch.setenv("GROQ_API_KEY", "gsk-abc")
+    assert from_env().reasoning_effort == ""
+    sdk = StubSdk()
+    client = client_with(sdk, config(provider="groq", reasoning_effort=""))
+    client.complete(purpose="respond", system="s", user="u")
+    assert "reasoning_effort" not in sdk.requests[0]
+
+
+def test_a_redirected_base_url_suppresses_the_parameter(monkeypatch):
+    """Behind a proxy we cannot know what is listening, so send nothing extra."""
+    monkeypatch.setenv("GEMINI_API_KEY", "gem-abc")
+    monkeypatch.setenv("LLM_BASE_URL", "https://my-proxy.example/v1")
+    assert from_env().reasoning_effort == ""
+
+
+def test_the_operator_can_override_the_reasoning_setting(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "gem-abc")
+    monkeypatch.setenv("LLM_REASONING_EFFORT", "low")
+    assert from_env().reasoning_effort == "low"
+    monkeypatch.setenv("LLM_REASONING_EFFORT", "")
+    assert from_env().reasoning_effort == ""
+
+
+def test_a_truncated_answer_is_refused():
+    """Cut off mid-sentence is worse than not answering: the caller has a
+    correct reply to fall back to, and half a JSON object cannot be parsed."""
+    client = client_with(StubSdk(text="I understand this delay is frustrating, Me", finish_reason="length"))
+    assert client.complete(purpose="respond", system="s", user="u") is None
+    assert client.budget.snapshot()["degradations"]["respond_truncated"] == 1
+
+
+def test_truncation_does_not_walk_the_chain():
+    """The cap is ours, so the next model would be cut off in the same place."""
+    sdk = PickySdk(serves=set(GEMINI_CHAIN), finish_reason="length")
+    client = client_with(sdk, chained())
+    assert client.complete(purpose="respond", system="s", user="u") is None
+    assert len(sdk.requests) == 1
+
+
+def test_a_complete_answer_reports_why_it_stopped():
+    result = client_with(StubSdk()).complete(purpose="respond", system="s", user="u")
+    assert result is not None and result.finish_reason == "stop"
+
+
+# --- a rewrite may change words, never money ------------------------------
+
+
+def test_a_faithful_rewrite_is_used():
+    approved = "The 2,000 rupee fare difference is above the 1,500 rupee agent limit."
+    polished = "Your fare difference of 2,000 rupees exceeds our 1,500 rupee limit, so I have escalated it."
+    renderer = LlmPolishedReplyRenderer(fallback=Fixed(approved), client=client_with(StubSdk(text=polished)))
+    assert renderer.render(ctx_for("s-1"), "hello") == polished
+
+
+def test_spelling_a_delay_in_words_is_still_faithful():
+    """Only money is held to the digit. "6 hour" to "six-hour" is good writing."""
+    approved = "Your 6 hour delay is airline caused. The 1,500 rupee limit applies."
+    polished = "Your six-hour delay was caused by the airline. Our 1,500 rupee limit applies."
+    renderer = LlmPolishedReplyRenderer(fallback=Fixed(approved), client=client_with(StubSdk(text=polished)))
+    assert renderer.render(ctx_for("s-1"), "hello") == polished
+
+
+def test_an_invented_amount_is_rejected():
+    approved = "A meal voucher is approved."
+    polished = "A meal voucher worth 2,000 rupees is approved."
+    renderer = LlmPolishedReplyRenderer(fallback=Fixed(approved), client=client_with(StubSdk(text=polished)))
+    assert renderer.render(ctx_for("s-1"), "hello") == approved
+
+
+def test_a_dropped_amount_is_rejected():
+    """The live failure: a rewrite that silently omits the decision."""
+    approved = "The 2,000 rupee fare difference is above the 1,500 rupee limit, so it is escalated."
+    polished = "I understand this delay is frustrating."
+    renderer = LlmPolishedReplyRenderer(fallback=Fixed(approved), client=client_with(StubSdk(text=polished)))
+    assert renderer.render(ctx_for("s-1"), "hello") == approved
+
+
+def test_amount_drift_is_recorded_so_it_can_be_noticed():
+    client = client_with(StubSdk(text="A voucher worth 9,999 rupees is approved."))
+    renderer = LlmPolishedReplyRenderer(fallback=Fixed("A voucher is approved."), client=client)
+    renderer.render(ctx_for("s-1"), "hello")
+    assert client.budget.snapshot()["degradations"]["respond_amount_drift"] == 1
+
+
+def test_thousands_separators_do_not_count_as_drift():
+    approved = "The limit is 1,500 rupees."
+    polished = "The limit is 1500 rupees."
+    renderer = LlmPolishedReplyRenderer(fallback=Fixed(approved), client=client_with(StubSdk(text=polished)))
+    assert renderer.render(ctx_for("s-1"), "hello") == polished
 
 
 # --- pricing ---------------------------------------------------------------
