@@ -28,6 +28,18 @@ Exactly two:
 1. **Customer — Resolution Agent** (`frontend`, http://localhost:3000) — one conversation. Choices, confirmations, and escalations land in the thread.
 2. **Internal — Operations** (`frontend-manager`, http://localhost:3001) — audit what the agent did. Staff credentials required. Not linked from the passenger chat.
 
+## Live demo
+
+Passenger chat and Operations run from one origin. Staff is at `/ops`.
+
+```bash
+docker compose up --build web
+# http://localhost:8000          passenger
+# http://localhost:8000/ops      operations
+```
+
+From this GitHub repo: [Deploy to Render](https://render.com/deploy?repo=https://github.com/manish011003/CustomerFacingAgent). Add a `GROQ_API_KEY` (or `GEMINI_API_KEY`) in the Render dashboard if you want live phrasing; without a key the heuristic path still answers.
+
 ## Run locally
 
 ```bash

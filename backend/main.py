@@ -14,6 +14,7 @@ from kb.store import store
 from models.schemas import BookingIntake, ChatRequest, LoginRequest, SignupRequest
 from policy.engine import baseline_for_booking, evaluate_policy
 from models.schemas import ExtractedRequest, RequestType
+from web import mount_ui
 
 app = FastAPI(title="AeroResolve", version="1.0.0")
 app.add_middleware(
@@ -286,3 +287,6 @@ def simulate(payload: dict, authorization: str | None = Header(default=None)):
         legal_or_formal=bool(payload.get("legal_or_formal")),
     )
     return evaluation.model_dump()
+
+
+mount_ui(app)

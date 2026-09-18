@@ -9,6 +9,9 @@ __pycache__/
 # no trailing slash: frontend-manager/node_modules is a symlink, not a directory
 node_modules
 .next/
+out/
+backend/static/web/
+backend/static/ops/
 *.tsbuildinfo
 .DS_Store
 

@@ -90,8 +90,8 @@
     "semantic_hash": "95f0eda017a499f6af4104c2ba1ce409"
   },
   "backend/main.py": {
-    "mtime": 1789760777.2426164,
-    "ast_hash": "09e108097786a205663bbfaf9b44682a",
+    "mtime": 1789764550.0897527,
+    "ast_hash": "f196c29100168b69d608de446a090857",
     "semantic_hash": ""
   },
   "backend/models/__init__.py": {
@@ -235,8 +235,8 @@
     "semantic_hash": "b5ed9dd8b4c5ba8e5ab8e6a379c15838"
   },
   "frontend-manager/next.config.js": {
-    "mtime": 1789754013.1002486,
-    "ast_hash": "ccbc0aa572d6133ea37cb1959be9a8ee",
+    "mtime": 1789764545.2379386,
+    "ast_hash": "330d42cbd15e0d388aa813965c94446d",
     "semantic_hash": ""
   },
   "frontend-manager/package.json": {
@@ -270,8 +270,8 @@
     "semantic_hash": "b5ed9dd8b4c5ba8e5ab8e6a379c15838"
   },
   "frontend/next.config.js": {
-    "mtime": 1789754013.138139,
-    "ast_hash": "ccbc0aa572d6133ea37cb1959be9a8ee",
+    "mtime": 1789764545.23895,
+    "ast_hash": "376e8f32bef8c40459f57a87977a556b",
     "semantic_hash": ""
   },
   "frontend/package.json": {
@@ -310,8 +310,8 @@
     "semantic_hash": "a0670b006deb54787587ddbbf697b5c8"
   },
   "README.md": {
-    "mtime": 1789763394.1224384,
-    "ast_hash": "8262ff348a56f5ce26cc90347097af0f",
+    "mtime": 1789764553.1771586,
+    "ast_hash": "ed8b7245bb69e2f834a944ca51d8e43f",
     "semantic_hash": ""
   },
   "backend/requirements.txt": {
@@ -320,9 +320,9 @@
     "semantic_hash": "bbbc5a20694d4d492968cb03587f26fc"
   },
   "docker-compose.yml": {
-    "mtime": 1789742203.4110258,
-    "ast_hash": "5793bc70661a72878af9866c3a35684c",
-    "semantic_hash": "5793bc70661a72878af9866c3a35684c"
+    "mtime": 1789764568.5921333,
+    "ast_hash": "43f896bd0425072316c01604e8be7bb4",
+    "semantic_hash": ""
   },
   "docs/architecture.md": {
     "mtime": 1789763394.6832297,
@@ -757,6 +757,16 @@
   "docs/system-architecture.md": {
     "mtime": 1789763390.5580685,
     "ast_hash": "717355c3b30d51278814075a43fbb18d",
+    "semantic_hash": ""
+  },
+  "backend/web.py": {
+    "mtime": 1789764548.4634218,
+    "ast_hash": "6fdd89cde8de924e95dcc6816f78c0e2",
+    "semantic_hash": ""
+  },
+  "render.yaml": {
+    "mtime": 1789764551.6441722,
+    "ast_hash": "7b3a8b83832214dcee8441509a89999c",
     "semantic_hash": ""
   }
 }
