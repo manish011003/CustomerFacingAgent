@@ -3,8 +3,13 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from models.schemas import RuleHit, StyleHit, TurnHit
+from models.schemas import Customer, KnownFact, RuleHit, StyleHit, TurnHit
 from products.knowledge.base import PassengerKnowledgeStore
+
+# Indices that later turns query. Dual-write without a refresh leaves those
+# documents invisible to the next search, so isolation-by-filter would be a
+# claim the tests could not actually exercise.
+SEARCHABLE = frozenset({"passengers", "events", "policy_rules", "style_samples", "memories"})
 
 
 class ElasticsearchKnowledgeStore(PassengerKnowledgeStore):
@@ -34,9 +39,12 @@ class ElasticsearchKnowledgeStore(PassengerKnowledgeStore):
         mappings = {
             "passengers": {"mappings": {"properties": {"name": {"type": "text"}, "pnr": {"type": "keyword"}, "id": {"type": "keyword"}}}},
             "bookings": {"mappings": {"properties": {"pnr": {"type": "keyword"}, "customer_id": {"type": "keyword"}}}},
-            "events": {"mappings": {"properties": {"session_id": {"type": "keyword"}, "customer_id": {"type": "keyword"}, "ts": {"type": "date"}, "kind": {"type": "keyword"}, "message": {"type": "text"}, "reply": {"type": "text"}}}},
+            # `category` and `low_confidence` carry the frustration observation.
+            # Mapped explicitly so the confidence gate stays filterable instead
+            # of depending on whatever the first document made dynamic.
+            "events": {"mappings": {"properties": {"session_id": {"type": "keyword"}, "customer_id": {"type": "keyword"}, "ts": {"type": "date"}, "kind": {"type": "keyword"}, "message": {"type": "text"}, "reply": {"type": "text"}, "category": {"type": "keyword"}, "low_confidence": {"type": "boolean"}}}},
             "cases": {"mappings": {"properties": {"id": {"type": "keyword"}, "status": {"type": "keyword"}}}},
-            "graph_edges": {"mappings": {"properties": {"from_id": {"type": "keyword"}, "to_id": {"type": "keyword"}, "rel": {"type": "keyword"}}}},
+            "graph_edges": {"mappings": {"properties": {"from_id": {"type": "keyword"}, "to_id": {"type": "keyword"}, "rel": {"type": "keyword"}, "low_confidence": {"type": "boolean"}}}},
             "policy_rules": {"mappings": {"properties": {"clause_id": {"type": "keyword"}, "rule_id": {"type": "keyword"}, "kind": {"type": "keyword"}, "title": {"type": "text"}, "text": {"type": "text"}}}},
             "style_samples": {"mappings": {"properties": {"id": {"type": "keyword"}, "customer": {"type": "text"}, "agent": {"type": "text"}}}},
             "memories": {"mappings": {"properties": {"customer_id": {"type": "keyword"}, "fact": {"type": "text"}, "ts": {"type": "date"}}}},
@@ -47,9 +55,48 @@ class ElasticsearchKnowledgeStore(PassengerKnowledgeStore):
 
     def _persist(self, index: str, doc_id: str, document: dict[str, Any]) -> None:
         try:
-            self._es.index(index=index, id=doc_id, document=document)
+            self._es.index(
+                index=index,
+                id=doc_id,
+                document=document,
+                refresh=index in SEARCHABLE,
+            )
         except Exception:
             pass
+
+    def identify(
+        self,
+        name: str | None = None,
+        pnr: str | None = None,
+        customer_id: str | None = None,
+    ) -> Customer | None:
+        """Passenger lookup is a filtered query, not a scan of `self.passengers`."""
+        try:
+            filters: list[dict[str, Any]] = []
+            must: list[dict[str, Any]] = []
+            if customer_id:
+                filters.append({"term": {"id": customer_id}})
+            elif pnr:
+                filters.append({"term": {"pnr": pnr.upper()}})
+            elif name:
+                must.append({"match": {"name": name}})
+            else:
+                return None
+            response = self._es.search(
+                index="passengers",
+                size=1,
+                query={"bool": {"filter": filters, "must": must}},
+            )
+            hits = response["hits"]["hits"]
+            if hits:
+                source = hits[0]["_source"]
+                record = self.passengers.get(source.get("id") or "")
+                if record:
+                    return self._as_customer(record)
+                return self._as_customer(source)
+        except Exception:
+            pass
+        return super().identify(name=name, pnr=pnr, customer_id=customer_id)
 
     def seed(self) -> None:
         super().seed()
@@ -156,3 +203,27 @@ class ElasticsearchKnowledgeStore(PassengerKnowledgeStore):
         except Exception:
             pass
         return super().search_style(query, k=k)
+
+    def known_facts(self, customer_id: str, *, k: int = 5) -> list[KnownFact]:
+        try:
+            response = self._es.search(
+                index="memories",
+                size=k,
+                query={"bool": {"filter": [{"term": {"customer_id": customer_id}}]}},
+                sort=[{"ts": {"order": "desc"}}],
+            )
+            rows = list(response["hits"]["hits"])
+            if rows:
+                # Search came back newest-first; the packet reads chronologically.
+                rows.reverse()
+                return [
+                    KnownFact(
+                        fact=row["_source"]["fact"],
+                        source=row["_source"].get("source", ""),
+                        ts=row["_source"].get("ts", ""),
+                    )
+                    for row in rows
+                ]
+        except Exception:
+            pass
+        return super().known_facts(customer_id, k=k)

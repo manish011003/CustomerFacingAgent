@@ -46,7 +46,8 @@ def resolved_config() -> bool:
     print(f"  base_url     {report['base_url'] or '(sdk default)'}")
     print(f"  key          {report['key_fingerprint'] or '(none)'}")
     caps = report["caps"]
-    print(f"  caps         extract {caps['max_tokens_extract']} / respond {caps['max_tokens_respond']} tokens, "
+    print(f"  agent        {report.get('agent_mode', 'fallback')}")
+    print(f"  caps         extract {caps['max_tokens_extract']} / respond {caps['max_tokens_respond']} / agent {caps.get('max_tokens_agent')} tokens, "
           f"{caps['timeout_seconds']}s timeout")
     print(f"  budget       ${report['budget']['daily_budget_usd']}/day, "
           f"{caps['max_calls_per_session']} calls per conversation")
@@ -122,6 +123,7 @@ def live_turn() -> bool:
     print(f"  tokens       {audit['prompt_tokens']} in / {audit['completion_tokens']} out")
     print(f"  cost         ${audit['est_cost_usd']:.6f}")
     print(f"  contained    {audit['contained']}  {audit['escalation_reasons']}")
+    print(f"  agent_mode   {audit.get('agent_mode')}")
     print(f"  grounded     {audit['grounded_decisions']}/{audit['decisions']} decisions cited")
     if audit["degradations"]:
         print(f"  degraded     {audit['degradations']}")

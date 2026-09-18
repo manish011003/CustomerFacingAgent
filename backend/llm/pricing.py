@@ -9,9 +9,13 @@ RATES: dict[str, tuple[float, float]] = {
     "gemini-2.5-flash-lite": (0.10, 0.40),
     "gemini-2.5-pro": (1.25, 10.00),
     "gemini-2.0-flash": (0.10, 0.40),
+    # Llama 3.x on Groq is "contact sales" now, so these are the last rates it
+    # published. Kept for anyone holding enterprise access and a pinned model.
     "llama-3.3-70b-versatile": (0.59, 0.79),
     "llama-3.1-8b-instant": (0.05, 0.08),
-    "openai/gpt-oss-120b": (0.15, 0.75),
+    "openai/gpt-oss-20b": (0.075, 0.30),
+    "openai/gpt-oss-120b": (0.15, 0.60),
+    "qwen/qwen3.8-27b": (0.80, 4.00),
     "grok-4.3": (1.25, 2.50),
     "grok-3-mini": (0.30, 0.50),
     "gpt-4o-mini": (0.15, 0.60),

@@ -7,11 +7,57 @@ from typing import Any, Literal
 from uuid import uuid4
 
 from data.loader import load_bookings, load_customers, load_fixtures
-from models.schemas import Booking, Customer, KnownFact, RuleHit, ScenarioFixture, StyleHit, TurnHit
+from models.schemas import (
+    DUTY_OF_CARE_REASONS,
+    FRUSTRATION_SEVERITY,
+    Booking,
+    Customer,
+    FrustrationAssessment,
+    FrustrationCategory,
+    KnownFact,
+    RuleHit,
+    ScenarioFixture,
+    StyleHit,
+    TurnHit,
+)
 from products.knowledge.corpus import policy_clauses, style_docs
 from products.knowledge.scoring import score
 
 ISO = lambda: datetime.now(timezone.utc).isoformat()
+
+
+def _seconds_between(start: str | None, end: str | None) -> float | None:
+    if not start or not end:
+        return None
+    try:
+        began = datetime.fromisoformat(start.replace("Z", "+00:00"))
+        finished = datetime.fromisoformat(end.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return max(0.0, (finished - began).total_seconds())
+
+
+def _tally(values) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
+
+
+def _category_counts(events: list[dict[str, Any]]) -> dict[str, int]:
+    """Counts in severity order, and only for categories actually observed.
+
+    Fixed key order means the ops panel does not reshuffle between refreshes.
+    """
+    counts = _tally(event.get("category") or "unknown" for event in events)
+    ordered = {
+        category.value: counts[category.value]
+        for category in FRUSTRATION_SEVERITY
+        if category.value in counts
+    }
+    for category, count in counts.items():
+        ordered.setdefault(category, count)
+    return ordered
 
 
 def _percentile(ordered: list[int], pct: int) -> int | None:
@@ -278,9 +324,66 @@ class PassengerKnowledgeStore(ABC):
         self.graph_edges.append(edge)
         self._persist("graph_edges", edge["id"], edge)
 
+    def append_frustration(
+        self,
+        assessment: FrustrationAssessment,
+        *,
+        session_id: str,
+        customer_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Record one frustration observation as an event plus a graph edge.
+
+        Deliberately no new index and no new writer: this goes through
+        `append_event` and `append_edge`, so the Elasticsearch dual-write and
+        the JSON in-memory path are both inherited and `JsonKnowledgeStore`
+        needs no code of its own.
+
+        The confidence gate is expressed as a field, not as a dropped write.
+        Every observation is auditable; `low_confidence` decides whether the
+        aggregations below count it. An unreviewed guess must not silently
+        shape an ops number, but it must also not vanish.
+
+        A NEUTRAL turn gets the event and no edge. "Exhibits frustration:
+        neutral" is not a fact about the passenger, and writing it would bury
+        the real edges in the passenger graph.
+        """
+        event = self.append_event(
+            {
+                "kind": "frustration",
+                "session_id": session_id,
+                "customer_id": customer_id,
+                "category": assessment.category.value,
+                "confidence": assessment.confidence,
+                "signals": list(assessment.signals),
+                "escalation_recommended": assessment.escalation_recommended,
+                "low_confidence": assessment.low_confidence,
+                "detector": assessment.source,
+            }
+        )
+        if assessment.category is not FrustrationCategory.NEUTRAL:
+            self.append_edge(
+                {
+                    "customer_id": customer_id,
+                    "session_id": session_id,
+                    "from_id": customer_id or session_id,
+                    "from_type": "Customer" if customer_id else "Session",
+                    "rel": "EXHIBITS_FRUSTRATION",
+                    "to_id": assessment.category.value,
+                    "to_type": "FrustrationCategory",
+                    "reason": ", ".join(assessment.signals) or "category inferred without a named signal",
+                    "source": "Frustration classifier",
+                    "signals": list(assessment.signals),
+                    "confidence": assessment.confidence,
+                    "low_confidence": assessment.low_confidence,
+                }
+            )
+        return event
+
     def upsert_case(self, case: dict[str, Any]) -> dict[str, Any]:
         case_id = case.get("id") or str(uuid4())
+        existing = self.cases.get(case_id) or {}
         case["id"] = case_id
+        case["created_at"] = case.get("created_at") or existing.get("created_at") or ISO()
         case["updated_at"] = ISO()
         self.cases[case_id] = case
         self._persist("cases", case_id, case)
@@ -290,7 +393,16 @@ class PassengerKnowledgeStore(ABC):
         return sorted(self.cases.values(), key=lambda c: c.get("updated_at", ""), reverse=True)
 
     def get_case(self, case_id: str) -> dict[str, Any] | None:
-        return self.cases.get(case_id)
+        found = self.cases.get(case_id)
+        if not found:
+            return None
+        customer_id = found.get("customer_id")
+        if customer_id and not found.get("timeline"):
+            found = {
+                **found,
+                "timeline": [e for e in self.events if e.get("customer_id") == customer_id][-50:],
+            }
+        return found
 
     def passenger_360(self, customer_id: str) -> dict[str, Any] | None:
         p = self.passengers.get(customer_id)
@@ -307,12 +419,125 @@ class PassengerKnowledgeStore(ABC):
         edges = [e for e in self.graph_edges if e.get("customer_id") == customer_id]
         nodes: dict[str, dict[str, Any]] = {}
         for e in edges:
-            nodes[e["from_id"]] = {"id": e["from_id"], "type": e.get("from_type")}
-            nodes[e["to_id"]] = {"id": e["to_id"], "type": e.get("to_type")}
+            nodes[e["from_id"]] = {
+                "id": e["from_id"],
+                "type": e.get("from_type"),
+                "label": self._graph_label(e["from_id"], e.get("from_type") or "Unknown"),
+            }
+            nodes[e["to_id"]] = {
+                "id": e["to_id"],
+                "type": e.get("to_type"),
+                "label": self._graph_label(e["to_id"], e.get("to_type") or "Unknown", e.get("reason") if e.get("to_type") == "Disruption" else None),
+            }
         customer = self.passengers.get(customer_id)
         if customer:
             nodes[customer_id] = {"id": customer_id, "type": "Customer", "label": customer["name"]}
         return {"nodes": list(nodes.values()), "edges": edges}
+
+    def knowledge_graph(self) -> dict[str, Any]:
+        """The live passenger knowledge base, as a graph Operations can draw.
+
+        Dedupes (from, rel, to) so a conversation that retrieved the same booking
+        five times still shows one HAS_BOOKING edge. Raw writes stay in
+        `graph_edges` for audit.
+        """
+        nodes: dict[str, dict[str, Any]] = {}
+        unique: dict[tuple[str, str, str], dict[str, Any]] = {}
+        types: dict[str, int] = {}
+        rels: dict[str, int] = {}
+
+        def ensure(node_id: str | None, node_type: str | None, hint: str | None = None) -> None:
+            if not node_id:
+                return
+            kind = node_type or "Unknown"
+            existing = nodes.get(node_id)
+            label = self._graph_label(node_id, kind, hint)
+            if existing is None:
+                nodes[node_id] = {"id": node_id, "type": kind, "label": label}
+                types[kind] = types.get(kind, 0) + 1
+            elif hint and (not existing.get("label") or existing["label"] == node_id):
+                existing["label"] = label
+
+        for edge in self.graph_edges:
+            from_id = edge.get("from_id")
+            to_id = edge.get("to_id")
+            rel = edge.get("rel") or "RELATED"
+            if not from_id or not to_id:
+                continue
+            ensure(from_id, edge.get("from_type"), edge.get("label"))
+            ensure(to_id, edge.get("to_type"), edge.get("reason") if edge.get("to_type") == "Disruption" else None)
+            key = (str(from_id), str(rel), str(to_id))
+            previous = unique.get(key)
+            if previous is None:
+                unique[key] = {
+                    "id": edge.get("id"),
+                    "from_id": from_id,
+                    "to_id": to_id,
+                    "rel": rel,
+                    "reason": edge.get("reason"),
+                    "source": edge.get("source"),
+                    "customer_id": edge.get("customer_id"),
+                    "status": edge.get("status"),
+                    "action": edge.get("action"),
+                    "low_confidence": edge.get("low_confidence"),
+                    "writes": 1,
+                    "ts": edge.get("ts"),
+                }
+                rels[rel] = rels.get(rel, 0) + 1
+            else:
+                previous["writes"] = int(previous.get("writes") or 1) + 1
+                previous["ts"] = edge.get("ts") or previous.get("ts")
+
+        return {
+            "nodes": list(nodes.values()),
+            "edges": list(unique.values()),
+            "writes": len(self.graph_edges),
+            "unique_edges": len(unique),
+            "types": dict(sorted(types.items(), key=lambda kv: -kv[1])),
+            "relations": dict(sorted(rels.items(), key=lambda kv: -kv[1])),
+            "kb_backend": self.backend,
+            "note": "Edges are written as conversations happen. This is the same graph_edges store, not a side table.",
+        }
+
+    def _graph_label(self, node_id: str, node_type: str, hint: str | None = None) -> str:
+        if node_type == "Customer":
+            passenger = self.passengers.get(node_id)
+            if passenger:
+                return passenger.get("name") or node_id
+        if node_type == "Booking":
+            booking = next((row for row in self.bookings if row.get("id") == node_id), None)
+            if booking:
+                return booking.get("flight") or booking.get("pnr") or node_id
+        if node_type == "FrustrationCategory":
+            return node_id.replace("_", " ")
+        if node_type == "Disruption":
+            return (hint or node_id).replace("_", " ")
+        if node_type == "PolicyRule":
+            return node_id
+        if node_type == "Session":
+            return f"session {node_id[-6:]}" if len(node_id) > 8 else node_id
+        return hint or node_id
+
+    def operations(self) -> dict[str, Any]:
+        """Lightweight dashboard numbers. Policy is not computed here."""
+        cases = list(self.cases.values())
+        total = len(cases)
+        resolved = [c for c in cases if c.get("status") == "resolved"]
+        escalated = [c for c in cases if c.get("status") == "escalated"]
+        open_cases = [c for c in cases if c.get("status") == "open"]
+        durations = [
+            seconds
+            for c in resolved
+            if (seconds := _seconds_between(c.get("created_at"), c.get("resolved_at") or c.get("updated_at"))) is not None
+        ]
+        return {
+            "total_cases": total,
+            "resolved_cases": len(resolved),
+            "escalated_cases": len(escalated),
+            "open_cases": len(open_cases),
+            "resolution_rate": round(len(resolved) / total, 4) if total else 0.0,
+            "average_resolution_seconds": round(sum(durations) / len(durations)) if durations else None,
+        }
 
     def analytics(self) -> dict[str, Any]:
         decisions = [e for e in self.events if e.get("kind") == "decision"]
@@ -327,7 +552,111 @@ class PassengerKnowledgeStore(ABC):
             "seeded_members": sum(1 for p in self.passengers.values() if p.get("account_origin") == "seeded"),
             "self_service_members": sum(1 for p in self.passengers.values() if p.get("account_origin") == "self_service"),
             "containment": self.containment(),
-            "note": "Live passenger directory. Assignment profiles are pre-enrolled members; new passengers can onboard.",
+            "operations": self.operations(),
+            "frustration": self.frustration(),
+            "note": "Operations metrics are derived from cases the resolution agent already wrote.",
+        }
+
+    def frustration(self) -> dict[str, Any]:
+        """How distressed the traffic was, and whether distress cost containment.
+
+        Low-confidence observations are reported in their own buckets and are
+        absent from every primary count. Merging them would let a regex guess
+        move a number an operations decision is made on.
+        """
+        events = [e for e in self.events if e.get("kind") == "frustration"]
+        if not events:
+            return {
+                "observations": 0,
+                "note": "No frustration observations yet. Run a conversation to populate this.",
+            }
+
+        confident = [e for e in events if not e.get("low_confidence")]
+        unconfirmed = [e for e in events if e.get("low_confidence")]
+
+        return {
+            "observations": len(events),
+            "counted_observations": len(confident),
+            "by_category": _category_counts(confident),
+            "low_confidence_observations": len(unconfirmed),
+            "low_confidence_by_category": _category_counts(unconfirmed),
+            "escalation_recommended": sum(1 for e in confident if e.get("escalation_recommended")),
+            "detectors": _tally(e.get("detector") or "unknown" for e in confident),
+            "containment_by_category": self._containment_by_category(confident),
+            "graph": self._frustration_graph(),
+            "note": (
+                "Primary counts exclude low_confidence observations, which are logged for "
+                "audit and await corroboration. Category is a signal: it never granted, "
+                "denied, or reordered eligibility, only presentation order and tone."
+            ),
+        }
+
+    def _containment_by_category(self, confident: list[dict[str, Any]]) -> dict[str, Any]:
+        """Did high frustration correlate with needing a human?
+
+        Keyed on the conversation's *peak* category, because a passenger who
+        was distressed and then calmed down was still a distressed contact.
+        """
+        peak: dict[str, FrustrationCategory] = {}
+        for event in confident:
+            session_id = event.get("session_id")
+            if not session_id:
+                continue
+            try:
+                category = FrustrationCategory(event.get("category"))
+            except ValueError:
+                continue
+            current = peak.get(session_id)
+            if current is None or FRUSTRATION_SEVERITY.index(category) > FRUSTRATION_SEVERITY.index(current):
+                peak[session_id] = category
+
+        buckets: dict[str, dict[str, Any]] = {}
+        for turn in self.events:
+            if turn.get("kind") != "turn" or "contained" not in turn:
+                continue
+            category = peak.get(turn.get("session_id"))
+            if category is None:
+                continue
+            bucket = buckets.setdefault(
+                category.value, {"turns": 0, "contained_turns": 0, "escalated_turns": 0}
+            )
+            bucket["turns"] += 1
+            if turn.get("contained"):
+                bucket["contained_turns"] += 1
+            else:
+                bucket["escalated_turns"] += 1
+
+        for bucket in buckets.values():
+            bucket["containment_rate"] = round(bucket["contained_turns"] / bucket["turns"], 4)
+        return {
+            category.value: buckets[category.value]
+            for category in FRUSTRATION_SEVERITY
+            if category.value in buckets
+        }
+
+    def _frustration_graph(self) -> dict[str, Any]:
+        """Aggregate the EXHIBITS_FRUSTRATION edges themselves.
+
+        Read from `graph_edges` rather than from a parallel table, so what ops
+        sees is the same audit trail the passenger graph is drawn from.
+        """
+        edges = [e for e in self.graph_edges if e.get("rel") == "EXHIBITS_FRUSTRATION"]
+        counted = [e for e in edges if not e.get("low_confidence")]
+        signals_by_category: dict[str, dict[str, int]] = {}
+        for edge in counted:
+            bucket = signals_by_category.setdefault(edge.get("to_id") or "unknown", {})
+            for signal in edge.get("signals") or []:
+                bucket[signal] = bucket.get(signal, 0) + 1
+        return {
+            "edge": "EXHIBITS_FRUSTRATION",
+            "edges": len(edges),
+            "counted_edges": len(counted),
+            "low_confidence_edges": len(edges) - len(counted),
+            "passengers": len({e.get("customer_id") for e in counted if e.get("customer_id")}),
+            "top_signals_by_category": {
+                category: dict(sorted(signals.items(), key=lambda kv: (-kv[1], kv[0]))[:5])
+                for category, signals in signals_by_category.items()
+            },
         }
 
     def containment(self) -> dict[str, Any]:
@@ -345,9 +674,14 @@ class PassengerKnowledgeStore(ABC):
 
         contained = [t for t in turns if t.get("contained")]
         by_reason: dict[str, int] = {}
+        duty_of_care = {reason.value for reason in DUTY_OF_CARE_REASONS}
+        distress_turns = 0
         for turn in turns:
-            for reason in turn.get("escalation_reasons") or []:
+            reasons = turn.get("escalation_reasons") or []
+            for reason in reasons:
                 by_reason[reason] = by_reason.get(reason, 0) + 1
+            if any(reason in duty_of_care for reason in reasons):
+                distress_turns += 1
 
         claimed = sum(int(t.get("decisions") or 0) for t in turns)
         cited = sum(int(t.get("grounded_decisions") or 0) for t in turns)
@@ -360,6 +694,12 @@ class PassengerKnowledgeStore(ABC):
             "containment_rate": round(len(contained) / len(turns), 4),
             "escalated_turns": len(turns) - len(contained),
             "escalations_by_reason": dict(sorted(by_reason.items(), key=lambda kv: -kv[1])),
+            # Duty-of-care handovers are not an authority limit the data pack
+            # draws, so they are counted apart rather than read as one.
+            "distress_escalations": distress_turns,
+            "authority_escalations": sum(
+                count for reason, count in by_reason.items() if reason not in duty_of_care
+            ),
             "decisions_claimed": claimed,
             "decisions_cited": cited,
             "grounding_coverage": round(cited / claimed, 4) if claimed else None,
@@ -373,7 +713,9 @@ class PassengerKnowledgeStore(ABC):
             "est_cost_per_turn_usd": round(spend / len(turns), 6),
             "est_cost_per_contained_turn_usd": round(spend / len(contained), 6) if contained else None,
             "note": (
-                "Every escalation is a policy authority boundary, not an agent failure. "
-                "Read containment_rate alongside escalations_by_reason."
+                "Every authority escalation is a policy boundary, not an agent failure. "
+                "Read containment_rate alongside escalations_by_reason, and read "
+                "distress_escalations apart from it: a duty-of-care handover means the "
+                "passenger needed a person, not that a rule ran out."
             ),
         }

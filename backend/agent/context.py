@@ -6,6 +6,8 @@ from models.schemas import (
     CustomerAgentContext,
     DecisionStatus,
     Extraction,
+    FrustrationAssessment,
+    FrustrationCategory,
     PolicyEvaluation,
     Retrieval,
     RetrievalPlan,
@@ -25,6 +27,11 @@ STYLE = {
         "Actions are simulated prototype actions.",
     ],
 }
+
+RAW_POLICY_MARKERS = (
+    "Delay under 3 hours: ₹500 meal voucher. Delay more than 3 hours:",
+    "Agents cannot waive fare differences above ₹1,500 without supervisor approval.",
+)
 
 
 def _disruption(booking: Booking | None) -> dict | None:
@@ -84,16 +91,19 @@ def assemble(
     kb_backend: str = "json",
     plan: RetrievalPlan | None = None,
     retrieval: Retrieval | None = None,
+    frustration: FrustrationAssessment | None = None,
 ) -> CustomerAgentContext:
     unidentified = customer is None
     missing = list(evaluation.missing_slots) if evaluation else []
     if unidentified:
+        # Signed-out packet: identity is the account, not a name/PNR guess.
         missing = ["sign_in"]
         evaluation = None
         fixture = None
         booking = None
         related_bookings = []
         retrieval = None
+        extraction = Extraction(raw_text=extraction.raw_text)
     elif not booking:
         missing = missing or ["booking"]
 
@@ -131,6 +141,7 @@ def assemble(
         disruption=_disruption(booking),
         session_memory=session,
         emotion=extraction.emotion,
+        frustration=frustration,
         requests_this_turn=extraction.requests,
         policy_decision=evaluation,
         scenario_fixture=fixture,
@@ -168,6 +179,7 @@ def packet_for_ui(ctx: CustomerAgentContext) -> dict:
         else ctx.booking.model_dump(),
         "disruption": ctx.disruption,
         "emotion": ctx.emotion,
+        "frustration": None if not ctx.frustration else ctx.frustration.model_dump(),
         "retrieved_facts": ctx.retrieved_facts,
         "requests_this_turn": [r.model_dump() for r in ctx.requests_this_turn],
         "policy_decision": None if not ctx.policy_decision else ctx.policy_decision.model_dump(),
@@ -177,17 +189,26 @@ def packet_for_ui(ctx: CustomerAgentContext) -> dict:
         "missing_slots": ctx.missing_slots,
         "authority": ctx.authority,
         "executed_actions": ctx.session_memory.executed_actions,
+        "recalled_turns": [t.model_dump() for t in ctx.session_memory.recalled_turns],
+        "known_facts": [f.model_dump() for f in ctx.session_memory.known_facts],
         "kb_backend": ctx.kb_backend,
         "forbidden_notes": ctx.forbidden_notes,
     }
 
 
 def render_extract_prompt(utterance: str, session: SessionMemory) -> str:
+    # Last 3 turns verbatim plus whatever recall already retrieved. The whole
+    # transcript is not a retrieval strategy — it is how cost and leakage grow.
     memory = {
         "identified": session.identified,
         "customer_id": session.customer_id,
         "open_question": session.open_question,
         "executed_actions": session.executed_actions,
+        "recent_turns": session.messages[-6:],
+        "recalled_turns": [
+            {"message": t.message, "reply": t.reply} for t in session.recalled_turns[:3]
+        ],
+        "known_facts": [f.fact for f in session.known_facts],
     }
     return (
         "Extract JSON only. Fields: emotion, legal_or_formal, requests[], mentioned_name, mentioned_pnr. "
@@ -216,6 +237,16 @@ def narrate(ctx: CustomerAgentContext) -> list[str]:
     lines: list[str] = []
     if ctx.emotion:
         lines.append(f"Passenger tone: {ctx.emotion}.")
+    if ctx.frustration and ctx.frustration.category is not FrustrationCategory.NEUTRAL:
+        # Stated as an observation with an explicit ceiling on what it means, so
+        # a model reading these facts cannot treat distress as a reason to
+        # approve something. The eligible set above is the only authority.
+        lines.append(
+            f"Frustration observed: {ctx.frustration.category.value}"
+            + (f" (signals: {', '.join(ctx.frustration.signals)})" if ctx.frustration.signals else "")
+            + ". This changes wording and which approved option comes first. "
+            "It grants nothing."
+        )
 
     if ctx.unidentified:
         lines.append("The passenger is not signed in. No record, booking, or entitlement is available.")
@@ -318,6 +349,7 @@ def render_respond_prompt(ctx: CustomerAgentContext, utterance: str) -> str:
 
 
 def context_contains_forbidden(prompt: str, current_name: str | None) -> list[str]:
+    """Code-side gate: other passengers, raw policy bodies, and history-as-benefit."""
     leaks = []
     from kb.store import store
 
@@ -327,6 +359,13 @@ def context_contains_forbidden(prompt: str, current_name: str | None) -> list[st
     for name in others:
         if name in prompt:
             leaks.append(name)
-    if "Delay under 3 hours: ₹500 meal voucher. Delay more than 3 hours:" in prompt:
-        leaks.append("raw_policy_body")
+        email = next((p.get("email") for p in store.passengers.values() if p.get("name") == name), None)
+        if email and email in prompt:
+            leaks.append(email)
+    for marker in RAW_POLICY_MARKERS:
+        if marker in prompt:
+            leaks.append("raw_policy_body")
+            break
+    if "delayed baggage" in prompt.lower() or "prior complaint" in prompt.lower():
+        leaks.append("travel_history_as_benefit")
     return leaks

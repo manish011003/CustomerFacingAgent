@@ -5,9 +5,11 @@ from models.schemas import (
     DecisionStatus,
     EscalationReason,
     ExtractedRequest,
+    FrustrationCategory,
     PolicyDecision,
     PolicyEvaluation,
 )
+from policy.exclusivity import offered_actions
 from policy.ops import (
     AUTHORITY_SOURCE,
     CANCELLATION_SOURCE,
@@ -18,7 +20,13 @@ from policy.ops import (
     append_decision,
 )
 
-__all__ = ["FARE_WAIVER_LIMIT_INR", "delay_entitlements", "evaluate_policy", "baseline_for_booking"]
+__all__ = [
+    "FARE_WAIVER_LIMIT_INR",
+    "delay_entitlements",
+    "evaluate_policy",
+    "baseline_for_booking",
+    "offered_actions",
+]
 
 
 def delay_entitlements(delay_hours: int) -> list[PolicyDecision]:
@@ -78,7 +86,24 @@ def delay_entitlements(delay_hours: int) -> list[PolicyDecision]:
     return items
 
 
-def baseline_for_booking(customer: Customer, booking: Booking) -> PolicyEvaluation:
+def baseline_for_booking(
+    customer: Customer,
+    booking: Booking,
+    *,
+    frustration_category: FrustrationCategory | None = None,
+) -> PolicyEvaluation:
+    """Entitlements this disruption carries before the passenger asks anything.
+
+    `frustration_category` reaches `policy/exclusivity.py` and nothing else. It
+    cannot touch a single decision, which is what lets the whole frustration
+    subsystem be removed by deleting one argument.
+    """
+    evaluation = _baseline(customer, booking)
+    evaluation.offered_actions = offered_actions(evaluation, frustration_category)
+    return evaluation
+
+
+def _baseline(customer: Customer, booking: Booking) -> PolicyEvaluation:
     evaluation = PolicyEvaluation()
     if booking.status == "CANCELLED" and booking.airline_caused:
         evaluation.disruption_type = "cancellation"
@@ -162,8 +187,9 @@ def evaluate_policy(
     *,
     fare_difference_inr: int | None = None,
     legal_or_formal: bool = False,
+    frustration_category: FrustrationCategory | None = None,
 ) -> PolicyEvaluation:
-    evaluation = baseline_for_booking(customer, booking)
+    evaluation = _baseline(customer, booking)
 
     if legal_or_formal:
         append_decision(
@@ -181,6 +207,7 @@ def evaluate_policy(
     if not requests and not legal_or_formal:
         if evaluation.disruption_type == "cancellation" and "rebook_24h_or_full_refund" in evaluation.ask:
             evaluation.missing_slots.append("rebook_or_refund_choice")
+        evaluation.offered_actions = offered_actions(evaluation, frustration_category)
         return evaluation
 
     for request in requests:
@@ -202,4 +229,7 @@ def evaluate_policy(
         evaluation.ask = [a for a in evaluation.ask if a not in {"refund_original", "rebook_24h_or_full_refund"}]
         evaluation.missing_slots = [s for s in evaluation.missing_slots if s != "rebook_or_refund_choice"]
 
+    # Last, so exclusivity and ordering see the final decision set. Frustration
+    # reaches this line and no other in the engine.
+    evaluation.offered_actions = offered_actions(evaluation, frustration_category)
     return evaluation

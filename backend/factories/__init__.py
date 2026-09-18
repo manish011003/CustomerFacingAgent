@@ -6,6 +6,7 @@ from factories.llm_factory import LlmFactory
 from factories.onboarding_factory import OnboardingFactory
 from factories.policy_factory import PolicyHandlerFactory
 from factories.reply_factory import ReplyFactory
+from factories.staff_factory import StaffFactory
 
 __all__ = [
     "ExtractorFactory",
@@ -16,4 +17,5 @@ __all__ = [
     "HasherFactory",
     "AuthFactory",
     "OnboardingFactory",
+    "StaffFactory",
 ]

@@ -1,0 +1,57 @@
+AeroResolve demo — kb=elasticsearch, llm=groq/openai/gpt-oss-20b
+
+============================================================================
+SCENARIO 1 - PRIYA NAIR (Gold), flight cancelled
+============================================================================
+  PASSENGER: My flight got cancelled and no one told me anything!
+  AGENT    : I’m sorry you’re dealing with a cancellation. Priya, your flight SK-204 from Delhi to Goa has been cancelled for operational reasons. Because the cancellation was caused by the airline, you can either be rebooked on the next available flight within 24 hours at no extra cost, or receive a full refund to your original payment method, which will be processed within 7 business days. As a Gold member, you’ll have priority access to seats on the next available flight, but no additional compensation is provided. Please let me know which option you’d like to choose.
+  [1817ms | openai/gpt-oss-20b | 1 llm call(s) | $0.000102 | contained | cited 0/0]
+      ASK       rebook_24h             Cancellation Rebooking Rule
+      ASK       refund_original        Cancellation Rebooking Rule; Refund Processing Rule
+      INFORM    priority_rebooking     Loyalty Tier Rule
+      INFORM    status                 Allowed vs. Prohibited Actions
+
+  PASSENGER: I'm furious. I want a full cash refund plus a free upgrade to business class on my return.
+  AGENT    : I hear you, and I’m sorry this has been such a frustrating experience. Priya, flight SK-204 Delhi → Goa has been cancelled for operational reasons. You are entitled to a full refund to the original payment method, which will be processed within 7 business days. As a Gold member, you have priority rebooking on the next available flight within 24 hours, but no additional compensation is provided beyond the standard policy. A free business-class upgrade on your return is not covered by our policy, so I’m escalating this request to our specialist support team for further review. Your return flight Goa → Delhi on Friday, 25 September 2026 remains unaffected.
+  [494ms | openai/gpt-oss-20b | 1 llm call(s) | $0.000119 | escalated -> unknown_entitlement | cited 2/2]
+      INFORM    rebook_24h             Cancellation Rebooking Rule
+      INFORM    priority_rebooking     Loyalty Tier Rule
+      ESCALATE  business_upgrade       Loyalty Tier Rule; Allowed vs. Prohibited Actions
+      ALLOW     refund_original        Cancellation Rebooking Rule; Refund Processing Rule
+
+============================================================================
+SCENARIO 2 - ARVIND KULKARNI (Silver), 4 hour delay
+============================================================================
+  PASSENGER: This delay will make me miss my meeting. I want hotel accommodation since it has been such a long delay.
+  AGENT    : Arvind, your flight SK-118 from Mumbai to Bengaluru has been delayed by 4 hours, with a new departure time of 11:10. Because the delay exceeds 3 hours, you are entitled to a meal voucher and lounge access. Hotel accommodation is only provided when the delay is more than 5 hours, so it is not applicable in this case.
+  [298ms | openai/gpt-oss-20b | 1 llm call(s) | $0.000072 | contained | cited 3/3]
+      ALLOW     meal_voucher           Delay Compensation Rule
+      ALLOW     lounge                 Delay Compensation Rule
+      DENY      hotel_delayed_hours    Delay Compensation Rule
+
+============================================================================
+SCENARIO 3 - MEHER KAUR (Platinum), 6 hour delay
+============================================================================
+  PASSENGER: I want a full night hotel stay and move me to a higher-fare flight. The fare difference is Rs 2000.
+  AGENT    : Meher, your flight SK-305 from Delhi to Hyderabad is delayed 6 hours, with a new departure at 20:00. I can arrange a hotel stay for the 6 hours of delay now. Because the delay is more than 5 hours, the hotel covers only the delayed hours, not a full night. As a Platinum member you receive priority rebooking, but no additional compensation beyond the standard policy. The fare difference of ₹2000 exceeds the ₹1500 limit that agents can waive, so I am escalating this to a supervisor for approval. I’ll keep you updated once the supervisor responds.
+  [730ms | openai/gpt-oss-20b | 1 llm call(s) | $0.000112 | escalated -> fare_waiver_above_limit | cited 5/5]
+      ALLOW     meal_voucher           Delay Compensation Rule
+      ALLOW     lounge                 Delay Compensation Rule
+      ALLOW     hotel_delayed_hours    Delay Compensation Rule
+      INFORM    priority_rebooking     Loyalty Tier Rule
+      DENY      hotel_full_night       Delay Compensation Rule
+      ESCALATE  fare_waiver            Fare Difference Rule
+
+============================================================================
+MEASURED OVER THIS RUN
+============================================================================
+  containment     2/4 turns = 50%
+                  1 x unknown_entitlement
+                  1 x fare_waiver_above_limit
+  grounding       10/10 claims cited = 100%
+  latency         p50 494ms, p95 1817ms
+  llm calls       4
+  spend           $0.000404 total, $0.000101 per turn
+
+  Every escalation above is a limit the data pack places on agent
+  authority, not a failure to understand the passenger.

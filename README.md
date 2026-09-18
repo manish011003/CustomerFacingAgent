@@ -2,7 +2,7 @@
 
 Policy-governed **airline disruption resolution agent** for the AIONOS.AI Agentic AI Factory Internship — Assignment 3.
 
-This is not a generic LLM chatbot. The model talks. Deterministic code decides.
+This is not a generic LLM chatbot. The model orchestrates. Deterministic tools decide.
 
 **Product thesis:** during a disruption, passengers need a trusted resolution layer that translates policy into options, takes authorized action, and knows when a human must take over.
 
@@ -16,12 +16,19 @@ This is not a generic LLM chatbot. The model talks. Deterministic code decides.
 | Ask only necessary questions | `missing_slots` and `DecisionStatus.ASK`; one slot per turn |
 | Use the supplied data and policies | `policies.json` indexed as clauses, retrieved and quoted with a clause id |
 | Recommend or execute the correct next action | `ALLOW` → simulated action, logged as `SIMULATED` |
-| Handle an angry or confused customer | emotion detected in the extractor, acknowledged in one line; `test_emotion.py` proves tone cannot change an outcome |
-| Escalate when authority is missing | `ESCALATE` → supervisor case packet, tagged with an `EscalationReason` code |
-| Preserve a clear conversation and action record | events, cases, graph edges, and a per-turn audit event |
-| Show it works | containment rate, grounding coverage, p95 latency, and spend at `/api/analytics/containment` |
+| Handle an angry or confused customer | emotion detected in the extractor, acknowledged in one line; `test_emotion.py` proves tone cannot change an outcome. Frustration is a separate audited signal (`classify_frustration` tool + heuristic fallback), written only above `KB_AUTO_STORE_THRESHOLD`, and can never change eligibility |
+| Escalate when authority is missing | `ESCALATE` → supervisor case packet, tagged with an `EscalationReason` code. `SEVERE_CUSTOMER_DISTRESS` is the one duty-of-care member, reported apart from authority limits |
+| Preserve a clear conversation and action record | events, cases, graph edges (`HAS_BOOKING`, `EVALUATED_UNDER`, `DENIED_BY`, `ESCALATED_TO`, `EXHIBITS_FRUSTRATION`), and a per-turn audit event |
+| Show it works | containment rate, grounding coverage, p95 latency, and spend at `/api/analytics/containment`; frustration buckets at `/api/analytics/frustration` |
 
-## Run locally (one command path)
+## Surfaces
+
+Exactly two:
+
+1. **Customer — Resolution Agent** (`frontend`, http://localhost:3000) — one conversation. Choices, confirmations, and escalations land in the thread.
+2. **Internal — Operations** (`frontend-manager`, http://localhost:3001) — audit what the agent did. Staff credentials required. Not linked from the passenger chat.
+
+## Run locally
 
 ```bash
 # 1) Backend
@@ -31,20 +38,18 @@ source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 
-# 2) Passenger platform (AERO Resolve)
+# 2) Customer chat
 cd frontend
 npm install
 npm run dev
 # http://localhost:3000
 
-# 3) Supervisor CRM (AERO OPS) — separate app
+# 3) Operations dashboard
 cd frontend-manager
 npm install
 npm run dev
 # http://localhost:3001
 ```
-
-These are two products. The passenger app has no CRM navigation. Supervisors work only in AERO OPS. Both UIs are built from `packages/ui` via a **platform factory** (`createPlatform("customer" | "manager")`).
 
 Optional Elasticsearch (passenger knowledge base). Without Docker, the same JSON data pack is used:
 
@@ -80,6 +85,14 @@ in front of the passenger, and a model that refuses stops leading the chain for 
 rather than being dropped. `LLM_MODEL` only moves a model to the head of the chain;
 `LLM_FALLBACK_MODELS` replaces the chain, and `=none` tries exactly one model.
 
+Model names in a chain are perishable, which is the argument for keeping them in one table.
+Groq retired the Llama 3.x pair this file first documented to enterprise-only access — both now
+404 as "does not exist or you do not have access to it" on a free key — so the Groq chain is
+`openai/gpt-oss-20b`, then `openai/gpt-oss-120b`, then `qwen/qwen3.8-27b`, ordered
+cheapest-and-fastest first. `tools/probe_models.py` is what catches this: it calls every model in
+the chain and reports which ones answer, because appearing in `models.list()` does not mean a
+model will serve a request.
+
 Check what loaded, without printing the key:
 
 ```bash
@@ -91,7 +104,7 @@ asserts the three fixed policy outcomes did not move with a model in the loop. T
 never touches the network, so this script is the only thing that exercises a provider for real.
 `tools/probe_models.py` reports which models in the chain your key actually serves.
 
-Two things a live Gemini key taught us, both now handled:
+Three things live keys taught us, all now handled:
 
 - **Gemini 2.5 thinks by default and bills the thinking to `max_tokens`**, so a 220-token cap left
   13 tokens for the answer and the passenger got `"I understand this delay is frustrating, Me"` —
@@ -102,10 +115,20 @@ Two things a live Gemini key taught us, both now handled:
   respond prompt now states the required output shape, and a rewrite that adds or drops a money
   amount is discarded in favour of the approved text. A polish may change any word; it may not
   change the money.
+- **`gpt-oss` typesets.** It returned `500\u202fINR` and `six\u2011hour`, using a narrow no-break
+  space and a non-breaking hyphen. Cosmetic on screen, but a thin space between digits reads as
+  two separate numbers, so a rewrite that changed nothing would have failed the money check and
+  been thrown away. Spacing is flattened to ASCII before the comparison.
 
 The free tier allows 5 requests per minute per model, which is what the model chain is for: during
 verification `gemini-2.5-flash` hit its limit mid-turn and `gemini-2.5-flash-lite` answered
 instead, so the turn completed with full policy detail rather than degrading.
+
+A per-minute limit recovers; a per-day quota does not. With the Gemini daily quota spent, all four
+models in that chain refused at once and every turn fell back to templates — correct outcomes,
+plainer wording, and `model_unavailable` on each turn's `degraded` list saying exactly why.
+Switching to `LLM_PROVIDER=groq` restored the polish, and moved p95 latency from 8.2s to 1.8s:
+turns were spending seconds collecting refusals from models that had nothing left to give.
 
 The same state is available over HTTP:
 
@@ -121,19 +144,21 @@ cd backend && pytest -q
 
 ## What reviewers should try
 
-Sign in on AERO Resolve (`http://localhost:3000/login`). Priya Nair, Arvind Kulkarni, and Meher Kaur are **already enrolled members**, not demo chips. Shared prototype password: `Aero2026!`.
+Sign in at `http://localhost:3000/login`. The chat UI is the same for every passenger. The three assignment travellers are already enrolled; shared prototype password: `Aero2026!`.
 
-1. **Priya Nair** (`priya.nair@example.com`) — cancellation: refund allowed; business-class upgrade not in policy → escalate. Return flight remains unaffected. Gold ≠ extra compensation.
+1. **Priya Nair** (`priya.nair@example.com`) — cancellation: refund or rebook in the thread; business-class upgrade not in policy → escalate. Return flight remains unaffected. Gold ≠ extra compensation.
 2. **Arvind Kulkarni** (`arvind.kulkarni@example.com`) — 4h delay: meal voucher + lounge; hotel denied (not more than 5 hours).
 3. **Meher Kaur** (`meher.kaur@example.com`) — 6h delay: delayed-hours hotel allowed, full night denied; ₹2,000 fare waiver escalates (limit ₹1,500).
 
-Open a new account from **Join** to confirm dynamic onboarding. New members start as Standard and must add their own trip — the agent will not invent a flight number.
+Then sign in to Operations. The passenger chat does not link to it. Use the quiet **Staff** control at the bottom of `http://localhost:3000/login`, or open `http://localhost:3001` directly.
 
-The right-hand **This turn's context** panel is the product: identity, retrieved facts, missing slots, decision JSON with reason and source.
+Prototype staff account: `ops@aeroresolve.local` / `AeroOps2026!`. Passenger passwords do not work there. Read the case: transcript, policy used, actions, and why it escalated.
+
+Join from the login screen to confirm a new passenger can use the same chat. New members start as Standard. The agent will not invent a flight number.
 
 LLMs handle ambiguity and wording. Deterministic systems handle policy, authority, and irreversible actions.
 
-See [docs/architecture.md](docs/architecture.md).
+See [docs/system-architecture.md](docs/system-architecture.md) for HLD, engines, and flows. Loop notes: [docs/architecture.md](docs/architecture.md).
 
 ## Inputs, sources, and assumptions
 
@@ -183,7 +208,7 @@ and `pytest` asserts retrieval cannot move a policy outcome.
 ## Containment: the measured answer
 
 The assessment question is how close an agent gets to replacing a human. That is a number, so
-every turn records one. `GET /api/analytics/containment`, also shown on the AERO OPS Analytics page:
+every turn records one. `GET /api/analytics/containment`, also included in `/api/analytics/summary`:
 
 ```json
 {
@@ -212,9 +237,20 @@ most contacts are status and entitlement questions, the same code contains the t
 aggregate by cause instead of by free text, and a test asserts no `ESCALATE` decision can ship
 without one.
 
+`SEVERE_CUSTOMER_DISTRESS` is the one member that is not a data-pack authority limit. It fires
+when `classify_frustration` is confident the passenger needs a person. Containment reports it
+under `distress_escalations`, separately from `authority_escalations`, so a duty-of-care
+handover is never read as a policy boundary. Low-confidence observations are logged for audit
+and excluded from the primary buckets at `/api/analytics/frustration`.
+
 **Grounding coverage of 1.0** means every claim the agent made to a passenger traced to a
 retrieved policy clause. That is the anti-hallucination property stated as a measurement rather
 than a promise.
+
+A captured live run of all three scenarios is in [docs/demo-transcript.txt](docs/demo-transcript.txt),
+reproducible with `.venv/bin/python tools/demo_scenarios.py` from `backend/`. On Groq's
+`gpt-oss-20b` that run measured 100 percent grounding, p50 298ms and p95 1817ms, and
+**$0.0004 for the whole four-turn conversation** — about a hundredth of a cent per turn.
 
 ## Cost control
 
@@ -256,5 +292,6 @@ the policy engine never calls a model, no setting here can change a decision —
 - `backend/products/knowledge/corpus.py` — `policies.json` flattened to clauses
 - `backend/kb/store.py` — Elasticsearch + JSON fallback, same retrieval contract
 - `backend/main.py` — FastAPI
-- `frontend/` — Next.js customer chat + manager desk
+- `frontend/` — Next.js customer resolution chat
+- `frontend-manager/` — Next.js operations dashboard
 - `docs/` — architecture, 10-slide PPT outline, 15-minute demo script

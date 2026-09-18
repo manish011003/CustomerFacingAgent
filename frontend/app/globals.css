@@ -2,19 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body {
-  min-height: 100%;
+@layer base {
+  * {
+    @apply border-line;
+  }
+
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink antialiased;
+    font-size: 14px;
+    letter-spacing: -0.02em;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  input,
+  textarea,
+  button {
+    font: inherit;
+  }
 }
 
-body {
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  color: #1e293b;
-  background: #d5dee8;
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scroll-slim {
+    scrollbar-width: thin;
+    scrollbar-color: #c5cad3 transparent;
+  }
+
+  .scroll-slim::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scroll-slim::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scroll-slim::-webkit-scrollbar-thumb {
+    background-color: #c5cad3;
+    border-radius: 9999px;
+  }
+
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white;
+  }
+
+  .hero-sky {
+    background:
+      radial-gradient(120% 80% at 90% -10%, rgba(255, 255, 255, 0.28), transparent 55%),
+      linear-gradient(160deg, #1a4dff 0%, #0033cc 52%, #001a80 100%);
+  }
 }
 
-input,
-textarea,
-button {
-  font: inherit;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

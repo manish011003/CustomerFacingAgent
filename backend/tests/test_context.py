@@ -1,8 +1,25 @@
-from agent.context import assemble, context_contains_forbidden, packet_for_ui, render_respond_prompt
+from agent.context import assemble, packet_for_ui
 from agent.extract import extract
-from data.loader import load_bookings, load_customers
+from agent.prompts import (
+    COMPUTE,
+    EXTRACT_FIELDS,
+    FORBID,
+    RAW_POLICY_MARKERS,
+    RETRIEVE,
+    context_contains_forbidden,
+    render_extract_prompt,
+    render_respond_prompt,
+)
+from data.loader import load_bookings, load_customers, load_policies
 from models.schemas import SessionMemory
 from policy.engine import evaluate_policy
+
+
+def test_prompt_contracts_name_retrieve_compute_forbid():
+    assert "this passenger profile" in RETRIEVE
+    assert any("₹1500" in item or "1500" in item for item in COMPUTE)
+    assert "other passengers" in FORBID
+    assert EXTRACT_FIELDS[0] == "emotion"
 
 
 def test_unidentified_packet_has_no_booking_or_entitlements():
@@ -22,6 +39,11 @@ def test_unidentified_packet_has_no_booking_or_entitlements():
     assert ctx.policy_decision is None
     assert ctx.missing_slots == ["sign_in"]
     assert ctx.scenario_fixture is None
+    assert ctx.requests_this_turn == []
+    prompt = render_respond_prompt(ctx, extraction.raw_text)
+    assert "₹500" not in prompt
+    assert "SK-204" not in prompt
+    assert "not signed in" in prompt.lower() or "sign in" in prompt.lower()
 
 
 def test_priya_packet_never_contains_meher_fare_fixture():
@@ -69,6 +91,8 @@ def test_arvind_hotel_denied_in_injected_decision():
         d for d in ctx.policy_decision.decisions if d.action == "hotel_full_night" and d.status.value == "ALLOW"
     ]
     assert allowed_full_night == []
+    prompt = render_respond_prompt(ctx, extraction.raw_text)
+    assert "full night" not in prompt.lower() or "NOT APPROVED" in prompt or "not" in prompt.lower()
 
 
 def test_respond_prompt_does_not_include_raw_policy_or_other_names():
@@ -90,6 +114,23 @@ def test_respond_prompt_does_not_include_raw_policy_or_other_names():
     assert context_contains_forbidden(prompt, "Priya Nair") == []
     assert "Arvind Kulkarni" not in prompt
     assert "Meher Kaur" not in prompt
+    delay_rule = next(r["text"] for r in load_policies()["rules"] if r["id"] == "DELAY_COMPENSATION_RULE")
+    assert delay_rule not in prompt
+    for marker in RAW_POLICY_MARKERS:
+        assert marker not in prompt
+    history = customers["CUST-PRIYA"].travel_history.prior_complaint_detail
+    assert history not in prompt
+    assert "delayed baggage" not in prompt
+
+
+def test_extract_prompt_is_narrow_and_has_no_policy_schema():
+    session = SessionMemory(session_id="sx", customer_id="CUST-PRIYA", identified=True)
+    prompt = render_extract_prompt("I want a refund", session)
+    assert "emotion, legal_or_formal, requests" in prompt
+    assert "Do not output eligibility" in prompt
+    assert "Meher" not in prompt
+    assert "Arvind" not in prompt
+    assert "policies.json" not in prompt
 
 
 def test_executed_action_appears_in_next_packet():
@@ -114,3 +155,5 @@ def test_executed_action_appears_in_next_packet():
     )
     assert "meal_voucher" in ctx.session_memory.executed_actions
     assert "meal_voucher" in packet_for_ui(ctx)["executed_actions"]
+    prompt = render_respond_prompt(ctx, extraction.raw_text)
+    assert "meal_voucher" in prompt or "meal voucher" in prompt.lower()

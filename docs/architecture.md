@@ -1,28 +1,30 @@
 # AeroResolve architecture
 
+Full HLD, engines, sequences, and API map: [system-architecture.md](system-architecture.md).
+
 ## Context-first loop
 
 ```mermaid
 flowchart TD
-  msg[CustomerMessage] --> extract[ExtractIntent]
-  extract --> plan[RetrievalPlanner]
-  plan --> retrieve[RetrieveThisPassengerOnly]
-  retrieve --> kb[ElasticsearchOrJSON]
-  retrieve --> engine[PolicyEngine]
-  engine --> packet[CustomerAgentContext]
-  retrieve --> packet
-  packet --> narrate[NarrateWithCitations]
-  narrate --> reply[TemplateOrOptionalLLM]
-  packet --> ui[ThisTurnContextPanel]
-  packet --> kb
-  engine --> case[EscalationPacket]
-  case --> desk[ManagerDesk]
+  msg[CustomerMessage] --> llm[LlmAgent]
+  llm --> tools[Tools]
+  tools --> lookup[GetCustomerGetBookingGetPolicy]
+  tools --> mood[ClassifyFrustration]
+  tools --> gate[CheckEligibility]
+  tools --> act[ExecuteSimulatedAction]
+  tools --> esc[EscalateToHuman]
+  gate --> engine[PolicyEngine]
+  act --> engine
+  engine --> llm
+  llm --> reply[NaturalResponse]
+  tools --> case[CaseRecord]
+  case --> desk[OperationsDashboard]
+  reply --> ui[ConversationCards]
 ```
 
-Intent is extracted first because the plan decides what to retrieve. A status question
-fetches a booking and nothing else; a fare waiver additionally fetches the scenario
-fixture and the Fare Difference Rule. Retrieval feeds grounding and citation. It never
-feeds the decision — `policy/engine.py` holds its own constants.
+The LLM is the orchestrator: it decides which tool to call, observes the result, and either continues, asks, acts, or escalates. `policy/engine.py` still holds the constants. A tool that returns DENY or ESCALATE cannot be overridden by the model.
+
+If no API key is loaded, the same tools run from a deterministic extractor and a template reply. That path is labelled `agent_mode=fallback`. It is not a live LLM.
 
 ## Why this split
 
@@ -77,7 +79,15 @@ the same passenger retrieves them, so the agent does not ask a returning passeng
 a case. Long conversations retrieve the top matching prior turns through `recall_turns`
 instead of replaying the whole transcript.
 
-Graph edges are written as the conversation happens (`HAS_BOOKING`, `HAS_DISRUPTION`, `EVALUATED_UNDER`, `DENIED_BY`, `ESCALATED_TO`). The manager desk reads that graph; there is no Neo4j.
+Graph edges are written as the conversation happens (`HAS_BOOKING`, `HAS_DISRUPTION`, `EVALUATED_UNDER`, `DENIED_BY`, `ESCALATED_TO`, `EXHIBITS_FRUSTRATION`). Operations draws that same store as a live knowledge graph at `GET /api/graph` — Graphify-style, not a side table. The frustration panel also aggregates `EXHIBITS_FRUSTRATION` edges.
+
+## Frustration is a signal, not an authority
+
+`classify_frustration` is a first-class tool with a strict four-key schema. The LLM-orchestrator path registers it and the fallback path calls the same deterministic classifier in `agent/frustration.py`. Downstream code never branches on `agent_mode`.
+
+The classifier can change tone, which already-eligible option is offered first, and whether a supervisor is brought in for duty of care (`EscalationReason.SEVERE_CUSTOMER_DISTRESS`). It cannot grant, deny, or override anything `check_eligibility` / `evaluate_policy` decided. Mutual exclusivity between a refund/cancellation track and goodwill actions (`lounge`, `meal_voucher`) lives in `policy/exclusivity.py` and writes an `offered_actions` list that is always a subset of ALLOW/ASK decisions.
+
+Observations below `KB_AUTO_STORE_THRESHOLD` (default 0.75) are still written, tagged `low_confidence=true`, and excluded from the primary analytics buckets.
 
 ## Factory products
 
@@ -88,18 +98,13 @@ Graph edges are written as the conversation happens (`HAS_BOOKING`, `HAS_DISRUPT
 | `PolicyHandler` | status, cancel, delay, fare, exceptions | `PolicyHandlerFactory` | `policy/engine.py` |
 | `PassengerKnowledgeStore` | JSON, Elasticsearch | `KnowledgeStoreFactory` | `kb/store.py` singleton |
 | `LlmClient` | Gemini, Groq, xAI, OpenAI, disabled | `LlmFactory` | extractor and reply products |
-| `PlatformChrome` | customer Resolve, manager CRM | `createPlatform` | Next.js pages |
-| `DecisionChrome` | allow/deny/escalate/ask/inform | `createDecisionChrome` | options/queue tables |
 
 ## Surfaces
 
-Two Next.js products share `packages/ui` through `createPlatform(id)`:
+Exactly two Next.js apps. They do not share a CRM chrome.
 
-- **AERO Resolve** (`frontend`, :3000) — passenger options board
-- **AERO OPS** (`frontend-manager`, :3001) — supervisor CRM
-
-Customer chrome cannot construct manager chrome. That is the factory boundary.
-
+- **Resolution Agent** (`frontend`, :3000) — one passenger conversation, with choices and confirmations inline
+- **Operations** (`frontend-manager`, :3001) — staff-only case audit. Passenger tokens cannot read cases.
 
 `ALLOW` → simulated tool (labelled SIMULATED)  
 `ASK` → one missing slot  

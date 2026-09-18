@@ -1,4 +1,9 @@
-from models.schemas import CustomerAgentContext, DecisionStatus, PolicyDecision
+from models.schemas import (
+    CustomerAgentContext,
+    DecisionStatus,
+    FrustrationCategory,
+    PolicyDecision,
+)
 from products.replies.base import ReplyRenderer
 
 
@@ -67,11 +72,21 @@ class TemplateReplyRenderer(ReplyRenderer):
             parts.append("I don't have an established policy decision for this request.")
             return " ".join(parts)
 
-        allows = [d for d in ev.decisions if d.status == DecisionStatus.ALLOW]
-        asks = [d for d in ev.decisions if d.status == DecisionStatus.ASK]
+        # Presentation only: offered_actions is the exclusivity-filtered, possibly
+        # reordered subset. Membership never changes what is ALLOW/ASK — it only
+        # decides what is put in front of the passenger, and in which order.
+        offered = list(ev.offered_actions)
+        by_action = {d.action: d for d in ev.decisions}
+        allows = [by_action[a] for a in offered if by_action.get(a) and by_action[a].status == DecisionStatus.ALLOW]
+        asks = [by_action[a] for a in offered if by_action.get(a) and by_action[a].status == DecisionStatus.ASK]
         denies = [d for d in ev.decisions if d.status == DecisionStatus.DENY]
         escalations = [d for d in ev.decisions if d.status == DecisionStatus.ESCALATE]
         informs = [d for d in ev.decisions if d.status == DecisionStatus.INFORM]
+        urgent = bool(
+            ctx.frustration
+            and ctx.frustration.category
+            in {FrustrationCategory.DISTRESSED, FrustrationCategory.HOSTILE}
+        )
 
         if allows:
             executed = [a for a in allows if a.action in (ctx.session_memory.executed_actions or []) or a.action in ev.execute]
@@ -93,15 +108,20 @@ class TemplateReplyRenderer(ReplyRenderer):
                 parts.append("You qualify for " + ", ".join(_line(d) for d in actionable) + ".")
 
         if asks and "rebook_or_refund_choice" in (ev.missing_slots + ctx.missing_slots):
-            parts.append(
-                "You can choose free rebooking within 24 hours or a full refund to the original payment method. Which do you want?"
-            )
+            if offered and offered[0] == "refund_original":
+                parts.append(
+                    "You can choose a full refund to the original payment method or free rebooking within 24 hours. Which do you want?"
+                )
+            else:
+                parts.append(
+                    "You can choose free rebooking within 24 hours or a full refund to the original payment method. Which do you want?"
+                )
         elif asks:
             for d in asks:
-                parts.append(d.reason)
+                parts.append(d.reason if not urgent else _line(d).capitalize() + " is available.")
 
         for d in informs:
-            if d.action == "priority_rebooking":
+            if d.action == "priority_rebooking" and not urgent:
                 parts.append(d.reason)
 
         for d in denies:

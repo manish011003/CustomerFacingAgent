@@ -7,6 +7,8 @@ request that would have been sent.
 
 from __future__ import annotations
 
+import time
+
 import pytest
 
 from factories.extractor_factory import ExtractorFactory
@@ -16,9 +18,9 @@ from llm.budget import LlmBudget
 from llm.client import LlmClient
 from llm.config import MODEL_CHAINS, MOVING_MODELS, PROVIDERS, LlmConfig, from_env
 from llm.pricing import UNKNOWN_MODEL_RATE, estimate_usd, rate_for
-from models.schemas import CustomerAgentContext, RequestType, SessionMemory
+from models.schemas import CustomerAgentContext, ExtractedRequest, Extraction, RequestType, SessionMemory
 from products.extractors.heuristic import HeuristicExtractor
-from products.extractors.llm import LlmExtractor
+from products.extractors.llm import LlmExtractor, needs_model
 from products.replies.base import ReplyRenderer
 from products.replies.llm import LlmPolishedReplyRenderer
 from products.replies.template import TemplateReplyRenderer
@@ -47,19 +49,22 @@ def clean_env(monkeypatch):
 
 
 def config(**overrides) -> LlmConfig:
+    provider = overrides.get("provider", "gemini")
+    spec = PROVIDERS[provider]
     base = {
-        "provider": "gemini",
-        "model": "gemini-2.5-flash",
+        "provider": provider,
+        "model": spec["default_model"],
         "api_key": "test-key",
-        "base_url": PROVIDERS["gemini"]["base_url"],
+        "base_url": spec["base_url"],
         "timeout_seconds": 8.0,
         "max_tokens_extract": 200,
         "max_tokens_respond": 220,
         "max_calls_per_session": 12,
         "max_calls_per_process": 500,
         "daily_budget_usd": 1.0,
-        # What from_env() resolves for Gemini, so the fixture matches reality.
-        "reasoning_effort": PROVIDERS["gemini"]["reasoning_effort"],
+        # Defaulted per provider exactly as from_env() would, so overriding
+        # `provider` here cannot leave a value the real provider never sees.
+        "reasoning_effort": spec.get("reasoning_effort", ""),
     }
     base.update(overrides)
     return LlmConfig(**base)
@@ -217,7 +222,7 @@ def test_legacy_openai_base_url_still_honoured(monkeypatch):
 def test_malformed_numeric_settings_fall_back_to_defaults(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "gem-abc")
     monkeypatch.setenv("LLM_MAX_CALLS_PER_SESSION", "not-a-number")
-    assert from_env().max_calls_per_session == 12
+    assert from_env().max_calls_per_session == 24
 
 
 # --- which models stand behind the chosen one -----------------------------
@@ -599,6 +604,128 @@ def test_ending_a_turn_that_was_never_begun_is_harmless():
     assert usage["calls"] == 0 and usage["est_cost_usd"] == 0.0
 
 
+# --- the model is only asked when the regex came up empty ------------------
+
+
+def test_a_readable_utterance_never_reaches_the_model():
+    """Measured live: the regex reads this in 4ms, the model takes 2-5 seconds."""
+    sdk = StubSdk(text='{"requests": [{"type": "status"}]}')
+    extractor = LlmExtractor(fallback=ExtractorFactory.create("heuristic"), client=client_with(sdk))
+    extraction = extractor.extract("I want a full night hotel stay, the fare difference is ₹2000")
+    assert sdk.requests == []
+    assert {r.type for r in extraction.requests} == {
+        RequestType.HOTEL_FULL_NIGHT,
+        RequestType.HIGHER_FARE_REBOOK,
+    }
+
+
+def test_an_unreadable_utterance_does_reach_the_model():
+    sdk = StubSdk(text='{"requests": [{"type": "refund_original"}], "emotion": "angry"}')
+    extractor = LlmExtractor(fallback=ExtractorFactory.create("heuristic"), client=client_with(sdk))
+    extraction = extractor.extract("sort out the thing we discussed on the phone yesterday")
+    assert len(sdk.requests) == 1
+    assert [r.type for r in extraction.requests] == [RequestType.REFUND_ORIGINAL]
+
+
+def test_general_help_alone_is_the_only_trigger():
+    assert needs_model(Extraction(requests=[ExtractedRequest(type=RequestType.GENERAL_HELP)]))
+    assert not needs_model(Extraction(requests=[ExtractedRequest(type=RequestType.STATUS)]))
+    # A recognised intent alongside the catch-all is still a recognised intent.
+    assert not needs_model(
+        Extraction(
+            requests=[
+                ExtractedRequest(type=RequestType.GENERAL_HELP),
+                ExtractedRequest(type=RequestType.LOUNGE),
+            ]
+        )
+    )
+
+
+def test_skipping_the_model_costs_nothing():
+    client = client_with(StubSdk())
+    extractor = LlmExtractor(fallback=ExtractorFactory.create("heuristic"), client=client)
+    client.begin_turn("s-1")
+    extractor.extract("Is my flight delayed?", SessionMemory(session_id="s-1"))
+    assert client.end_turn("s-1")["est_cost_usd"] == 0.0
+
+
+# --- an exhausted provider must not cost the passenger a full walk ---------
+
+
+SHORT_CHAIN = GEMINI_CHAIN[: LlmClient.MAX_ATTEMPTS]
+
+
+def short_chained(**overrides) -> LlmConfig:
+    """A chain no longer than one walk, so a single walk exhausts all of it."""
+    return config(fallback_models=SHORT_CHAIN[1:], **overrides)
+
+
+def test_the_sdk_does_not_retry_underneath_the_chain():
+    """Two retry layers multiply. A walk over three rate-limited models took
+    20 seconds of passenger wait with the SDK backing off as well."""
+    captured = {}
+
+    class Recorder:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+            self.chat = self
+
+        @property
+        def completions(self):
+            return self
+
+        def create(self, **kwargs):
+            raise RuntimeError("429")
+
+    import openai
+
+    client = LlmClient(config(), LlmBudget(config()))
+    original = openai.OpenAI
+    openai.OpenAI = Recorder
+    try:
+        client.complete(purpose="respond", system="s", user="u")
+    finally:
+        openai.OpenAI = original
+    assert captured["max_retries"] == 0
+    assert captured["timeout"] == 8.0
+
+
+def test_a_fully_exhausted_chain_costs_one_probe_not_three():
+    """Measured live: three doomed requests spent 4.8s to reach the template
+    reply the agent could have sent immediately."""
+    sdk = PickySdk(serves=set())
+    client = client_with(sdk, short_chained())
+    assert client.complete(purpose="respond", system="s", user="u") is None
+    assert models_tried(sdk) == list(SHORT_CHAIN)
+
+    # Everything is cooling now, so the next turn probes once and degrades.
+    sdk.requests.clear()
+    assert client.complete(purpose="respond", system="s", user="u") is None
+    assert len(sdk.requests) == 1
+
+
+def test_the_probe_picks_the_model_closest_to_recovering():
+    sdk = PickySdk(serves=set())
+    client = client_with(sdk, short_chained())
+    client.complete(purpose="respond", system="s", user="u")
+    sidelined_first = models_tried(sdk)[0]
+    sdk.requests.clear()
+    client.complete(purpose="respond", system="s", user="u")
+    # Sidelined earliest, so its cooldown expires earliest.
+    assert models_tried(sdk) == [sidelined_first]
+
+
+def test_recovery_restores_the_full_walk():
+    sdk = PickySdk(serves=set())
+    client = client_with(sdk, short_chained(model_cooldown_seconds=0.01))
+    client.complete(purpose="respond", system="s", user="u")
+    time.sleep(0.05)
+    sdk.requests.clear()
+    sdk._serves = {SHORT_CHAIN[1]}
+    assert client.complete(purpose="respond", system="s", user="u") is not None
+    assert models_tried(sdk) == list(SHORT_CHAIN[:2])
+
+
 # --- thinking tokens and truncation ---------------------------------------
 
 
@@ -611,11 +738,19 @@ def test_gemini_is_asked_not_to_deliberate():
     assert sdk.requests[0]["reasoning_effort"] == "none"
 
 
+def test_groq_is_asked_for_the_cheapest_effort_it_accepts():
+    """Groq validates the value and refuses "none", so "low" is the floor."""
+    sdk = StubSdk()
+    client = client_with(sdk, config(provider="groq"))
+    client.complete(purpose="respond", system="s", user="u")
+    assert sdk.requests[0]["reasoning_effort"] == "low"
+
+
 def test_providers_that_would_reject_the_parameter_never_see_it(monkeypatch):
-    monkeypatch.setenv("GROQ_API_KEY", "gsk-abc")
+    monkeypatch.setenv("XAI_API_KEY", "xai-abc")
     assert from_env().reasoning_effort == ""
     sdk = StubSdk()
-    client = client_with(sdk, config(provider="groq", reasoning_effort=""))
+    client = client_with(sdk, config(provider="xai", reasoning_effort=""))
     client.complete(purpose="respond", system="s", user="u")
     assert "reasoning_effort" not in sdk.requests[0]
 
@@ -701,6 +836,21 @@ def test_thousands_separators_do_not_count_as_drift():
     polished = "The limit is 1500 rupees."
     renderer = LlmPolishedReplyRenderer(fallback=Fixed(approved), client=client_with(StubSdk(text=polished)))
     assert renderer.render(ctx_for("s-1"), "hello") == polished
+
+
+def test_a_thin_space_inside_a_figure_is_not_drift():
+    """gpt-oss typesets "1 500" with U+202F. It is the same 1500."""
+    approved = "The limit is 1,500 rupees."
+    polished = "The limit is 1\u202f500 rupees."
+    renderer = LlmPolishedReplyRenderer(fallback=Fixed(approved), client=client_with(StubSdk(text=polished)))
+    assert renderer.render(ctx_for("s-1"), "hello") == "The limit is 1500 rupees."
+
+
+def test_typographic_spacing_is_flattened_before_it_reaches_the_passenger():
+    approved = "Your 6 hour delay covers a 500 rupee voucher."
+    polished = "Your six\u2011hour delay covers a 500\u202frupee voucher."
+    renderer = LlmPolishedReplyRenderer(fallback=Fixed(approved), client=client_with(StubSdk(text=polished)))
+    assert renderer.render(ctx_for("s-1"), "hello") == "Your six-hour delay covers a 500 rupee voucher."
 
 
 # --- pricing ---------------------------------------------------------------

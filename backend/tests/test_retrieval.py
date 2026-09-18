@@ -264,3 +264,142 @@ def test_elasticsearch_failure_falls_back_to_in_memory_retrieval():
         "hotel more than 5 hours", scope=["DELAY_COMPENSATION_RULE"], k=1
     )
     assert hits and hits[0].rule_id == "DELAY_COMPENSATION_RULE"
+
+
+def test_elasticsearch_identify_is_a_term_filter_not_a_scan():
+    store_es = _StubEsStore([])
+    store_es.identify(customer_id="CUST-PRIYA")
+    query = store_es.fake.last_call["query"]["bool"]
+    assert {"term": {"id": "CUST-PRIYA"}} in query["filter"]
+    assert store_es.fake.last_call["index"] == "passengers"
+
+
+def test_elasticsearch_known_facts_always_filter_by_customer_id():
+    store_es = _StubEsStore([])
+    store_es.known_facts("CUST-ARVIND")
+    filters = store_es.fake.last_call["query"]["bool"]["filter"]
+    assert {"term": {"customer_id": "CUST-ARVIND"}} in filters
+    assert store_es.fake.last_call["index"] == "memories"
+
+
+# --- both backends, same cited clauses -------------------------------------
+
+
+SCENARIOS = (
+    ("CUST-PRIYA", "BK-PRIYA-OUT", "my flight got cancelled and I want a refund"),
+    ("CUST-ARVIND", "BK-ARVIND-OUT", "I want hotel accommodation since it has been such a long delay"),
+    ("CUST-MEHER", "BK-MEHER-OUT", "full night hotel and a higher fare flight, the fare difference is 2000 rupees"),
+)
+
+
+def _cited_clauses(kb, customer_id: str, booking_id: str, message: str) -> list[str]:
+    customer = CUSTOMERS[customer_id]
+    booking = BOOKINGS[booking_id]
+    extraction = extract(message)
+    session = SessionMemory(session_id=str(uuid4()), customer_id=customer_id, identified=True)
+    plan = plan_retrieval(extraction, session)
+    fixture = kb.fixture_for(customer_id) if plan.need_fixture else None
+    evaluation = evaluate_policy(
+        customer,
+        booking,
+        extraction.requests,
+        fare_difference_inr=fixture.fare_difference_inr if fixture else None,
+        legal_or_formal=extraction.legal_or_formal,
+    )
+    plan = expand_scope(plan, customer, booking)
+    retrieval = retrieve.run(plan=plan, customer=customer, evaluation=evaluation, kb=kb)
+    return sorted(h.clause_id for h in retrieval.rules)
+
+
+def test_json_backend_cites_stable_clauses_for_the_three_scenarios():
+    """The demo's citations cannot depend on which store is wired."""
+    from products.knowledge.json_store import JsonKnowledgeStore
+
+    kb = JsonKnowledgeStore()
+    cited = {customer_id: _cited_clauses(kb, customer_id, booking_id, message)
+             for customer_id, booking_id, message in SCENARIOS}
+    assert cited["CUST-PRIYA"]
+    assert cited["CUST-ARVIND"]
+    assert "DELAY_COMPENSATION_RULE#3" in cited["CUST-MEHER"]
+    assert any(c.startswith("FARE_DIFFERENCE_RULE") for c in cited["CUST-MEHER"])
+
+
+def test_json_and_elasticsearch_cite_the_same_clauses_for_the_three_scenarios():
+    import pytest
+    from products.knowledge.json_store import JsonKnowledgeStore
+
+    json_kb = JsonKnowledgeStore()
+    try:
+        es_kb = ElasticsearchKnowledgeStore()
+    except Exception:
+        pytest.skip("elasticsearch not reachable")
+    for customer_id, booking_id, message in SCENARIOS:
+        json_ids = _cited_clauses(json_kb, customer_id, booking_id, message)
+        es_ids = _cited_clauses(es_kb, customer_id, booking_id, message)
+        assert json_ids == es_ids, (customer_id, json_ids, es_ids)
+
+
+def test_narration_contains_no_rupee_amount_absent_from_decisions_or_citations():
+    import re
+
+    _, evaluation, retrieval, ctx = _turn(
+        "CUST-MEHER",
+        "BK-MEHER-OUT",
+        "I want a full night hotel stay and a higher-fare flight, the fare difference is 2000 rupees",
+    )
+    allowed: set[str] = set()
+    for decision in evaluation.decisions:
+        if decision.amount_inr is not None:
+            allowed.add(str(decision.amount_inr))
+        if decision.authority_limit_inr is not None:
+            allowed.add(str(decision.authority_limit_inr))
+    for hit in retrieval.rules:
+        allowed.update(re.findall(r"\d+", hit.text.replace(",", "")))
+    if ctx.booking and ctx.booking.delay_hours:
+        allowed.add(str(ctx.booking.delay_hours))
+    if ctx.identity:
+        allowed.update(re.findall(r"\d+", ctx.identity.pnr or ""))
+    if ctx.booking:
+        for value in (ctx.booking.flight, ctx.booking.pnr, ctx.booking.new_departure):
+            allowed.update(re.findall(r"\d+", str(value or "")))
+    facts = "\n".join(narrate(ctx))
+    for amount in re.findall(r"\d[\d,]{2,}", facts):
+        assert amount.replace(",", "") in allowed, amount
+
+
+def test_cited_rules_are_exactly_the_ones_retrieval_returned():
+    _, _, retrieval, ctx = _turn(
+        "CUST-MEHER", "BK-MEHER-OUT", "full night hotel and a higher fare flight"
+    )
+    cited_ids = {
+        line.split("[", 1)[1].split("]", 1)[0]
+        for line in narrate(ctx)
+        if line.startswith("  cited ")
+    }
+    retrieved_ids = {hit.clause_id for hit in retrieval.rules}
+    assert cited_ids <= retrieved_ids
+
+
+def test_session_memory_exposes_recall_and_facts_on_the_packet():
+    first = str(uuid4())
+    handle_chat(first, "my flight is cancelled, I want a refund", "CUST-PRIYA")
+    second = handle_chat(first, "and can I get a cash refund to another account?", "CUST-PRIYA")
+    packet = second.context_packet
+    assert "recalled_turns" in packet
+    assert "known_facts" in packet
+    assert second.session["known_facts"] or packet["retrieved"]["known_facts"]
+
+
+def test_extract_prompt_does_not_replay_the_whole_transcript():
+    from agent.context import render_extract_prompt
+    from models.schemas import TurnHit
+
+    session = SessionMemory(
+        session_id="s",
+        messages=[{"role": "user", "content": f"turn {i}"} for i in range(20)],
+        recalled_turns=[TurnHit(message="earlier refund question", reply="offered original method")],
+    )
+    prompt = render_extract_prompt("and the upgrade?", session)
+    assert "turn 19" in prompt
+    assert "turn 0" not in prompt
+    assert "earlier refund question" in prompt

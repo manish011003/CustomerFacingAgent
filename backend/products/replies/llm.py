@@ -24,9 +24,24 @@ SYSTEM = (
 # reject good output.
 MONEY = re.compile(r"\d[\d,]{2,}")
 
+# gpt-oss typesets: it returned "500\u202fINR" and "six\u2011hour", using a
+# narrow no-break space and a non-breaking hyphen. Harmless on screen, but a
+# thin space between digits reads as two numbers, which would fail the money
+# check below on a rewrite that in fact changed nothing.
+TYPOGRAPHIC = {"\u202f": " ", "\u00a0": " ", "\u2009": " ", "\u2011": "-"}
+DIGIT_SEPARATOR = re.compile(r"(?<=\d)[\u202f\u00a0\u2009](?=\d)")
+
+
+def normalise(text: str) -> str:
+    """Plain ASCII spacing, so the same figure compares equal either side."""
+    text = DIGIT_SEPARATOR.sub("", text)
+    for fancy, plain in TYPOGRAPHIC.items():
+        text = text.replace(fancy, plain)
+    return text
+
 
 def money_amounts(text: str) -> set[str]:
-    return {match.group().replace(",", "") for match in MONEY.finditer(text)}
+    return {match.group().replace(",", "") for match in MONEY.finditer(normalise(text))}
 
 
 class LlmPolishedReplyRenderer(ReplyRenderer):
@@ -68,4 +83,4 @@ class LlmPolishedReplyRenderer(ReplyRenderer):
         if money_amounts(result.text) != money_amounts(approved):
             client.budget.note("respond_amount_drift", ctx.session_memory.session_id)
             return approved
-        return result.text
+        return normalise(result.text)

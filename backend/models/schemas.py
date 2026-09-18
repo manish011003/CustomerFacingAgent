@@ -17,10 +17,16 @@ class DecisionStatus(str, Enum):
 class EscalationReason(str, Enum):
     """Why authority ran out, as a closed set so escalations aggregate.
 
-    Every member is a boundary of agent authority stated in the data pack, not
-    an agent failure. A containment rate is only meaningful alongside this
-    breakdown: it separates "the agent could not cope" from "no agent, human or
-    automated, is permitted to decide this alone".
+    Every member except SEVERE_CUSTOMER_DISTRESS is a boundary of agent
+    authority stated in the data pack, not an agent failure. A containment rate
+    is only meaningful alongside this breakdown: it separates "the agent could
+    not cope" from "no agent, human or automated, is permitted to decide this
+    alone".
+
+    SEVERE_CUSTOMER_DISTRESS is the one duty-of-care member. No supplied rule
+    draws it; it fires when the frustration classifier is confident the
+    passenger needs a person. It grants nothing, so it is reported apart from
+    the authority limits rather than inflating them.
     """
 
     FARE_WAIVER_ABOVE_LIMIT = "fare_waiver_above_limit"
@@ -29,6 +35,37 @@ class EscalationReason(str, Enum):
     REFUND_ALTERNATE_METHOD = "refund_alternate_method"
     NON_AIRLINE_CAUSE = "non_airline_cause"
     UNKNOWN_ENTITLEMENT = "unknown_entitlement"
+    SEVERE_CUSTOMER_DISTRESS = "severe_customer_distress"
+
+
+# Escalations that are not a data-pack authority limit. Analytics reports these
+# separately so a duty-of-care handover is never read as a policy boundary.
+DUTY_OF_CARE_REASONS = frozenset({EscalationReason.SEVERE_CUSTOMER_DISTRESS})
+
+
+class FrustrationCategory(str, Enum):
+    """How much distress the turn carries. A signal, never an authority.
+
+    Ordered, so "worse than annoyed" is expressible without a second table.
+    """
+
+    NEUTRAL = "neutral"
+    ANNOYED = "annoyed"
+    FRUSTRATED = "frustrated"
+    DISTRESSED = "distressed"
+    HOSTILE = "hostile"
+
+
+# Mildest to most severe. Analytics uses this to pick the peak category of a
+# conversation rather than its last, so a passenger who calmed down after being
+# distressed still reads as distressed in the cross-tab.
+FRUSTRATION_SEVERITY: tuple[FrustrationCategory, ...] = (
+    FrustrationCategory.NEUTRAL,
+    FrustrationCategory.ANNOYED,
+    FrustrationCategory.FRUSTRATED,
+    FrustrationCategory.DISTRESSED,
+    FrustrationCategory.HOSTILE,
+)
 
 
 class RequestType(str, Enum):
@@ -172,6 +209,37 @@ class Extraction(BaseModel):
     raw_text: str = ""
 
 
+class FrustrationAssessment(BaseModel):
+    """What the turn observed about the passenger's state.
+
+    `category`, `confidence`, `signals` and `escalation_recommended` are the
+    four keys the tool returns to the model. `low_confidence` and `source` are
+    audit fields: they travel to the knowledge store and the ops dashboard, not
+    into the model's context.
+
+    `source` records which path invoked the classifier, not how it decided.
+    Both paths run the same deterministic code in `agent/frustration.py`:
+    `llm_tool` means the orchestrating model chose to call the tool this turn,
+    `heuristic` means the fallback turn called it directly.
+    """
+
+    category: FrustrationCategory = FrustrationCategory.NEUTRAL
+    confidence: float = 0.0
+    signals: list[str] = Field(default_factory=list)
+    escalation_recommended: bool = False
+    low_confidence: bool = False
+    source: Literal["heuristic", "llm_tool"] = "heuristic"
+
+    def payload(self) -> dict[str, Any]:
+        """The strict tool schema. Audit fields are deliberately absent."""
+        return {
+            "category": self.category.value,
+            "confidence": self.confidence,
+            "signals": list(self.signals),
+            "escalation_recommended": self.escalation_recommended,
+        }
+
+
 class PolicyDecision(BaseModel):
     action: str
     status: DecisionStatus
@@ -198,6 +266,10 @@ class PolicyEvaluation(BaseModel):
     deny: list[str] = Field(default_factory=list)
     escalate: list[str] = Field(default_factory=list)
     ask: list[str] = Field(default_factory=list)
+    # What the reply layer may put in front of the passenger, in order. Derived
+    # from `decisions` by policy/exclusivity.py — a strict subset, so it can
+    # never widen eligibility. Frustration may reorder it and nothing else.
+    offered_actions: list[str] = Field(default_factory=list)
 
 
 class SessionMemory(BaseModel):
@@ -212,6 +284,12 @@ class SessionMemory(BaseModel):
     messages: list[dict[str, str]] = Field(default_factory=list)
     last_extraction: Optional[Extraction] = None
     last_evaluation: Optional[PolicyEvaluation] = None
+    last_frustration: Optional[FrustrationAssessment] = None
+    # What this conversation remembered, shown on the context panel so a reviewer
+    # can see the cross-session facts and retrieved earlier turns, not just the
+    # live transcript.
+    recalled_turns: list[TurnHit] = Field(default_factory=list)
+    known_facts: list[KnownFact] = Field(default_factory=list)
 
 
 class CustomerAgentContext(BaseModel):
@@ -222,6 +300,7 @@ class CustomerAgentContext(BaseModel):
     disruption: Optional[dict[str, Any]] = None
     session_memory: SessionMemory
     emotion: Optional[str] = None
+    frustration: Optional[FrustrationAssessment] = None
     requests_this_turn: list[ExtractedRequest] = Field(default_factory=list)
     policy_decision: Optional[PolicyEvaluation] = None
     scenario_fixture: Optional[ScenarioFixture] = None

@@ -19,7 +19,11 @@ PROVIDERS: dict[str, dict[str, str]] = {
     "groq": {
         "key_env": "GROQ_API_KEY",
         "base_url": "https://api.groq.com/openai/v1",
-        "default_model": "llama-3.3-70b-versatile",
+        "default_model": "openai/gpt-oss-20b",
+        # The gpt-oss and qwen families deliberate too, and Groq validates the
+        # value against its own set: "none" is rejected outright, so the
+        # cheapest accepted setting stands in for switching it off.
+        "reasoning_effort": "low",
     },
     "xai": {
         "key_env": "XAI_API_KEY",
@@ -59,7 +63,12 @@ MODEL_CHAINS: dict[str, tuple[str, ...]] = {
         "gemini-flash-lite-latest",
         "gemini-flash-latest",
     ),
-    "groq": ("llama-3.3-70b-versatile", "llama-3.1-8b-instant"),
+    # Groq retired the Llama 3.x pair this chain first held to open weights and
+    # enterprise-only access: both now 404 as "does not exist or you do not
+    # have access to it" on a free key. Ordered cheapest-and-fastest first —
+    # 20b bills $0.075/$0.30 and streams at ~1000 tok/s, qwen at $0.80/$4.00
+    # is thirteen times the output rate and earns its place at the back.
+    "groq": ("openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"),
     "xai": ("grok-4.3", "grok-3-mini"),
     "openai": ("gpt-4o-mini",),
 }
@@ -109,6 +118,7 @@ class LlmConfig:
     max_calls_per_session: int
     max_calls_per_process: int
     daily_budget_usd: float
+    max_tokens_agent: int = 1024
     fallback_models: tuple[str, ...] = ()
     model_cooldown_seconds: float = 300.0
     reasoning_effort: str = ""
@@ -130,7 +140,11 @@ class LlmConfig:
         return f"{self.api_key[:6]}...{self.api_key[-4:]}" if len(self.api_key) > 12 else "set"
 
     def max_tokens_for(self, purpose: str) -> int:
-        return self.max_tokens_extract if purpose == "extract" else self.max_tokens_respond
+        if purpose == "extract":
+            return self.max_tokens_extract
+        if purpose == "agent":
+            return self.max_tokens_agent
+        return self.max_tokens_respond
 
 
 def _detect_provider() -> str:
@@ -187,9 +201,10 @@ def disabled_config() -> LlmConfig:
         model="",
         api_key="",
         base_url="",
-        timeout_seconds=_float("LLM_TIMEOUT_SECONDS", 8.0),
+        timeout_seconds=_float("LLM_TIMEOUT_SECONDS", 15.0),
         max_tokens_extract=0,
         max_tokens_respond=0,
+        max_tokens_agent=0,
         max_calls_per_session=0,
         max_calls_per_process=0,
         daily_budget_usd=0.0,
@@ -220,10 +235,11 @@ def from_env() -> LlmConfig:
         fallback_models=_fallback_models(provider, base_url),
         model_cooldown_seconds=_float("LLM_MODEL_COOLDOWN_SECONDS", 300.0),
         reasoning_effort=_reasoning_effort(provider, base_url),
-        timeout_seconds=_float("LLM_TIMEOUT_SECONDS", 8.0),
+        timeout_seconds=_float("LLM_TIMEOUT_SECONDS", 15.0),
         max_tokens_extract=_int("LLM_MAX_TOKENS_EXTRACT", 200),
         max_tokens_respond=_int("LLM_MAX_TOKENS_RESPOND", 220),
-        max_calls_per_session=_int("LLM_MAX_CALLS_PER_SESSION", 12),
+        max_tokens_agent=_int("LLM_MAX_TOKENS_AGENT", 1024),
+        max_calls_per_session=_int("LLM_MAX_CALLS_PER_SESSION", 24),
         max_calls_per_process=_int("LLM_MAX_CALLS_PER_PROCESS", 500),
         daily_budget_usd=_float("LLM_DAILY_BUDGET_USD", 1.0),
     )

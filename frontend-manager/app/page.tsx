@@ -1,162 +1,261 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { AppFrame, Panel, PrimaryButton, Stepper, TopNav } from "@aero/ui";
-import { createDecisionChrome, createPlatform } from "@aero/ui";
+import { useEffect, useMemo, useState } from "react";
 
-const factory = createPlatform("manager");
+import { CaseBoard } from "@/components/case-board";
+import { CaseDrawer } from "@/components/case-drawer";
+import { OpsDashboard } from "@/components/dashboard";
+import { KnowledgeGraphPanel } from "@/components/knowledge-graph";
+import { StaffLogin } from "@/components/staff-login";
+import { clearStaffToken, readStaffToken, staffLogout, takeStaffTokenFromHash } from "@/lib/auth";
+import {
+  type Analytics,
+  type CaseDetail,
+  type CaseSummary,
+  type Frustration,
+  type KnowledgeGraph,
+  OpsAuthError,
+  fetchJson,
+} from "@/lib/ops";
 
-export default function QueuePage() {
-  const [cases, setCases] = useState<any[]>([]);
-  const [selected, setSelected] = useState<any>(null);
-  const [note, setNote] = useState("");
-  const [filter, setFilter] = useState<"all" | "escalated" | "open">("all");
+type View = "dashboard" | "cases" | "graph";
 
-  async function load() {
-    const c = await fetch("/api/cases").then((r) => r.json());
-    setCases(c);
-  }
+export default function OperationsPage() {
+  const [token, setToken] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const [view, setView] = useState<View>("dashboard");
+  const [query, setQuery] = useState("");
+  const [cases, setCases] = useState<CaseSummary[]>([]);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [frustration, setFrustration] = useState<Frustration | null>(null);
+  const [graph, setGraph] = useState<KnowledgeGraph | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<CaseDetail | null>(null);
+  const [error, setError] = useState("");
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    load().catch(() => undefined);
+    setToken(takeStaffTokenFromHash() || readStaffToken());
+    setReady(true);
   }, []);
 
-  async function openCase(item: any) {
-    const full = await fetch(`/api/cases/${item.id}`).then((r) => r.json());
-    setSelected(full);
-  }
+  useEffect(() => {
+    if (!token) return;
 
-  async function assess() {
-    if (!selected) return;
-    const updated = await fetch(`/api/cases/${selected.id}/assess`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "assessed", note }),
-    }).then((r) => r.json());
-    setSelected(updated);
-    setNote("");
+    function expire() {
+      clearStaffToken();
+      setToken(null);
+      setCases([]);
+      setAnalytics(null);
+      setFrustration(null);
+      setGraph(null);
+      setDetail(null);
+      setSelectedId(null);
+    }
+
+    function load() {
+      Promise.all([
+        fetchJson<CaseSummary[]>("/api/cases", token as string),
+        fetchJson<Analytics>("/api/analytics/summary", token as string),
+        fetchJson<Frustration>("/api/analytics/frustration", token as string),
+        fetchJson<KnowledgeGraph>("/api/graph", token as string),
+      ])
+        .then(([list, summary, distress, kb]) => {
+          setError("");
+          setCases(list);
+          setAnalytics(summary);
+          setFrustration(distress);
+          setGraph((current) => {
+            if (
+              current &&
+              current.writes === kb.writes &&
+              current.unique_edges === kb.unique_edges &&
+              current.nodes.length === kb.nodes.length
+            ) {
+              return current;
+            }
+            return kb;
+          });
+        })
+        .catch((err) => {
+          if (err instanceof OpsAuthError) expire();
+          else setError("Operations service is offline. Start the API on port 8000.");
+        })
+        .finally(() => setLoaded(true));
+    }
     load();
+    window.addEventListener("focus", load);
+    const timer = window.setInterval(load, 5000);
+    return () => {
+      window.removeEventListener("focus", load);
+      window.clearInterval(timer);
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token || !selectedId) {
+      setDetail(null);
+      return;
+    }
+    fetchJson<CaseDetail>(`/api/cases/${selectedId}`, token)
+      .then(setDetail)
+      .catch((err) => {
+        if (err instanceof OpsAuthError) {
+          clearStaffToken();
+          setToken(null);
+        } else {
+          setDetail(null);
+        }
+      });
+  }, [selectedId, token]);
+
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return cases;
+    return cases.filter((item) =>
+      [item.customer, item.pnr, item.issue, item.flight, item.status]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(needle)),
+    );
+  }, [cases, query]);
+
+  if (!ready) {
+    return <div className="grid min-h-dvh place-items-center text-sm text-ink-muted">Loading…</div>;
   }
 
-  const visible = cases.filter((c) => (filter === "all" ? true : c.status === filter));
-  const currentStep = factory.stepIndex({
-    identified: Boolean(selected),
-    hasDecision: Boolean(selected?.policy_decisions?.length),
-    executed: selected?.status === "assessed",
-    escalated: selected?.status === "escalated",
-  });
+  if (!token) {
+    return <StaffLogin onSignedIn={setToken} />;
+  }
 
   return (
-    <AppFrame>
-      <TopNav factory={factory} activeHref="/" LinkComponent={Link} />
-      <Stepper steps={factory.steps} current={currentStep} />
+    <div className="flex min-h-dvh">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-sidebar md:flex">
+        <div className="px-5 py-6">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-accent">AeroResolve</div>
+          <div className="mt-1 text-lg font-semibold">Operations</div>
+        </div>
+        <nav className="flex-1 space-y-1 px-3">
+          <NavButton active={view === "dashboard"} onClick={() => setView("dashboard")}>
+            Dashboard
+          </NavButton>
+          <NavButton active={view === "cases"} onClick={() => setView("cases")}>
+            Cases
+          </NavButton>
+          <NavButton active={view === "graph"} onClick={() => setView("graph")}>
+            Knowledge graph
+          </NavButton>
+        </nav>
+        <div className="border-t border-line px-3 py-4">
+          <button
+            type="button"
+            onClick={() => {
+              void staffLogout(token).then(() => setToken(null));
+            }}
+            className="w-full rounded-xl px-3 py-2 text-left text-sm text-ink-muted hover:bg-white/5 hover:text-ink"
+          >
+            Sign out
+          </button>
+        </div>
+      </aside>
 
-      <div className="grid min-w-[1080px] grid-cols-[280px_minmax(420px,1fr)] gap-4 px-5 pb-6">
-        <aside className="space-y-3">
-          <Panel>
-            <div className="flex items-center justify-between">
-              <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Queue</div>
-              <select
-                className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[11px]"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value as any)}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex flex-wrap items-center gap-3 border-b border-line bg-canvas/80 px-5 py-3 backdrop-blur">
+          <div className="flex gap-1 md:hidden">
+            {(["dashboard", "cases", "graph"] as View[]).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setView(item)}
+                className={`rounded-lg px-2.5 py-1.5 text-xs capitalize ${view === item ? "bg-brand text-white" : "text-ink-muted"}`}
               >
-                <option value="all">All</option>
-                <option value="escalated">Escalated</option>
-                <option value="open">Open</option>
-              </select>
-            </div>
-            <div className="mt-3 space-y-2">
-              {visible.map((c) => (
-                <button
-                  type="button"
-                  key={c.id}
-                  onClick={() => openCase(c)}
-                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm ${
-                    selected?.id === c.id ? "border-[#2f6bff] bg-blue-50" : "border-slate-100 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="font-semibold">{c.customer || "Unknown"}</div>
-                  <div className="text-[11px] text-slate-500">
-                    {c.pnr} · {c.status}
-                  </div>
-                </button>
-              ))}
-              {!visible.length && <p className="text-sm text-slate-500">No cases yet. Run AERO Resolve first.</p>}
-            </div>
-          </Panel>
-        </aside>
+                {item === "graph" ? "Graph" : item}
+              </button>
+            ))}
+          </div>
+          <div className="relative min-w-[220px] flex-1">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search customer, PNR, flight…"
+              className="h-10 w-full rounded-xl border border-line bg-surface px-4 text-sm outline-none placeholder:text-ink-faint focus:border-brand"
+            />
+          </div>
+          <div className="flex items-center gap-2 text-xs text-ink-muted">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-good-fg" />
+              Live
+            </span>
+            <span className="hidden sm:inline">{analytics?.kb_backend || "json"} store</span>
+          </div>
+        </header>
 
-        <Panel className="min-h-[560px]">
-          {!selected && <p className="p-8 text-center text-sm text-slate-500">Select a case. This CRM never invents extra compensation.</p>}
-          {selected && (
-            <>
-              <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
-                <div>
-                  <div className="text-2xl font-extrabold">{selected.customer}</div>
-                  <div className="text-sm text-slate-500">
-                    {selected.pnr} · {selected.flight}
+        <main className={view === "graph" ? "min-h-0 flex-1 overflow-hidden p-4" : "scroll-slim flex-1 overflow-y-auto px-5 py-5"}>
+          {error && (
+            <p className="mb-4 rounded-xl border border-stop/40 bg-stop-bg px-4 py-3 text-sm text-stop-fg">{error}</p>
+          )}
+
+          {view === "dashboard" && (
+            <div className="space-y-5">
+              <OpsDashboard analytics={analytics} cases={filtered} frustration={frustration} />
+              <div>
+                <div className="mb-3 flex items-end justify-between">
+                  <div>
+                    <h2 className="text-sm font-semibold">Case pipeline</h2>
+                    <p className="mt-1 text-xs text-ink-muted">Open a card to read the transcript, policy, and audit trail.</p>
                   </div>
+                  <span className="text-[11px] text-ink-faint">{filtered.length} shown</span>
                 </div>
-                <span className="rounded-full bg-amber-50 px-3 py-1 text-[11px] font-bold uppercase text-amber-700">{selected.status}</span>
-              </div>
-
-              {selected.escalation_reasons && (
-                <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{selected.escalation_reasons.join(" ")}</div>
-              )}
-
-              <div className="mt-5 mb-2 grid grid-cols-[1.5fr_110px_1fr] gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                <span>Decision</span>
-                <span>Status</span>
-                <span>Source</span>
-              </div>
-              {(selected.policy_decisions || []).map((d: any, i: number) => {
-                const chrome = createDecisionChrome(d.status);
-                return (
-                  <div key={i} className="grid grid-cols-[1.5fr_110px_1fr] items-start gap-2 border-b border-slate-50 py-3 text-sm">
-                    <div>
-                      <div className="font-semibold capitalize">{d.action.replaceAll("_", " ")}</div>
-                      <div className="text-[12px] text-slate-500">{d.reason}</div>
-                    </div>
-                    <span className={`h-fit w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chrome.pill}`}>{chrome.label}</span>
-                    <span className="text-[11px] text-slate-400">{d.source}</span>
-                  </div>
-                );
-              })}
-
-              <div className="mt-5">
-                <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Transcript</div>
-                <div className="mt-2 max-h-40 overflow-y-auto rounded-xl bg-slate-50 p-3 text-[12px] text-slate-600">
-                  {(selected.transcript || []).map((m: any, i: number) => (
-                    <div key={i} className="mb-2">
-                      <b>{m.role}:</b> {m.content}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <textarea
-                  className="w-full rounded-xl border border-slate-200 p-3 text-sm"
-                  rows={3}
-                  placeholder="Supervisor note — logged as human, not agent authority"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
+                <CaseBoard
+                  cases={filtered}
+                  selectedId={selectedId}
+                  onSelect={(id) => setSelectedId(id)}
                 />
-                <div className="mt-2">
-                  <PrimaryButton onClick={assess}>Assess case</PrimaryButton>
-                </div>
-                {selected.manager_assessment && (
-                  <p className="mt-2 text-xs text-emerald-700">
-                    Logged: {selected.manager_assessment.status} — {selected.manager_assessment.note}
-                  </p>
+                {loaded && !cases.length && !error && (
+                  <p className="mt-4 text-center text-sm text-ink-muted">No cases yet. Run a passenger conversation first.</p>
                 )}
               </div>
-            </>
+            </div>
           )}
-        </Panel>
+
+          {view === "cases" && (
+            <div>
+              <div className="mb-3">
+                <h2 className="text-sm font-semibold">Cases</h2>
+                <p className="mt-1 text-xs text-ink-muted">Same pipeline as the dashboard, without the charts.</p>
+              </div>
+              <CaseBoard cases={filtered} selectedId={selectedId} onSelect={setSelectedId} />
+            </div>
+          )}
+
+          {view === "graph" && (
+            <KnowledgeGraphPanel data={graph} highlightCustomerId={detail?.customer_id} />
+          )}
+        </main>
       </div>
-    </AppFrame>
+
+      <CaseDrawer caseData={selectedId ? detail : null} onClose={() => setSelectedId(null)} />
+    </div>
+  );
+}
+
+function NavButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full rounded-xl px-3 py-2 text-left text-sm ${
+        active ? "bg-brand-tint font-medium text-ink" : "text-ink-muted hover:bg-white/5 hover:text-ink"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

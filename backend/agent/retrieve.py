@@ -8,10 +8,12 @@ def run(
     plan: RetrievalPlan,
     customer: Customer,
     evaluation: PolicyEvaluation | None,
+    kb=None,
 ) -> Retrieval:
     """Execute a retrieval plan. Facade — always goes through the knowledge store."""
-    from kb.store import store
+    from kb.store import store as process_store
 
+    store = kb or process_store
     retrieval = Retrieval(backend=store.backend)
     allowed = set(plan.rule_scope)
     kinds = tuple(plan.doc_kinds) or ("rule",)

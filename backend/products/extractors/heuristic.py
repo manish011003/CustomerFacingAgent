@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from agent.frustration import detect_emotion, detect_legal_or_formal
 from models.schemas import ExtractedRequest, Extraction, RequestType
 from products.extractors.base import IntentExtractor
 
@@ -23,20 +24,11 @@ class HeuristicExtractor(IntentExtractor):
             if name and name.lower() in lower:
                 extraction.mentioned_name = name
 
-        extraction.legal_or_formal = bool(
-            re.search(r"\b(legal action|lawsuit|sue|lawyer|formal complaint|file a complaint)\b", lower)
-        )
+        extraction.legal_or_formal = detect_legal_or_formal(text)
         if extraction.legal_or_formal:
             extraction.requests.append(ExtractedRequest(type=RequestType.LEGAL_OR_FORMAL))
 
-        if re.search(r"\b(furious|angry|frustrated|upset|unacceptable|ruined)\b", lower):
-            extraction.emotion = "angry" if re.search(r"furious|angry|unacceptable", lower) else "frustrated"
-        elif re.search(
-            r"(don'?t understand|do not understand|confus|what does that mean|not sure what"
-            r"|no ?one told me|nobody told me|makes no sense|what happened)",
-            lower,
-        ):
-            extraction.emotion = "confused"
+        extraction.emotion = detect_emotion(text)
 
         if re.search(r"business(?:-|\s)?class|free upgrade|upgrade", lower):
             extraction.requests.append(ExtractedRequest(type=RequestType.BUSINESS_UPGRADE))

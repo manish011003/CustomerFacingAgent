@@ -290,6 +290,31 @@ def test_analytics_summary_embeds_containment():
     assert "containment" in fresh_store().analytics()
 
 
+def test_operations_metrics_come_from_cases():
+    kb = fresh_store()
+    kb.upsert_case(
+        {
+            "id": "case-a",
+            "status": "resolved",
+            "created_at": "2026-09-18T10:00:00+00:00",
+            "resolved_at": "2026-09-18T10:05:00+00:00",
+        }
+    )
+    kb.upsert_case({"id": "case-b", "status": "escalated"})
+    kb.upsert_case({"id": "case-c", "status": "open"})
+    ops = kb.operations()
+    assert ops["total_cases"] == 3
+    assert ops["resolved_cases"] == 1
+    assert ops["escalated_cases"] == 1
+    assert ops["open_cases"] == 1
+    assert ops["resolution_rate"] == 0.3333
+    assert ops["average_resolution_seconds"] == 300
+    first = kb.get_case("case-a")["created_at"]
+    kb.upsert_case({"id": "case-a", "status": "resolved", "note": "updated"})
+    assert kb.get_case("case-a")["created_at"] == first
+    assert "operations" in kb.analytics()
+
+
 def test_percentile_uses_nearest_rank():
     ordered = [10, 20, 30, 40, 100]
     assert _percentile(ordered, 50) == 30
