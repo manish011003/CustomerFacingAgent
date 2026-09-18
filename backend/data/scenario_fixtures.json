@@ -1,0 +1,12 @@
+{
+  "source": "Assignment 3 data pack, section 6 — Scenarios for This Exercise. Not booking inventory.",
+  "fixtures": [
+    {
+      "customer_id": "CUST-MEHER",
+      "pnr": "WL7742",
+      "label": "Requested higher-fare alternative (no flight number supplied)",
+      "fare_difference_inr": 2000,
+      "note": "The assignment scenario specifies a ₹2,000 fare difference for Meher's requested higher-fare move. No alternative flight number is supplied."
+    }
+  ]
+}

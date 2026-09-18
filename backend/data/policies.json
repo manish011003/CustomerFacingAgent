@@ -1,0 +1,52 @@
+{
+  "source": "Assignment 3 Data Pack — Customer-Facing Resolution Agent (Airline Disruption). Do not invent additional rules.",
+  "exercise_date": "2026-09-23",
+  "rules": [
+    {
+      "id": "CANCELLATION_REBOOKING_RULE",
+      "title": "Cancellation Rebooking Rule",
+      "text": "If a flight is cancelled by the airline, the customer is entitled to a free rebooking on the next available flight within 24 hours, or a full refund, customer's choice."
+    },
+    {
+      "id": "DELAY_COMPENSATION_RULE",
+      "title": "Delay Compensation Rule",
+      "text": "Delay under 3 hours: ₹500 meal voucher. Delay more than 3 hours: meal voucher + lounge access. Delay more than 5 hours: meal voucher + hotel accommodation, covering only the delayed hours (not a full night's stay)."
+    },
+    {
+      "id": "REFUND_PROCESSING_RULE",
+      "title": "Refund Processing Rule",
+      "text": "Refunds for airline-caused cancellations are processed in full within 7 business days. Refunds are issued to the original payment method only."
+    },
+    {
+      "id": "FARE_DIFFERENCE_RULE",
+      "title": "Fare Difference Rule",
+      "text": "If a customer voluntarily chooses to rebook on a higher-fare flight (not airline-caused), they must pay the fare difference. Agents cannot waive fare differences above ₹1,500 without supervisor approval."
+    },
+    {
+      "id": "LOYALTY_TIER_RULE",
+      "title": "Loyalty Tier Rule",
+      "text": "Gold and Platinum tier customers get priority rebooking (first access to next-available seats) but no additional compensation beyond the standard policy."
+    }
+  ],
+  "allowed_actions": [
+    "Rebook the customer on the next available flight within 24 hours at no charge (airline-caused disruption)",
+    "Issue meal vouchers and lounge access per the delay compensation rule",
+    "Arrange hotel accommodation for the delayed-hours portion, where the delay qualifies",
+    "Initiate a refund request for airline-caused cancellations",
+    "Provide the customer's own booking and flight status information"
+  ],
+  "must_escalate": [
+    "Approving any compensation beyond the stated policy amounts",
+    "Waiving a fare difference above ₹1,500",
+    "Making exceptions for non-airline-caused disruptions (e.g., customer missed the flight)",
+    "Handling threats of legal action or formal complaints — must be escalated immediately",
+    "Processing refunds to a different payment method than the original"
+  ],
+  "assumptions": [
+    "Delay thresholds are independent: a delay more than 5 hours is also more than 3 hours, so lounge access still applies.",
+    "The ₹500 meal voucher amount is stated only for delays under 3 hours; longer delays receive a meal voucher without a stated amount.",
+    "Exactly 3 hours and exactly 5 hours are not specified; this engine uses under 3, more than 3, and more than 5 as written.",
+    "No next-available flight inventory is supplied; free 24-hour rebooking is simulated without inventing a flight number.",
+    "Meher Kaur's ₹2,000 fare difference is an assignment scenario fixture, not booking-table inventory."
+  ]
+}

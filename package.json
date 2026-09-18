@@ -1,0 +1,10 @@
+{
+  "name": "aeroresolve",
+  "private": true,
+  "scripts": {
+    "dev:api": "cd backend && .venv/bin/uvicorn main:app --reload --port 8000",
+    "dev:web": "cd frontend && npm run dev",
+    "dev:ops": "cd frontend-manager && npm run dev",
+    "test": "cd backend && .venv/bin/pytest -q"
+  }
+}

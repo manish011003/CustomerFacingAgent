@@ -1,0 +1,17 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+.env.local
+
+# no trailing slash: frontend-manager/node_modules is a symlink, not a directory
+node_modules
+.next/
+*.tsbuildinfo
+.DS_Store
+
+# graphify: keep the graph outputs, drop local caches and dated backups
+graphify-out/cache/
+graphify-out/20*/

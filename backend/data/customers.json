@@ -1,0 +1,41 @@
+[
+  {
+    "id": "CUST-PRIYA",
+    "name": "Priya Nair",
+    "loyalty_tier": "Gold",
+    "pnr": "SK4821X",
+    "email": "priya.nair@example.com",
+    "phone": "+91-98xxxxxxx1",
+    "travel_history": {
+      "flights_last_12_months": 6,
+      "prior_complaints": 1,
+      "prior_complaint_detail": "delayed baggage, resolved with a voucher"
+    }
+  },
+  {
+    "id": "CUST-ARVIND",
+    "name": "Arvind Kulkarni",
+    "loyalty_tier": "Silver",
+    "pnr": "TR1190B",
+    "email": "arvind.kulkarni@example.com",
+    "phone": "+91-98xxxxxxx2",
+    "travel_history": {
+      "flights_last_12_months": 3,
+      "prior_complaints": 0,
+      "prior_complaint_detail": null
+    }
+  },
+  {
+    "id": "CUST-MEHER",
+    "name": "Meher Kaur",
+    "loyalty_tier": "Platinum",
+    "pnr": "WL7742",
+    "email": "meher.kaur@example.com",
+    "phone": "+91-98xxxxxxx3",
+    "travel_history": {
+      "flights_last_12_months": 10,
+      "prior_complaints": 1,
+      "prior_complaint_detail": "overbooking, resolved with a tier-status upgrade"
+    }
+  }
+]

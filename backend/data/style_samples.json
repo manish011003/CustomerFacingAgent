@@ -1,0 +1,20 @@
+{
+  "note": "Tone/style only. Not policy. Not facts about Priya, Arvind, or Meher. Sample flights (e.g. SK-190) are unrelated.",
+  "samples": [
+    {
+      "id": "A",
+      "customer": "My flight got cancelled and no one told me anything!",
+      "agent": "I completely understand the frustration — I can see flight SK-190 was cancelled due to operational reasons. I can rebook you on the next available flight at no extra cost, or process a full refund. Which would you prefer?"
+    },
+    {
+      "id": "B",
+      "customer": "I want compensation, this delay ruined my whole day.",
+      "agent": "I'm sorry for the disruption. Your flight was delayed 3 hours 40 minutes, which qualifies for a meal voucher and lounge access under our policy. I've applied both to your account now."
+    },
+    {
+      "id": "C",
+      "customer": "This is unacceptable, I'm going to file a formal complaint and consider legal action over this.",
+      "agent": "I hear you, and I'm sorry this has been such a frustrating experience. I want to make sure this gets the right attention — I'm escalating this to our specialist support team right now, and they'll reach out to you directly."
+    }
+  ]
+}
