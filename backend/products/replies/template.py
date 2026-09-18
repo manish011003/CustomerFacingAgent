@@ -1,165 +1,187 @@
 from models.schemas import (
     CustomerAgentContext,
     DecisionStatus,
-    FrustrationCategory,
-    PolicyDecision,
+    RequestType,
 )
 from products.replies.base import ReplyRenderer
 
 
-def _line(decision: PolicyDecision) -> str:
-    label = {
-        "meal_voucher": "a meal voucher" + (f" of ₹{decision.amount_inr}" if decision.amount_inr else ""),
-        "lounge": "lounge access",
-        "hotel_delayed_hours": decision.scope or "hotel covering delayed hours only",
-        "rebook_24h": "free rebooking on the next available flight within 24 hours (no specific flight number is in our records)",
-        "refund_original": "a full refund to the original payment method within 7 business days",
-        "priority_rebooking": "priority rebooking, not extra compensation",
-    }.get(decision.action, decision.action.replace("_", " "))
-    return label
+def _name(ctx: CustomerAgentContext) -> str:
+    if ctx.identity and ctx.identity.name:
+        return ctx.identity.name.split()[0]
+    return "there"
 
 
-# One short line, never an entitlement. Acknowledging tone must not imply approval.
+def _asked(ctx: CustomerAgentContext) -> set[str]:
+    return {request.type.value for request in ctx.requests_this_turn}
+
+
+def _has_spoken(ctx: CustomerAgentContext) -> bool:
+    return any(message.get("role") == "assistant" for message in ctx.session_memory.messages)
+
+
 ACKNOWLEDGEMENT = {
-    "angry": "I hear you, and I'm sorry — this is a real disruption.",
-    "frustrated": "I hear you, and I'm sorry this has been frustrating.",
-    "confused": "Let me lay out exactly where things stand.",
+    "angry": "I hear you — this delay is a mess.",
+    "frustrated": "I know this has been frustrating.",
+    "confused": "Let me keep this simple.",
+}
+
+OFFER_LABEL = {
+    "meal_voucher": "a meal voucher",
+    "lounge": "lounge access",
+    "hotel_delayed_hours": "hotel cover for the delayed hours",
+    "rebook_24h": "free rebooking within 24 hours",
+    "refund_original": "a refund to the original payment method",
 }
 
 
 class TemplateReplyRenderer(ReplyRenderer):
     def render(self, ctx: CustomerAgentContext, utterance: str) -> str:
+        from agent.closure import ALREADY_ESCALATED, is_greeting, wants_more
+        from agent.router import missing_slots, parse_notes, SLOT_KEYS
+
         ack = ACKNOWLEDGEMENT.get(ctx.emotion or "")
+        first = _name(ctx)
+        asked = _asked(ctx)
+        spoken = _has_spoken(ctx)
+        executed = set(ctx.session_memory.executed_actions)
+        ev = ctx.policy_decision
 
         if ctx.unidentified:
             return " ".join(
-                p for p in [
+                part
+                for part in [
                     ack,
-                    "Please sign in to AERO Resolve so I can load your passenger record. "
-                    "New travellers can open an account from Join.",
-                ] if p
+                    "Please sign in so I can load your booking. New travellers can open an account from Join.",
+                ]
+                if part
             )
 
-        help_hits = [
-            hit for hit in (ctx.retrieval.rules if ctx.retrieval else []) if hit.kind == "help"
-        ]
-        assist = [
-            d
-            for d in (ctx.policy_decision.decisions if ctx.policy_decision else [])
-            if d.action in {"booking_assist", "help_question"}
-        ]
-        if assist:
-            parts: list[str] = []
-            if ack:
-                parts.append(ack)
-            first = (ctx.identity.name.split()[0] if ctx.identity else "there")
-            for decision in assist:
-                if decision.action == "help_question" and help_hits:
-                    parts.append(help_hits[0].text)
-                else:
-                    parts.append(decision.reason)
-            if ctx.missing_slots and any(d.action == "booking_assist" for d in assist):
-                parts.append(f"{first}, reply with the missing details in one message if you can.")
-            return " ".join(p for p in parts if p)
-
-        if not ctx.booking:
-            first = (ctx.identity.name.split()[0] if ctx.identity else "there")
-            return " ".join(
-                p for p in [
-                    ack,
-                    f"{first}, you are signed in but I don't have a booking on this account yet. "
-                    "Add your trip under Account — I will not invent a flight number.",
-                ] if p
-            )
-
-        name = ctx.identity.name if ctx.identity else "there"
-        first = name.split()[0]
-        parts: list[str] = []
-        if ack:
-            parts.append(ack)
-
-        if ctx.disruption and ctx.booking:
-            if ctx.disruption.get("type") == "cancellation":
-                parts.append(
-                    f"{first}, flight {ctx.booking.flight} {ctx.booking.route} is cancelled "
-                    f"({ctx.booking.status_reason})."
+        if is_greeting(utterance):
+            if ctx.session_memory.escalated_to_human:
+                return ALREADY_ESCALATED
+            if spoken:
+                return f"Hi {first} — I'm here. What do you need?"
+            if ctx.booking and ctx.booking.status == "DELAYED":
+                return (
+                    f"Hi {first} — I can see {ctx.booking.flight or 'your flight'} is delayed "
+                    f"{ctx.booking.delay_hours} hours. What can I help with?"
                 )
-            elif ctx.disruption.get("type") == "delay":
-                parts.append(
-                    f"{first}, flight {ctx.booking.flight} {ctx.booking.route} is delayed "
-                    f"{ctx.booking.delay_hours} hours (new departure {ctx.booking.new_departure})."
-                )
+            return f"Hi {first} — I'm here. What can I help with?"
 
-        ev = ctx.policy_decision
-        if not ev:
-            parts.append("I don't have an established policy decision for this request.")
-            return " ".join(parts)
-
-        # Presentation only: offered_actions is the exclusivity-filtered, possibly
-        # reordered subset. Membership never changes what is ALLOW/ASK — it only
-        # decides what is put in front of the passenger, and in which order.
-        offered = list(ev.offered_actions)
-        by_action = {d.action: d for d in ev.decisions}
-        allows = [by_action[a] for a in offered if by_action.get(a) and by_action[a].status == DecisionStatus.ALLOW]
-        asks = [by_action[a] for a in offered if by_action.get(a) and by_action[a].status == DecisionStatus.ASK]
-        denies = [d for d in ev.decisions if d.status == DecisionStatus.DENY]
-        escalations = [d for d in ev.decisions if d.status == DecisionStatus.ESCALATE]
-        informs = [d for d in ev.decisions if d.status == DecisionStatus.INFORM]
-        urgent = bool(
-            ctx.frustration
-            and ctx.frustration.category
-            in {FrustrationCategory.DISTRESSED, FrustrationCategory.HOSTILE}
+        escalating = bool(ev and ev.escalate) or bool(
+            any(d.status == DecisionStatus.ESCALATE for d in (ev.decisions if ev else []))
         )
 
-        if allows:
-            executed = [a for a in allows if a.action in (ctx.session_memory.executed_actions or []) or a.action in ev.execute]
-            unique = []
-            seen = set()
-            for d in executed or allows:
-                if d.action in seen:
-                    continue
-                seen.add(d.action)
-                unique.append(d)
-            actionable = [d for d in unique if d.action not in {"priority_rebooking", "status"}]
-            if actionable and ev.execute:
-                parts.append(
-                    "I can arrange " + ", ".join(_line(d) for d in actionable if d.action in ev.execute) + " now (simulated)."
-                )
-            elif asks:
-                pass
-            elif actionable:
-                parts.append("You qualify for " + ", ".join(_line(d) for d in actionable) + ".")
+        if "booking_assist" in asked and not escalating:
+            notes = next((request.notes for request in ctx.requests_this_turn if request.type == RequestType.BOOKING_ASSIST), "")
+            filled = parse_notes(notes)
+            missing = missing_slots({key: str(filled.get(key) or "") for key in SLOT_KEYS})
+            if missing:
+                need = ", ".join(missing)
+                return f"Sure — I can help sketch a new trip. I still need {need}. I can't invent a flight number or fare."
+            summary = (
+                f"{filled.get('origin')} to {filled.get('destination')} on {filled.get('date')} "
+                f"for {filled.get('passengers')} passenger(s)"
+            )
+            return (
+                f"Got it — {summary}. This chat has no ticketing inventory, so I will not invent a "
+                "flight number or fare. There's a look-only departure on the card if you want the board."
+            )
 
-        if asks and "rebook_or_refund_choice" in (ev.missing_slots + ctx.missing_slots):
-            if offered and offered[0] == "refund_original":
-                parts.append(
-                    "You can choose a full refund to the original payment method or free rebooking within 24 hours. Which do you want?"
+        if "help_question" in asked and not escalating:
+            help_hits = [hit for hit in (ctx.retrieval.rules if ctx.retrieval else []) if hit.kind == "help"]
+            if help_hits:
+                return help_hits[0].text
+            return "I can help with check-in, baggage, seats, or planning a new trip. What do you want to know?"
+
+        if not ctx.booking:
+            return " ".join(
+                part
+                for part in [
+                    ack,
+                    f"{first}, you're signed in but I don't have a booking on this account yet. "
+                    "Add your trip under Account — I will not invent a flight number.",
+                ]
+                if part
+            )
+
+        if not ev:
+            return f"I've got your booking, {first}. What do you need help with?"
+
+        if escalating or wants_more(utterance):
+            if ctx.session_memory.escalated_to_human:
+                return (
+                    "A supervisor already has this — I can't add extra compensation from here. "
+                    "Want me to leave them a note?"
+                )
+            return (
+                "I can't approve extra compensation — that's outside the delay policy. "
+                "I've sent this to a supervisor with your booking so you don't have to repeat it."
+            )
+
+        issued = [action for action in ev.execute if action in asked]
+        leftover = [
+            action
+            for action in ev.offered_actions
+            if action not in executed
+            and action not in issued
+            and action in OFFER_LABEL
+        ]
+
+        if issued:
+            names = ", ".join(OFFER_LABEL.get(action, action.replace("_", " ")) for action in issued)
+            extra = f" {OFFER_LABEL[leftover[0]].capitalize()} is still available if you want it." if leftover else ""
+            return f"Done — I've issued {names} (simulated).{extra}"
+
+        if asked & {"meal_voucher", "lounge", "hotel_delayed_hours"} and asked & executed:
+            extra = f" {OFFER_LABEL[leftover[0]].capitalize()} is still available." if leftover else ""
+            return f"That's already on the booking.{extra}"
+
+        denies = [d for d in ev.decisions if d.status == DecisionStatus.DENY and d.action in asked]
+        if denies:
+            hotel = next((d for d in denies if "hotel" in d.action), None)
+            if hotel and ctx.booking and ctx.booking.delay_hours is not None:
+                body = (
+                    f"A hotel only applies after more than 5 hours. Yours is {ctx.booking.delay_hours}, "
+                    "so I can't book one. A meal voucher and lounge access are still available."
                 )
             else:
-                parts.append(
-                    "You can choose free rebooking within 24 hours or a full refund to the original payment method. Which do you want?"
+                body = denies[0].reason
+            return f"{ack} {body}".strip() if ack else body
+
+        if asked & {"rebook_24h", "refund_original"} or "rebook_or_refund_choice" in (ev.missing_slots + ctx.missing_slots):
+            if ctx.booking and ctx.booking.status == "CANCELLED":
+                return (
+                    f"{first}, {ctx.booking.flight or 'your flight'} {ctx.booking.route} was cancelled. "
+                    "You can rebook free within 24 hours or take a full refund to the original payment method. Which do you want?"
                 )
-        elif asks:
-            for d in asks:
-                parts.append(d.reason if not urgent else _line(d).capitalize() + " is available.")
+            return "You can rebook free within 24 hours or take a full refund. Which do you want?"
 
-        for d in informs:
-            if d.action == "priority_rebooking" and not urgent:
-                parts.append(d.reason)
+        if not spoken or asked == {"status"}:
+            parts = [ack] if ack else []
+            if ctx.booking.status == "CANCELLED":
+                parts.append(
+                    f"{first}, {ctx.booking.flight or 'your flight'} {ctx.booking.route} was cancelled"
+                    + (f" ({ctx.booking.status_reason})" if ctx.booking.status_reason else "")
+                    + ". You can rebook free within 24 hours or take a full refund. Which do you want?"
+                )
+            elif ctx.booking.status == "DELAYED":
+                hours = ctx.booking.delay_hours
+                parts.append(
+                    f"Sorry about the wait, {first}. {ctx.booking.flight or 'Your flight'} is delayed "
+                    f"{hours} hours"
+                    + (f" — now leaving at {ctx.booking.new_departure}" if ctx.booking.new_departure else "")
+                    + ". I can issue a meal voucher and lounge access."
+                )
+                if hours is not None and hours <= 5:
+                    parts.append("A hotel only applies after more than 5 hours, so I can't do that for this delay.")
+                parts.append("What would you like?")
+            else:
+                parts.append(f"{first}, I've loaded your booking. What do you need?")
+            return " ".join(part for part in parts if part)
 
-        for d in denies:
-            parts.append(d.reason)
-
-        for d in escalations:
-            parts.append(d.reason + " I'm sending this to a supervisor with your case context so you don't have to repeat it.")
-
-        related = [b for b in ctx.related_bookings if ctx.booking and b.id != ctx.booking.id]
-        for b in related:
-            if b.status == "UNAFFECTED":
-                parts.append(f"Your {b.leg} {b.route} on {b.date_label} is unaffected.")
-
-        if ctx.session_memory.executed_actions:
-            parts.append("Already on this case (simulated): " + ", ".join(ctx.session_memory.executed_actions) + ".")
-
-        text = " ".join(p for p in parts if p)
-        return text or "I've logged your message against this booking. Tell me what you'd like me to do next."
+        leftover_text = ""
+        if leftover:
+            leftover_text = " I can still arrange " + " or ".join(OFFER_LABEL[a] for a in leftover[:2]) + "."
+        return f"I'm here, {first}.{leftover_text} What do you need next?"

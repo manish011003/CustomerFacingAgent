@@ -113,6 +113,40 @@ def test_good_feedback_cannot_un_escalate():
     assert _case("CUST-ARVIND")["status"] == "escalated"
 
 
+def test_booking_assist_does_not_append_a_resolved_survey():
+    sid = str(uuid4())
+    handle_chat(sid, "My flight is delayed. Please tell me what I'm entitled to.", "CUST-ARVIND")
+    handle_chat(sid, "Can I have the meal voucher?", "CUST-ARVIND")
+    handle_chat(sid, "Can I have lounge access?", "CUST-ARVIND")
+    book = handle_chat(sid, "I want to book a new flight.", "CUST-ARVIND")
+    assert "resolved" not in book.reply.lower()
+    assert "origin" in book.reply.lower() or "invent" in book.reply.lower()
+
+
+def test_replies_answer_this_turn_instead_of_reciting_the_case():
+    sid = str(uuid4())
+    first = handle_chat(sid, "My flight is delayed. Please tell me what I'm entitled to.", "CUST-ARVIND")
+    assert "already on this case" not in first.reply.lower()
+    meal = handle_chat(sid, "Can I have the meal voucher?", "CUST-ARVIND")
+    assert "already on this case" not in meal.reply.lower()
+    assert "meal voucher" in meal.reply.lower()
+    assert "i can arrange" not in meal.reply.lower()
+
+
+def test_cash_ask_escalates_once_and_greeting_does_not_repeat_the_handover():
+    sid = str(uuid4())
+    handle_chat(sid, "My flight is delayed. Please tell me what I'm entitled to.", "CUST-ARVIND")
+    cash = handle_chat(sid, "can you give me 100000 inr", "CUST-ARVIND")
+    assert cash.case_status == "escalated"
+    assert cash.escalation is not None
+    assert "new trip" not in cash.reply.lower()
+    hello = handle_chat(sid, "hi", "CUST-ARVIND")
+    assert hello.case_status == "escalated"
+    assert hello.escalation is None
+    assert "supervisor" in hello.reply.lower()
+    assert "new trip" not in hello.reply.lower()
+
+
 def test_heuristic_reads_more_and_escalate_intents():
     extractor = HeuristicExtractor()
     more = extractor.extract("i want more")

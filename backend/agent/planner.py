@@ -22,7 +22,7 @@ ALLOWED_ACTIONS = "ALLOWED_ACTIONS"
 # pulls no policy clauses, no other legs, and no scenario fixture.
 NEEDS: dict[RequestType, dict] = {
     RequestType.STATUS: {"rules": []},
-    RequestType.GENERAL_HELP: {"rules": [], "help": True},
+    RequestType.GENERAL_HELP: {"rules": []},
     RequestType.HELP_QUESTION: {"rules": [], "help": True},
     RequestType.BOOKING_ASSIST: {"rules": [], "help": True},
     RequestType.MEAL_VOUCHER: {"rules": [DELAY]},

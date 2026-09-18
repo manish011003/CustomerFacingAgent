@@ -134,12 +134,14 @@ export function AgentCards({
   isLatest,
   sending,
   onChoose,
+  showHandover,
 }: {
   turn: Turn;
   previousExecuted: Set<string>;
   isLatest: boolean;
   sending: boolean;
   onChoose: (message: string) => void;
+  showHandover?: boolean;
 }) {
   const choices = isLatest ? choiceDecisions(turn) : [];
   const confirmed = newActions(turn, previousExecuted);
@@ -150,7 +152,7 @@ export function AgentCards({
       {turn.suggestedFlight && <SuggestedFlightCard flight={turn.suggestedFlight} />}
       {choices.length > 0 && <ChoiceCard decisions={choices} disabled={sending} onChoose={onChoose} />}
       {confirmed.length > 0 && <ConfirmationCard actions={confirmed} />}
-      {turn.escalation && <EscalationCard escalation={turn.escalation} />}
+      {showHandover && turn.escalation && <EscalationCard escalation={turn.escalation} />}
     </div>
   );
 }

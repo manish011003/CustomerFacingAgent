@@ -523,6 +523,16 @@ class ToolRuntime:
         }
 
     def answer_help(self, topic: str) -> dict[str, Any]:
+        from agent.closure import is_greeting, wants_more
+
+        text = topic or self.utterance or ""
+        if is_greeting(text) or wants_more(text) or self.session.escalated_to_human:
+            return {
+                "ok": True,
+                "topic": topic,
+                "articles": [],
+                "note": "Not a how-to question. Do not paste a help article.",
+            }
         hits = store.search_help(topic or "", k=2, max_chars=280)
         for hit in hits:
             if not any(existing.clause_id == hit.clause_id for existing in self.retrieval.rules):

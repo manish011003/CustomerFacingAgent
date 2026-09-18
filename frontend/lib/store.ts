@@ -45,9 +45,16 @@ interface State extends Persisted {
 
 function greeting(passenger: Passenger, booking: Booking | null): Turn {
   const firstName = passenger.name.split(" ")[0];
-  const text = booking
-    ? `Hi ${firstName} — I'm the resolution agent. I can see your booking ${booking.pnr}, and I'm here to sort out whatever has gone wrong with it. Tell me what you need and I'll check it against the airline's policy.`
-    : `Hi ${firstName} — I'm the resolution agent. I can't see a disrupted flight on your account yet. If you tell me your booking reference and what has happened, I'll take a look.`;
+  const status = booking?.status?.toUpperCase();
+  let text = `Hi ${firstName} — I'm here. What can I help with?`;
+  if (status === "DELAYED") {
+    const hours = booking?.delay_hours != null ? ` ${booking.delay_hours} hours` : "";
+    text = `Hi ${firstName} — I can see ${booking?.flight || "your flight"} is delayed${hours}. What can I help with?`;
+  } else if (status === "CANCELLED") {
+    text = `Hi ${firstName} — ${booking?.flight || "Your flight"} was cancelled. I can rebook you or refund the original payment. What do you want to do?`;
+  } else if (booking) {
+    text = `Hi ${firstName} — I've got ${booking.flight || "your booking"}. What do you need?`;
+  }
 
   return {
     id: turnId(),
@@ -128,6 +135,12 @@ export const useConversation = create<State>()(
         try {
           const response = await api.chat(token, sessionId, body);
           const packet = response.context_packet;
+          const decisions = packet.policy_decision?.decisions ?? [];
+          const missing = packet.missing_slots ?? [];
+          const bookingReady =
+            decisions.some((decision: { action?: string }) => decision.action === "booking_assist") &&
+            Boolean(packet.suggested_flight) &&
+            !["origin", "destination", "date", "passengers"].some((slot) => missing.includes(slot));
 
           set((state) => ({
             sending: false,
@@ -141,7 +154,7 @@ export const useConversation = create<State>()(
                 text: response.reply,
                 at: Date.now(),
                 eligibility: response.eligibility,
-                decisions: packet.policy_decision?.decisions ?? [],
+                decisions,
                 clauses: packet.retrieved?.rules ?? [],
                 executedActions: response.session.executed_actions,
                 escalation: response.escalation,
@@ -150,7 +163,7 @@ export const useConversation = create<State>()(
                 caseStatus: response.case_status ?? packet.case_status,
                 feedbackPrompt: Boolean(response.feedback_prompt ?? packet.feedback_prompt),
                 feedbackPopup: Boolean(response.feedback_popup ?? packet.feedback_popup),
-                suggestedFlight: response.context_packet.suggested_flight ?? packet.suggested_flight ?? null,
+                suggestedFlight: bookingReady ? packet.suggested_flight ?? null : null,
               },
             ],
             csatDismissed: Boolean(response.feedback_popup ?? packet.feedback_popup)

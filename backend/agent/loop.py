@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 
 from agent import closure as case_closure
@@ -294,6 +295,52 @@ def handle_chat(session_id: str, message: str, authenticated_customer_id: str | 
     )
 
 
+def _spoken_before(session: SessionMemory) -> bool:
+    return any(message.get("role") == "assistant" for message in session.messages)
+
+
+def _looks_like_recap(reply: str) -> bool:
+    lower = (reply or "").lower()
+    return (
+        sum(
+            bit in lower
+            for bit in (
+                "delayed",
+                "meal voucher",
+                "lounge",
+                "hotel only applies",
+                "already on this case",
+                "i can arrange",
+            )
+        )
+        >= 3
+    )
+
+
+def _speak_this_turn(message: str, reply: str, session: SessionMemory, ctx) -> str:
+    """Keep the spoken line answering this turn, even when the model recites the case."""
+    text = reply or ""
+    lower = text.lower()
+    asked = {request.type.value for request in (getattr(ctx, "requests_this_turn", None) or [])}
+    if case_closure.is_greeting(message) or "booking_assist" in asked:
+        return TemplateReplyRenderer().render(ctx, message)
+    if "already on this case" in lower:
+        return TemplateReplyRenderer().render(ctx, message)
+    if case_closure.wants_more(message) and (
+        "new trip" in lower or "check-in" in lower or "help guide" in lower or len(text) > 420
+    ):
+        return TemplateReplyRenderer().render(ctx, message)
+    if (
+        _spoken_before(session)
+        and _looks_like_recap(text)
+        and not re.search(r"\b(status|delayed|cancelled|entitled)\b", message or "", re.I)
+    ):
+        return TemplateReplyRenderer().render(ctx, message)
+    if len(text) > 650:
+        return TemplateReplyRenderer().render(ctx, message)
+    return text
+
+
 def _deterministic_turn(
     *, started, session, message, authenticated_customer_id, llm, assessed=None
 ) -> ChatResponse:
@@ -531,10 +578,11 @@ def _finish(
     parsed_feedback = newly_closed.get("feedback")
 
     escalating = bool(session.escalated_to_human or (evaluation and evaluation.escalate) or distress)
+    reply = _speak_this_turn(message, reply, session, ctx)
     ask_feedback = case_closure.should_prompt_feedback(
         session=session, evaluation=evaluation, escalating=escalating
     )
-    if ask_feedback:
+    if ask_feedback and not case_closure.is_greeting(message):
         if not session.awaiting_feedback and not case_closure.already_asked_feedback(reply):
             reply = reply.rstrip() + " " + case_closure.FEEDBACK_PROMPT
         session.awaiting_feedback = True
@@ -567,8 +615,9 @@ def _finish(
             disruption=ctx.disruption,
             distress=distress,
         )
-        newly_escalated = bool((evaluation and evaluation.escalate) or distress) and not was_escalated
-        if case.get("status") == "escalated":
+        this_turn_escalates = bool((evaluation and evaluation.escalate) or distress)
+        newly_escalated = this_turn_escalates and not was_escalated
+        if this_turn_escalates:
             escalation = case
         if newly_escalated:
             store.append_event(

@@ -18,15 +18,18 @@ This is not a generic LLM chatbot. The model orchestrates. Deterministic tools d
 | Recommend or execute the correct next action | `ALLOW` → simulated action, logged as `SIMULATED` |
 | Handle an angry or confused customer | emotion detected in the extractor, acknowledged in one line; `test_emotion.py` proves tone cannot change an outcome. Frustration is a separate audited signal (`classify_frustration` tool + heuristic fallback), written only above `KB_AUTO_STORE_THRESHOLD`, and can never change eligibility |
 | Escalate when authority is missing | `ESCALATE` → supervisor case packet, tagged with an `EscalationReason` code. `SEVERE_CUSTOMER_DISTRESS` is the one duty-of-care member, reported apart from authority limits |
+| Answer how-to and new-trip asks without inventing money | `IssueFamily` router (`agent/router.py`): disruption stays on the packed engine; `HELP_QUESTION` cites `help.json`; `BOOKING_ASSIST` collects origin / destination / date / passengers. A look-only departure appears only after those slots are filled |
+| Close the case only when the passenger says so | Issuing a voucher does not resolve the case. CSAT popup (`feedback_popup`) appears only after `case_status=resolved` |
 | Preserve a clear conversation and action record | events, cases, graph edges (`HAS_BOOKING`, `EVALUATED_UNDER`, `DENIED_BY`, `ESCALATED_TO`, `EXHIBITS_FRUSTRATION`), and a per-turn audit event |
 | Show it works | containment rate, grounding coverage, p95 latency, and spend at `/api/analytics/containment`; frustration buckets at `/api/analytics/frustration` |
 
 ## Surfaces
 
-Exactly two:
+Exactly two product surfaces, plus one look-only exit:
 
-1. **Customer — Resolution Agent** (`frontend`, http://localhost:3000) — one conversation. Choices, confirmations, and escalations land in the thread.
+1. **Customer — Resolution Agent** (`frontend`, http://localhost:3000) — one conversation. Choices, confirmations, and escalations land in the thread. A 1–5 CSAT dialog appears only after the passenger closes the case.
 2. **Internal — Operations** (`frontend-manager`, http://localhost:3001) — audit what the agent did. Staff credentials required. Not linked from the passenger chat.
+3. **Exit board** (`/exit`) — leaving chat after a completed booking-assist request. Upcoming catalog only; no ticketing.
 
 ## Live demo
 
@@ -38,7 +41,13 @@ docker compose up --build web
 # http://localhost:8000/ops      operations
 ```
 
-From this GitHub repo: [Deploy to Render](https://render.com/deploy?repo=https://github.com/manish011003/CustomerFacingAgent). Add a `GROQ_API_KEY` (or `GEMINI_API_KEY`) in the Render dashboard if you want live phrasing; without a key the heuristic path still answers.
+From this GitHub repo: [Deploy to Render](https://render.com/deploy?repo=https://github.com/manish011003/CustomerFacingAgent) (`render.yaml` + `Dockerfile`). Blueprint name: `aeroresolve`. In the Render dashboard set:
+
+- `GROQ_API_KEY` or `GEMINI_API_KEY` — live phrasing; without a key the heuristic path still answers
+- `DATABASE_URL` — attach a Render Postgres instance so signups and cases survive deploys
+- `LLM_PROVIDER=groq` is already in the blueprint
+
+Pushing `main` rebuilds the one-origin image (passenger chat + `/ops` + FastAPI). Health check: `GET /api/health`.
 
 ## Run locally
 
@@ -177,7 +186,12 @@ Then sign in to Operations. The passenger chat does not link to it. Use the quie
 
 Prototype staff account: `ops@aeroresolve.local` / `AeroOps2026!`. Passenger passwords do not work there. Read the case: transcript, policy used, actions, and why it escalated.
 
-Join from the login screen to confirm a new passenger can use the same chat. New members start as Standard. The agent will not invent a flight number.
+Join from the login screen to confirm a new passenger can use the same chat. New members start as Standard. Then try:
+
+- **New trip** — “book a flight” asks origin, destination, date, and passengers. No departure card until those four are filled. Delhi → Goa on a catalog date shows look-only `SK-441`; tapping it leaves chat for `/exit`. The agent will not invent a fare.
+- **How-to** — “How do I check in?” cites the passenger help guide, not delay vouchers.
+- **Beyond policy** — “give me 100000 INR” escalates once. A later “hi” does not repeat the handover card.
+- **Resolution** — after in-policy actions, the agent asks if the case is resolved. The 1–5 popup appears only when they say it is (or rate 4–5).
 
 LLMs handle ambiguity and wording. Deterministic systems handle policy, authority, and irreversible actions.
 
@@ -306,15 +320,19 @@ the policy engine never calls a model, no setting here can change a decision —
 
 ## Repository
 
-- `backend/data/` — verbatim pack
+- `backend/data/` — verbatim pack, plus `help.json` and `scheduled_flights.json`
 - `backend/policy/engine.py` — deterministic rules
+- `backend/policy/handlers/assist.py` — booking slots and help (never money)
+- `backend/agent/router.py` — `IssueFamily`: disruption / assist / help / unclassified
+- `backend/products/inventory.py` — look-only departures after a route is known
 - `backend/agent/planner.py` — decides which slices a turn retrieves
 - `backend/agent/retrieve.py` — runs the plan against the knowledge store
 - `backend/agent/context.py` — context assembler and grounded narration
+- `backend/agent/closure.py` — sticky escalation; CSAT only after the passenger closes
 - `backend/llm/` — provider resolution, token caps, and spend ceilings
 - `backend/products/knowledge/corpus.py` — `policies.json` flattened to clauses
 - `backend/kb/store.py` — Postgres + Elasticsearch + JSON fallback, same retrieval contract
 - `backend/main.py` — FastAPI
-- `frontend/` — Next.js customer resolution chat
+- `frontend/` — Next.js customer resolution chat (`/exit` is the look-only board)
 - `frontend-manager/` — Next.js operations dashboard
 - `docs/` — architecture, 10-slide PPT outline, 15-minute demo script

@@ -17,9 +17,11 @@ Line to say: “The interesting part is not that the model answered. It is that 
 
 6:00–8:30 — Sign in as Priya. Refund allowed; upgrade escalated; return flight unaffected; Gold is not extra cash.
 
-8:30–10:30 — Sign in to Operations (`ops@aeroresolve.local` / `AeroOps2026!`, or the quiet Staff control on the passenger login). Same Meher case: transcript, policy, actions, escalation reason. “A manager can see what happened and why.” Passenger credentials do not open this surface.
+8:30–10:00 — Sign in to Operations (`ops@aeroresolve.local` / `AeroOps2026!`, or the quiet Staff control on the passenger login). Same Meher case: transcript, policy, actions, escalation reason. “A manager can see what happened and why.” Passenger credentials do not open this surface.
 
-10:30–12:00 — Point at an inline confirmation or escalation card, then mention pytest: policy still passes with the LLM unplugged.
+10:00–11:00 — Join as a new Standard passenger, or stay on Arvind. Say “book a flight”. The agent asks origin, destination, date, and passengers — it does **not** flash a random departure. Then: “From Delhi to Goa next Friday for 2 passengers.” Look-only `SK-441`. Tap it → `/exit` board. Line to say: “We will not invent a fare or a city pair.”
+
+11:00–12:00 — “How do I check in?” cites the help guide, not vouchers. “give me 100000 INR” escalates once; “hi” does not reprint the supervisor card. After a contained delay, say the case is resolved — CSAT popup only then.
 
 12:00–15:00 — Questions. If asked about Elasticsearch: passenger 360 and event graph; policies stay in code. If ES is down, JSON fallback, fail closed on unknown benefits.
 

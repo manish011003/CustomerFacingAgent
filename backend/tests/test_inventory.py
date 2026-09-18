@@ -19,6 +19,12 @@ def test_unknown_route_is_random_not_ticketed():
     assert flight.flight
 
 
+def test_no_route_means_no_guessed_flight():
+    assert suggest_flight() is None
+    assert suggest_flight(origin="Delhi") is None
+    assert suggest_flight(destination="Goa") is None
+
+
 def test_upcoming_board_has_catalog_rows():
     board = upcoming_flights()
     assert len(board) >= 8

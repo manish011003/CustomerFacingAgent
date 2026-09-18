@@ -42,18 +42,34 @@ SLOT_KEYS = ("origin", "destination", "date", "passengers")
 
 
 def classify(message: str, session: SessionMemory | None = None) -> IssueFamily:
+    from agent.closure import is_greeting
+
     text = message or ""
+    if is_greeting(text):
+        return IssueFamily.UNCLASSIFIED
     if ASSIST.search(text) or (ROUTE.search(text) and re.search(r"\b(book|flight|ticket|fly)\b", text, re.I)):
         return IssueFamily.ASSIST
-    if session and (
-        session.open_question in SLOT_KEYS
-        or (session.choices.get("assist") or {})
-    ):
-        if ROUTE.search(text) or DATE.search(text) or PAX.search(text) or session.open_question in SLOT_KEYS:
-            return IssueFamily.ASSIST
     if HELP.search(text):
         return IssueFamily.HELP
+    if session and _is_assist_follow_up(text, session):
+        return IssueFamily.ASSIST
     return IssueFamily.UNCLASSIFIED
+
+
+def _is_assist_follow_up(text: str, session: SessionMemory) -> bool:
+    waiting = session.open_question in SLOT_KEYS or bool(session.choices.get("assist"))
+    if not waiting:
+        return False
+    if ROUTE.search(text) or DATE.search(text) or PAX.search(text):
+        return True
+    stripped = text.strip(" .!?")
+    if session.open_question in {"origin", "destination"} and re.fullmatch(
+        r"[A-Za-z][A-Za-z\s-]{1,40}", stripped
+    ):
+        return True
+    if session.open_question == "passengers" and re.fullmatch(r"\d{1,2}", stripped):
+        return True
+    return False
 
 
 def slots_from(message: str, session: SessionMemory | None = None) -> dict[str, str]:

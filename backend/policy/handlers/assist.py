@@ -11,21 +11,6 @@ class BookingAssistHandler(PolicyHandler):
 
         filled = parse_notes(request.notes)
         missing = missing_slots({key: str(filled.get(key) or "") for key in SLOT_KEYS})
-        from products.inventory import suggest_flight
-
-        evaluation.suggested_flight = suggest_flight(
-            origin=str(filled.get("origin") or "") or None,
-            destination=str(filled.get("destination") or "") or None,
-            date=str(filled.get("date") or "") or None,
-            passengers=str(filled.get("passengers") or "") or None,
-        )
-        card = evaluation.suggested_flight
-        look = (
-            f"A look-only departure is {card.flight} {card.origin} → {card.destination} "
-            f"at {card.scheduled_departure}. Tap it to leave this chat — this prototype has no live "
-            "ticketing inventory, so I will not invent a fare."
-        )
-
         if missing:
             evaluation.missing_slots.extend(slot for slot in missing if slot not in evaluation.missing_slots)
             asked = ", ".join(missing)
@@ -37,7 +22,7 @@ class BookingAssistHandler(PolicyHandler):
                     eligible=True,
                     reason=(
                         "I can help plan a new booking. I still need "
-                        f"{asked}. {look}"
+                        f"{asked}. I will not invent a flight number or fare."
                     ),
                     source=HELP_SOURCE,
                     requires_customer_choice=True,
@@ -46,6 +31,14 @@ class BookingAssistHandler(PolicyHandler):
             )
             return
 
+        from products.inventory import suggest_flight
+
+        evaluation.suggested_flight = suggest_flight(
+            origin=str(filled.get("origin") or "") or None,
+            destination=str(filled.get("destination") or "") or None,
+            date=str(filled.get("date") or "") or None,
+            passengers=str(filled.get("passengers") or "") or None,
+        )
         summary = (
             f"{filled.get('origin')} → {filled.get('destination')} on {filled.get('date')} "
             f"for {filled.get('passengers')} passenger(s)"
@@ -57,8 +50,8 @@ class BookingAssistHandler(PolicyHandler):
                 status=DecisionStatus.INFORM,
                 eligible=True,
                 reason=(
-                    f"I have your request for {summary}. {look} "
-                    "A supervisor can ticket it if you want."
+                    f"I have your request for {summary}. This prototype has no live inventory, "
+                    "so I will not invent a flight number or fare. A supervisor can ticket it if you want."
                 ),
                 source=HELP_SOURCE,
                 scope=summary,

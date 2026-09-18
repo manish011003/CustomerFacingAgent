@@ -16,6 +16,7 @@ export function newActions(turn: Turn, already: Set<string>): string[] {
 }
 
 export function choiceDecisions(turn: Turn): PolicyDecision[] {
+  if (turn.caseStatus === "escalated" || turn.escalation) return [];
   const executed = new Set(turn.executedActions ?? []);
   return (turn.decisions ?? []).filter((decision) => {
     if (!CHOICE_STATUSES.has(decision.status)) return false;

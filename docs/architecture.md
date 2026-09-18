@@ -9,6 +9,7 @@ flowchart TD
   msg[CustomerMessage] --> llm[LlmAgent]
   llm --> tools[Tools]
   tools --> lookup[GetCustomerGetBookingGetPolicy]
+  tools --> help[AnswerHelpCollectBookingSlot]
   tools --> mood[ClassifyFrustration]
   tools --> gate[CheckEligibility]
   tools --> act[ExecuteSimulatedAction]
@@ -100,7 +101,7 @@ Observations below `KB_AUTO_STORE_THRESHOLD` (default 0.75) are still written, t
 | --- | --- | --- | --- |
 | `IntentExtractor` | heuristic, LLM+fallback | `ExtractorFactory` | `agent/loop.py` |
 | `ReplyRenderer` | template, LLM polish | `ReplyFactory` | `agent/loop.py` |
-| `PolicyHandler` | status, cancel, delay, fare, exceptions | `PolicyHandlerFactory` | `policy/engine.py` |
+| `PolicyHandler` | status, cancel, delay, fare, exceptions, booking assist, help | `PolicyHandlerFactory` | `policy/engine.py` |
 | `PassengerKnowledgeStore` | Postgres, JSON, Elasticsearch | `KnowledgeStoreFactory` | `kb/store.py` singleton |
 | `LlmClient` | Gemini, Groq, xAI, OpenAI, disabled | `LlmFactory` | extractor and reply products |
 
@@ -108,10 +109,14 @@ Observations below `KB_AUTO_STORE_THRESHOLD` (default 0.75) are still written, t
 
 Exactly two Next.js apps. They do not share a CRM chrome.
 
-- **Resolution Agent** (`frontend`, :3000) — one passenger conversation, with choices and confirmations inline
+- **Resolution Agent** (`frontend`, :3000) — one passenger conversation, with choices and confirmations inline. CSAT is a post-close popup, not a card that closes the case.
 - **Operations** (`frontend-manager`, :3001) — staff-only case audit. Passenger tokens cannot read cases.
+- **Exit board** (`/exit`) — look-only upcoming catalog after a completed new-trip request. No ticketing.
 
 `ALLOW` → simulated tool (labelled SIMULATED)  
-`ASK` → one missing slot  
+`ASK` → one missing slot (disruption choice, or booking origin / destination / date / passengers)  
 `DENY` → explain source  
-`ESCALATE` → structured case packet with transcript and decisions
+`ESCALATE` → structured case packet with transcript and decisions  
+`INFORM` → help-guide or completed booking-assist summary; never money
+
+Turns are classified into an `IssueFamily` before a `RequestType` is chosen: **disruption** stays on the packed engine, **assist** collects a new trip without inventing inventory, **help** cites `help.json`, **unclassified** is ordinary conversation on the loaded booking. A look-only flight card is attached only when origin, destination, date, and passengers are all filled.

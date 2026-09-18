@@ -16,12 +16,22 @@ from models.schemas import PolicyEvaluation, ServiceFeedback, SessionMemory
 FEEDBACK_PROMPT = (
     "Is everything resolved on this case? Tell me if you still need help."
 )
+ALREADY_ESCALATED = (
+    "A supervisor already has your case — they can see the delay and what I arranged. "
+    "I'm still here if you want me to add a note for them."
+)
 
 _SKIP_OFFERED = {"status", "priority_rebooking", "general_help", "booking_assist", "help_question"}
 
 _WANT_MORE = re.compile(
     r"\b(want more|more compensation|additional compensation|extra compensation|"
-    r"not enough|that(?:'s| is) not enough|deserve more|beyond (?:the )?policy)\b",
+    r"not enough|that(?:'s| is) not enough|deserve more|beyond (?:the )?policy|"
+    r"(?:give|pay|send|owe)\s+me\s+(?:₹|rs\.?|inr)?\s*\d|"
+    r"(?:₹|rs\.?|inr)\s*\d{3,}|\d{3,}\s*(?:₹|rs\.?|inr|rupees))\b",
+    re.I,
+)
+_GREETING = re.compile(
+    r"^\s*(hi|hello|hey|yo|thanks|thank you|ok|okay|hmm|hm)+\s*[!.]*\s*$",
     re.I,
 )
 _ESCALATE = re.compile(
@@ -83,10 +93,18 @@ def wants_more(message: str) -> bool:
     return bool(_WANT_MORE.search(message or ""))
 
 
+def is_greeting(message: str) -> bool:
+    return bool(_GREETING.match(message or ""))
+
+
 def wants_escalation(message: str, session: SessionMemory | None = None) -> bool:
     text = message or ""
+    if session and session.escalated_to_human and is_greeting(text):
+        return False
     if _ESCALATE.search(text) or wants_more(text):
         return True
+    if session and session.escalated_to_human:
+        return False
     if session and offered_supervisor(session) and _AFFIRM.search(text):
         return True
     return False
@@ -154,6 +172,10 @@ def should_prompt_feedback(
     if not session.executed_actions:
         return False
     if remaining_offered(evaluation, session):
+        return False
+    if evaluation and any(
+        decision.action in {"booking_assist", "help_question"} for decision in evaluation.decisions
+    ):
         return False
     return True
 

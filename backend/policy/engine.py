@@ -191,8 +191,7 @@ def evaluate_policy(
     frustration_category: FrustrationCategory | None = None,
 ) -> PolicyEvaluation:
     conversation_only = bool(requests) and all(
-        request.type
-        in {RequestType.GENERAL_HELP, RequestType.HELP_QUESTION, RequestType.BOOKING_ASSIST}
+        request.type in {RequestType.HELP_QUESTION, RequestType.BOOKING_ASSIST}
         for request in requests
     )
     if conversation_only:

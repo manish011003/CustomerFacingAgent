@@ -27,11 +27,15 @@ For how-to questions (check-in, baggage, seats) call answer_help. For a new trip
 
 classify_frustration tells you how the passenger is holding up. Let it change your tone and which approved option you lead with. It can never change what is approved — only check_eligibility decides that. Never state a category, a score, or a confidence to the passenger, and never tell them they sound hostile.
 
-Style: concise, empathetic, action-oriented. One short acknowledgement if they are angry, then the options. Do not mention tools, JSON, or internal ids. Ask at most one missing question. If the passenger is distressed, keep it shorter and lead with the fastest resolution.
+Style: sound like a desk agent, not a form letter. Two or three sentences. Answer this turn only — do not recap the whole case, do not list internal action ids, and do not repeat "already on this case". One short acknowledgement if they are angry, then the options. Do not mention tools, JSON, or internal ids. Ask at most one missing question. If the passenger is distressed, keep it shorter and lead with the fastest resolution.
+
+Do not execute a meal voucher, lounge, hotel, refund, or rebooking unless the passenger asked for that action this turn. A status question is not permission to issue. A new-trip request is not lounge access — call collect_booking_slot.
 
 Simulated prototype: when you confirm an action, say it is simulated.
 
 Do not treat issued vouchers, lounge access, refunds, or rebooking as a closed case. A case is resolved only when the passenger says the issue is resolved, or they leave a rating of 4 or 5. If they ask for more than policy allows, or to escalate, call escalate_to_human and keep the case with a supervisor — later messages such as "NO!" do not close it. After in-policy actions are complete, ask whether everything is resolved. Do not collect a 1 to 5 rating until they have said the case is resolved.
+
+Greetings and small talk are not how-to questions. Do not call answer_help for hi/hello/ok. A cash ask such as "give me 100000 INR" is compensation beyond policy — call escalate_to_human, do not paste the new-trip help article. If a supervisor already has the case, say that in one sentence and stop. Do not repeat the handover.
 """
 
 
@@ -69,7 +73,7 @@ def run_llm_agent(
             runtime._escalate_distress(runtime.frustration)
 
     messages: list[dict] = [
-        {"role": "system", "content": _system_for(customer)},
+        {"role": "system", "content": _system_for(customer, session)},
         * _history(session),
         {"role": "user", "content": message},
     ]
@@ -111,13 +115,20 @@ def run_llm_agent(
     return reply, runtime
 
 
-def _system_for(customer: Customer | None) -> str:
+def _system_for(customer: Customer | None, session: SessionMemory | None = None) -> str:
+    extra = ""
+    if session and session.escalated_to_human:
+        extra = (
+            "\nThis case is already with a supervisor. Do not call answer_help. "
+            "Acknowledge the handover in one sentence unless they add a new in-policy request."
+        )
     if not customer:
-        return SYSTEM + "\nThe passenger is not signed in. Ask them to sign in. Do not invent a booking."
+        return SYSTEM + "\nThe passenger is not signed in. Ask them to sign in. Do not invent a booking." + extra
     return (
         SYSTEM
         + f"\nSigned in: {customer.name}, {customer.loyalty_tier} tier, PNR {customer.pnr}."
         + " Call get_booking for the live disruption. Do not invent status."
+        + extra
     )
 
 
@@ -157,6 +168,8 @@ def _invented_money(reply: str, runtime: ToolRuntime) -> bool:
     )
     if runtime.fixture:
         allowed.add(str(runtime.fixture.fare_difference_inr))
+    # Repeating a figure the passenger just said is a quote, not a grant.
+    allowed |= money_in(runtime.utterance)
     claimed = set()
     for match in re.finditer(r"₹\s*([\d,]+)|([\d,]+)\s*(?:INR|rupees?)", reply, re.I):
         raw = (match.group(1) or match.group(2) or "").replace(",", "")

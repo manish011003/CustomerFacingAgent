@@ -54,6 +54,10 @@ export function Thread({
                     isLatest={turn.id === latestAgentId}
                     sending={sending}
                     onChoose={onChoose}
+                    showHandover={
+                      Boolean(turn.escalation) &&
+                      !turns.slice(0, index).some((prior) => prior.role === "agent" && prior.escalation)
+                    }
                   />
                 </div>
               )}

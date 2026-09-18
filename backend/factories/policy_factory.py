@@ -18,7 +18,7 @@ class PolicyHandlerFactory:
 
     _registry: dict[RequestType, type[PolicyHandler]] = {
         RequestType.STATUS: StatusHandler,
-        RequestType.GENERAL_HELP: HelpQuestionHandler,
+        RequestType.GENERAL_HELP: StatusHandler,
         RequestType.HELP_QUESTION: HelpQuestionHandler,
         RequestType.BOOKING_ASSIST: BookingAssistHandler,
         RequestType.REBOOK_24H: RebookHandler,

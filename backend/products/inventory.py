@@ -126,22 +126,19 @@ def suggest_flight(
     destination: str | None = None,
     date: str | None = None,
     passengers: str | None = None,
-) -> SuggestedFlight:
+) -> SuggestedFlight | None:
+    """Look-only match after the passenger named a route. No guesswork before that."""
+    if not origin or not destination:
+        return None
     catalog = scheduled_flights()
-    if origin and destination:
-        matches = [
-            row
-            for row in catalog
-            if _norm(str(row.get("origin"))) == _norm(origin)
-            and _norm(str(row.get("destination"))) == _norm(destination)
-        ]
-        dated = [row for row in matches if _date_matches(row, date)]
-        chosen = dated or matches
-        if chosen:
-            return _as_suggested(chosen[0], source="scheduled", passengers=passengers)
-        return _random_flight(origin=origin, destination=destination, date=date, passengers=passengers)
-
-    if catalog:
-        rng = random.Random()
-        return _as_suggested(rng.choice(catalog), source="scheduled", passengers=passengers)
-    return _random_flight(date=date, passengers=passengers)
+    matches = [
+        row
+        for row in catalog
+        if _norm(str(row.get("origin"))) == _norm(origin)
+        and _norm(str(row.get("destination"))) == _norm(destination)
+    ]
+    dated = [row for row in matches if _date_matches(row, date)]
+    chosen = dated or matches
+    if chosen:
+        return _as_suggested(chosen[0], source="scheduled", passengers=passengers)
+    return _random_flight(origin=origin, destination=destination, date=date, passengers=passengers)

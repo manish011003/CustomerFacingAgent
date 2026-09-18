@@ -62,11 +62,12 @@ Passenger tokens cannot read cases. Staff tokens cannot act as a passenger.
 
 1. **Conversation loop** (`handle_chat`) — one session, one authenticated customer
 2. **Orchestrator** — LLM tool loop (max 8 rounds) **or** extract → plan → retrieve → evaluate → template
-3. **Tools** — lookup, eligibility, execute, escalate, classify frustration
-4. **Policy engine** — handlers per request type; closed decision statuses
-5. **Exclusivity** — `offered_actions` ⊆ ALLOW/ASK; frustration may **reorder**, never add
-6. **Knowledge store** — passengers, bookings, events, cases, memories, graph edges
-7. **Operations** — KPIs, containment, frustration analytics, case board, live knowledge graph
+3. **Tools** — lookup, eligibility, execute, escalate, classify frustration, answer help, collect booking slots
+4. **Policy engine** — handlers per request type (including booking assist and help); closed decision statuses
+5. **Issue router** — `IssueFamily` (disruption / assist / help / unclassified) before a `RequestType` is chosen
+6. **Exclusivity** — `offered_actions` ⊆ ALLOW/ASK; frustration may **reorder**, never add
+7. **Knowledge store** — passengers, bookings, events, cases, memories, graph edges
+8. **Operations** — KPIs, containment, frustration analytics, case board, live knowledge graph
 
 ### 2.4 Turn pipeline
 
@@ -199,7 +200,7 @@ else:
 
 `evaluate_policy(customer, booking, requests, *, fare_difference_inr, legal_or_formal, frustration_category)`
 
-1. Baseline from booking (cancellation vs delay bands vs not disrupted)
+1. Baseline from booking (cancellation vs delay bands vs not disrupted), **skipped** when every request this turn is `HELP_QUESTION` or `BOOKING_ASSIST`
 2. Legal short-circuit → `ESCALATE` + `LEGAL_OR_FORMAL`
 3. Each `ExtractedRequest` → `PolicyHandlerFactory.create(type).apply(...)`
 4. `offered_actions(evaluation, frustration_category)` — **subset + order only**
@@ -262,7 +263,13 @@ Planner (`plan_retrieval` / `expand_scope`) narrows rule ids **before** rank.
 
 `KnowledgeStoreFactory.create("auto")` prefers Postgres when `DATABASE_URL` is reachable, then Elasticsearch, then `JsonKnowledgeStore` with a length-normalized term-overlap scorer. Ranking is not BM25-identical; the planner therefore narrows candidates by rule scope first. Every ES search also falls back in-memory on error or empty result: a flaky cluster degrades ranking, never the turn.
 
-### 5.7 LLM client engine
+### 5.7 Issue router
+
+`backend/agent/router.py`
+
+A turn is a **disruption**, a **new-trip assist**, a **how-to**, or **unclassified** before any handler runs. Greetings and cash asks never inherit an open booking-assist question. Assist follow-ups only match slot-shaped answers (a route, a date, a passenger count, or a city while origin/destination is the open question).
+
+### 5.8 LLM client engine
 
 `backend/llm/client.py` + `LlmFactory`
 
@@ -291,8 +298,12 @@ Planner (`plan_retrieval` / `expand_scope`) narrows rule ids **before** rank.
 | `grant_lounge_access` | Simulate if delay > 3h |
 | `arrange_hotel` | Delayed hours if > 5h; full night never |
 | `escalate_to_human` | Case packet + closed reason code |
+| `answer_help` | Cite `help.json` (check-in, baggage, seats, new trip). Not compensation |
+| `collect_booking_slot` | Save origin / destination / date / passengers. No invented inventory |
 
 Execute tools run only if eligibility already returned ALLOW with authority = agent.
+
+How-to and new-trip turns never grant money. A look-only `suggested_flight` is attached only after all four booking slots are filled (`products/inventory.py`). Scheduled catalog match first (Delhi → Goa → `SK-441`); otherwise a random row **on that named route**. No route → no card.
 
 ---
 
@@ -333,7 +344,7 @@ Edges are written as the conversation happens — not a side table:
 |---|---|---|---|
 | `IntentExtractor` | heuristic, LLM + fallback | `ExtractorFactory` | `agent/loop.py` |
 | `ReplyRenderer` | template, LLM polish | `ReplyFactory` | `agent/loop.py` |
-| `PolicyHandler` | status, cancel, delay, fare, exceptions | `PolicyHandlerFactory` | `policy/engine.py` |
+| `PolicyHandler` | status, cancel, delay, fare, exceptions, booking assist, help | `PolicyHandlerFactory` | `policy/engine.py` |
 | `PassengerKnowledgeStore` | Postgres, JSON, Elasticsearch | `KnowledgeStoreFactory` | `kb/store.py` singleton |
 | `LlmClient` | Gemini, Groq, xAI, OpenAI, disabled | `LlmFactory` | extractor and reply products |
 
@@ -383,6 +394,8 @@ classify → heuristic extract → plan → retrieve
 - `POST /api/auth/login` · `signup` · `logout`
 - `GET /api/me` · `POST /api/me/bookings`
 - `POST /api/chat` `{ session_id, message }`
+- `POST /api/feedback` `{ session_id, rating, comment }` — 1–5 after the case is already resolved
+- `GET /api/flights/upcoming` — look-only catalog for `/exit`
 - `POST /api/session/{id}/reset`
 
 ### Staff
@@ -404,6 +417,8 @@ classify → heuristic extract → plan → retrieve
 ### Customer — Resolution Agent
 
 One thread. Choices, confirmations, and escalations land inline. Zustand session. No link to Operations.
+
+A suggested-flight card is rendered only when this turn completed booking assist (all slots filled). Tapping it leaves chat for `/exit`. The 1–5 CSAT dialog is a **post-close popup** (`feedback_popup`); it does not close the case. Escalation cards appear on the first handover only. Replies answer this turn — they do not recap the whole case.
 
 ### Operations
 
@@ -460,5 +475,6 @@ Seed passengers share `Aero2026!`.
 | **Priya Nair** | Cancellation → refund or rebook; business upgrade ESCALATE; Gold ≠ extra money; return flight unaffected |
 | **Arvind Kulkarni** | 4h delay → meal + lounge; hotel DENY (not > 5h); distress does not unlock hotel |
 | **Meher Kaur** | 6h → delayed-hours hotel ALLOW; full night DENY; ₹2,000 fare waiver ESCALATE (limit ₹1,500) |
+| **Joined Standard passenger** | No disrupted booking invented. “book a flight” collects slots; no departure card until origin, destination, date, passengers are known. How-to cites `help.json`. Unknown money still escalates |
 
 LLMs handle ambiguity and wording. Deterministic systems handle policy, authority, and irreversible actions.

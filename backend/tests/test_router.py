@@ -37,7 +37,7 @@ def test_chat_booking_assist_asks_then_confirms_without_a_flight_number():
     first = handle_chat(sid, "I want to book a new flight.", "CUST-ARVIND")
     assert first.case_status != "escalated"
     assert "origin" in (first.context_packet.get("missing_slots") or []) or "invent" in first.reply.lower()
-    assert first.context_packet.get("suggested_flight")
+    assert first.context_packet.get("suggested_flight") is None
     done = handle_chat(
         sid,
         "From Delhi to Goa next Friday for 2 passengers.",
@@ -50,6 +50,16 @@ def test_chat_booking_assist_asks_then_confirms_without_a_flight_number():
     assert card.get("flight") == "SK-441"
     assert card.get("source") == "scheduled"
     assert str(card.get("href", "")).startswith("/exit")
+    SESSIONS.clear()
+    store.cases.pop("case-CUST-ARVIND", None)
+
+
+def test_bare_book_a_flight_does_not_invent_a_departure():
+    sid = str(uuid4())
+    reset_session(sid, "CUST-ARVIND")
+    first = handle_chat(sid, "book a flight", "CUST-ARVIND")
+    assert first.context_packet.get("suggested_flight") is None
+    assert first.context_packet.get("missing_slots")
     SESSIONS.clear()
     store.cases.pop("case-CUST-ARVIND", None)
 
@@ -73,7 +83,35 @@ def test_unknown_benefit_still_escalates():
     store.cases.pop("case-CUST-PRIYA", None)
 
 
+def test_cash_ask_is_beyond_policy_not_help():
+    extraction = HeuristicExtractor().extract("can you give me 100000 inr")
+    assert extraction.issue_family == IssueFamily.DISRUPTION
+    assert any(r.type == RequestType.COMPENSATION_BEYOND_POLICY for r in extraction.requests)
+
+
 def test_classify_helpers():
     assert classify("book me a ticket") == IssueFamily.ASSIST
     assert classify("how do I check in") == IssueFamily.HELP
     assert classify("hello") == IssueFamily.UNCLASSIFIED
+
+
+def test_greeting_after_booking_assist_does_not_recite_the_trip():
+    sid = str(uuid4())
+    reset_session(sid, "CUST-ARVIND")
+    handle_chat(sid, "I want to book a new flight.", "CUST-ARVIND")
+    hello = handle_chat(sid, "hi", "CUST-ARVIND")
+    lower = hello.reply.lower()
+    assert "origin" not in lower
+    assert "i still need" not in lower
+    assert "hi" in lower or "here" in lower
+    SESSIONS.clear()
+    store.cases.pop("case-CUST-ARVIND", None)
+
+
+def test_greeting_is_not_a_booking_follow_up():
+    from models.schemas import SessionMemory
+
+    session = SessionMemory(session_id="s", open_question="origin", choices={"assist": {}})
+    assert classify("hi", session) == IssueFamily.UNCLASSIFIED
+    assert classify("From Delhi to Goa next Friday for 2 passengers.", session) == IssueFamily.ASSIST
+    assert classify("Delhi", session) == IssueFamily.ASSIST
