@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from dataclasses import dataclass
 
 from llm.budget import LlmBudget
@@ -26,13 +27,23 @@ class LlmClient:
     reason at all: no key, a breached ceiling, a timeout, a provider error.
     Callers treat None as "use the deterministic path", which is why no
     setting here can affect a policy outcome.
+
+    Before giving up it walks `config.model_chain`, so one model being out of
+    quota costs the next model in the family rather than the whole LLM path.
     """
+
+    # A walk that tried every model would put one timeout per model in front of
+    # the passenger. Three is enough to clear an exhausted quota and still
+    # answer inside a sane wait; the cooldown clears the rest for later turns.
+    MAX_ATTEMPTS = 3
 
     def __init__(self, config: LlmConfig, budget: LlmBudget | None = None):
         self._config = config
         self._budget = budget or LlmBudget(config)
         self._sdk = None
         self._lock = threading.Lock()
+        # model name -> monotonic time it becomes worth trying again.
+        self._cooling: dict[str, float] = {}
 
     @property
     def config(self) -> LlmConfig:
@@ -45,6 +56,20 @@ class LlmClient:
     @property
     def enabled(self) -> bool:
         return self._config.enabled
+
+    def begin_turn(self, session_id: str) -> None:
+        self._budget.begin_turn(session_id)
+
+    def end_turn(self, session_id: str) -> dict:
+        """Tokens, cost, and degradations attributable to one turn."""
+        usage = self._budget.end_turn(session_id)
+        usage["provider"] = self._config.provider
+        used = usage.pop("models", [])
+        usage["models_used"] = used
+        # The model that answered, which the chain means is not always the one
+        # configured. Falls back to the configured name when nothing was called.
+        usage["model"] = used[-1] if used else self._config.model
+        return usage
 
     def _sdk_client(self):
         """Built once, on first use. Disabled providers never construct one."""
@@ -62,6 +87,32 @@ class LlmClient:
                 self._sdk = OpenAI(**kwargs)
             return self._sdk
 
+    def _sideline(self, model: str) -> None:
+        """Stop leading with a model that just refused, for a cooldown.
+
+        Free-tier quota is exhausted for minutes or hours, not milliseconds, so
+        re-offering the same dead model every turn would spend the whole walk
+        on it. The entry expires, so a model is demoted and never retired.
+        """
+        if self._config.model_cooldown_seconds <= 0:
+            return
+        with self._lock:
+            self._cooling[model] = time.monotonic() + self._config.model_cooldown_seconds
+
+    def _attempt_order(self) -> list[str]:
+        """The chain, with cooling models moved to the back rather than dropped.
+
+        Nothing is removed: if every model is cooling we would rather spend a
+        request finding one of them recovered than degrade without trying.
+        """
+        chain = self._config.model_chain
+        now = time.monotonic()
+        with self._lock:
+            self._cooling = {name: until for name, until in self._cooling.items() if until > now}
+            cooling = set(self._cooling)
+        ready = [name for name in chain if name not in cooling]
+        return (ready + [name for name in chain if name in cooling])[: self.MAX_ATTEMPTS]
+
     def complete(
         self,
         *,
@@ -75,67 +126,87 @@ class LlmClient:
         if not self.enabled:
             return None
 
-        key = LlmBudget.cache_key(self._config.model, system, user) if cache else ""
-        if key:
-            hit = self._budget.cache_get(key)
-            if hit is not None:
-                return LlmResult(
-                    text=hit,
-                    provider=self._config.provider,
-                    model=self._config.model,
-                    prompt_tokens=0,
-                    completion_tokens=0,
-                    est_cost_usd=0.0,
-                    cached=True,
-                )
+        # Cached text is keyed by the model that produced it, so ask on behalf
+        # of the whole chain. An answer from a model since demoted is still a
+        # valid answer to this prompt, and serving it costs nothing.
+        if cache:
+            for model in self._config.model_chain:
+                hit = self._budget.cache_get(LlmBudget.cache_key(model, system, user))
+                if hit is not None:
+                    self._budget.note_cache_hit(session_id)
+                    return LlmResult(
+                        text=hit,
+                        provider=self._config.provider,
+                        model=model,
+                        prompt_tokens=0,
+                        completion_tokens=0,
+                        est_cost_usd=0.0,
+                        cached=True,
+                    )
 
-        if self._budget.check(session_id) is not None:
+        # One ceiling check for the turn, not one per model: the walk retries a
+        # single logical call, so it must not buy itself extra headroom.
+        blocked = self._budget.check(session_id)
+        if blocked is not None:
+            self._budget.note(f"{purpose}_{blocked}", session_id)
             return None
 
-        request = {
-            "model": self._config.model,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            # The cap the old code was missing entirely on the respond call.
-            "max_tokens": self._config.max_tokens_for(purpose),
-            "temperature": 0 if purpose == "extract" else 0.2,
-        }
-        if json_mode:
-            request["response_format"] = {"type": "json_object"}
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ]
+        for model in self._attempt_order():
+            request = {
+                "model": model,
+                "messages": messages,
+                # The cap the old code was missing entirely on the respond call.
+                "max_tokens": self._config.max_tokens_for(purpose),
+                "temperature": 0 if purpose == "extract" else 0.2,
+            }
+            if json_mode:
+                request["response_format"] = {"type": "json_object"}
 
-        try:
-            completion = self._sdk_client().chat.completions.create(**request)
-        except Exception:
-            self._budget.note(f"{purpose}_provider_error")
-            return None
+            try:
+                completion = self._sdk_client().chat.completions.create(**request)
+            except Exception:
+                # Exhausted quota, a timeout, and a name the provider no longer
+                # serves all arrive here, and all mean "ask the next model".
+                self._budget.note(f"{purpose}_provider_error", session_id)
+                # Named, so a turn that degraded can say which model refused.
+                self._budget.note(f"model_unavailable:{model}", session_id)
+                self._sideline(model)
+                continue
 
-        text = ""
-        choices = getattr(completion, "choices", None) or []
-        if choices:
-            text = (getattr(choices[0].message, "content", "") or "").strip()
+            text = ""
+            choices = getattr(completion, "choices", None) or []
+            if choices:
+                text = (getattr(choices[0].message, "content", "") or "").strip()
 
-        usage = getattr(completion, "usage", None)
-        prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
-        completion_tokens = int(getattr(usage, "completion_tokens", 0) or 0)
-        cost = estimate_usd(self._config.model, prompt_tokens, completion_tokens)
-        self._budget.record(session_id, prompt_tokens, completion_tokens, cost)
+            usage = getattr(completion, "usage", None)
+            prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
+            completion_tokens = int(getattr(usage, "completion_tokens", 0) or 0)
+            cost = estimate_usd(model, prompt_tokens, completion_tokens)
+            self._budget.record(session_id, prompt_tokens, completion_tokens, cost)
 
-        if not text:
-            self._budget.note(f"{purpose}_empty_response")
-            return None
-        if key:
-            self._budget.cache_put(key, text)
+            if not text:
+                self._budget.note(f"{purpose}_empty_response", session_id)
+                self._budget.note(f"model_unavailable:{model}", session_id)
+                self._sideline(model)
+                continue
+            if cache:
+                self._budget.cache_put(LlmBudget.cache_key(model, system, user), text)
+            self._budget.note_model(model, session_id)
 
-        return LlmResult(
-            text=text,
-            provider=self._config.provider,
-            model=self._config.model,
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-            est_cost_usd=cost,
-        )
+            return LlmResult(
+                text=text,
+                provider=self._config.provider,
+                model=model,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                est_cost_usd=cost,
+            )
+
+        return None
 
     def health(self, probe: bool = False) -> dict:
         """Provider state without leaking the key. `probe` costs one cheap call."""
@@ -146,6 +217,10 @@ class LlmClient:
             "enabled": self.enabled,
             "provider": self._config.provider,
             "model": self._config.model,
+            # Which model the next turn leads with, and the queue behind it.
+            # They differ once a model is cooling off after refusing.
+            "model_chain": list(self._config.model_chain),
+            "next_models": self._attempt_order() if self.enabled else [],
             "base_url": self._config.base_url or default_base_url,
             "key_present": bool(self._config.api_key),
             "key_fingerprint": self._config.key_fingerprint,
@@ -155,6 +230,8 @@ class LlmClient:
                 "timeout_seconds": self._config.timeout_seconds,
                 "max_calls_per_session": self._config.max_calls_per_session,
                 "max_calls_per_process": self._config.max_calls_per_process,
+                "model_attempts_per_call": self.MAX_ATTEMPTS,
+                "model_cooldown_seconds": self._config.model_cooldown_seconds,
             },
             "budget": self._budget.snapshot(),
             "fallback": "heuristic extraction and template replies",

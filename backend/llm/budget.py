@@ -9,6 +9,15 @@ from llm.config import LlmConfig
 
 CACHE_CAPACITY = 256
 
+# Mutable members are supplied per turn so the template cannot be shared.
+_EMPTY_TURN = {
+    "calls": 0,
+    "cached_calls": 0,
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "est_cost_usd": 0.0,
+}
+
 
 class LlmBudget:
     """Every ceiling that stops a runaway bill, plus an extraction cache.
@@ -29,6 +38,7 @@ class LlmBudget:
         self._calls_per_session: dict[str, int] = {}
         self._cache: OrderedDict[str, str] = OrderedDict()
         self._blocks: dict[str, int] = {}
+        self._turns: dict[str, dict] = {}
 
     def _roll_day_locked(self) -> None:
         today = date.today()
@@ -41,27 +51,60 @@ class LlmBudget:
             self._calls_per_session.clear()
 
     def check(self, session_id: str | None = None) -> str | None:
-        """Return the name of the breached ceiling, or None to proceed."""
+        """Name the breached ceiling, or None to proceed. Records nothing —
+        the caller knows the purpose of the call and logs it with that label."""
         with self._lock:
             self._roll_day_locked()
             if self._calls_today >= self._config.max_calls_per_process:
-                return self._note_locked("process_call_ceiling")
+                return "process_call_ceiling"
             if self._spend_today >= self._config.daily_budget_usd:
-                return self._note_locked("daily_budget_usd")
+                return "daily_budget_usd"
             if session_id:
                 used = self._calls_per_session.get(session_id, 0)
                 if used >= self._config.max_calls_per_session:
-                    return self._note_locked("session_call_ceiling")
+                    return "session_call_ceiling"
             return None
 
-    def _note_locked(self, reason: str) -> str:
+    def _note_locked(self, reason: str) -> None:
         self._blocks[reason] = self._blocks.get(reason, 0) + 1
-        return reason
 
-    def note(self, reason: str) -> None:
+    def note(self, reason: str, session_id: str | None = None) -> None:
         """Record a degradation the client hit rather than a ceiling, e.g. a timeout."""
         with self._lock:
             self._note_locked(reason)
+            turn = self._turns.get(session_id or "")
+            if turn is not None:
+                turn["degradations"].append(reason)
+
+    def begin_turn(self, session_id: str) -> None:
+        """Start metering one conversational turn, so its cost can be reported.
+
+        Day totals cannot answer "what did this turn cost" once turns overlap,
+        and cost per resolved contact is the number worth reporting.
+        """
+        with self._lock:
+            self._turns[session_id] = dict(_EMPTY_TURN, degradations=[], models=[])
+
+    def end_turn(self, session_id: str) -> dict:
+        with self._lock:
+            turn = self._turns.pop(session_id, None)
+        if turn is None:
+            return dict(_EMPTY_TURN, degradations=[], models=[])
+        turn["est_cost_usd"] = round(turn["est_cost_usd"], 8)
+        return turn
+
+    def note_cache_hit(self, session_id: str | None) -> None:
+        with self._lock:
+            turn = self._turns.get(session_id or "")
+            if turn is not None:
+                turn["cached_calls"] += 1
+
+    def note_model(self, model: str, session_id: str | None) -> None:
+        """Which model actually answered. The chain means it may not be the first."""
+        with self._lock:
+            turn = self._turns.get(session_id or "")
+            if turn is not None and model not in turn["models"]:
+                turn["models"].append(model)
 
     def record(
         self,
@@ -78,6 +121,12 @@ class LlmBudget:
             self._completion_tokens_today += completion_tokens
             if session_id:
                 self._calls_per_session[session_id] = self._calls_per_session.get(session_id, 0) + 1
+            turn = self._turns.get(session_id or "")
+            if turn is not None:
+                turn["calls"] += 1
+                turn["prompt_tokens"] += prompt_tokens
+                turn["completion_tokens"] += completion_tokens
+                turn["est_cost_usd"] += cost_usd
 
     @staticmethod
     def cache_key(model: str, system: str, user: str) -> str:

@@ -1,5 +1,13 @@
 from factories.policy_factory import PolicyHandlerFactory
-from models.schemas import Booking, Customer, ExtractedRequest, PolicyDecision, PolicyEvaluation, DecisionStatus
+from models.schemas import (
+    Booking,
+    Customer,
+    DecisionStatus,
+    EscalationReason,
+    ExtractedRequest,
+    PolicyDecision,
+    PolicyEvaluation,
+)
 from policy.ops import (
     AUTHORITY_SOURCE,
     CANCELLATION_SOURCE,
@@ -166,6 +174,7 @@ def evaluate_policy(
                 eligible=False,
                 reason="Threats of legal action or formal complaints must be escalated immediately to a human agent.",
                 source=AUTHORITY_SOURCE,
+                escalation_reason=EscalationReason.LEGAL_OR_FORMAL,
             ),
         )
 

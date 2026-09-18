@@ -1,4 +1,4 @@
-from models.schemas import DecisionStatus, PolicyDecision
+from models.schemas import DecisionStatus, EscalationReason, PolicyDecision
 from policy.handlers.base import PolicyHandler
 from policy.ops import CANCELLATION_SOURCE, REFUND_SOURCE, AUTHORITY_SOURCE, append_decision
 
@@ -66,5 +66,6 @@ class RefundOtherMethodHandler(PolicyHandler):
                 eligible=False,
                 reason="Refunds to a payment method different from the original must be escalated.",
                 source=f"{REFUND_SOURCE}; {AUTHORITY_SOURCE}",
+                escalation_reason=EscalationReason.REFUND_ALTERNATE_METHOD,
             ),
         )

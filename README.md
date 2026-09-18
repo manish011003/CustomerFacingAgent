@@ -17,8 +17,9 @@ This is not a generic LLM chatbot. The model talks. Deterministic code decides.
 | Use the supplied data and policies | `policies.json` indexed as clauses, retrieved and quoted with a clause id |
 | Recommend or execute the correct next action | `ALLOW` → simulated action, logged as `SIMULATED` |
 | Handle an angry or confused customer | emotion detected in the extractor, acknowledged in one line; `test_emotion.py` proves tone cannot change an outcome |
-| Escalate when authority is missing | `ESCALATE` → supervisor case packet with transcript, decisions, and graph |
+| Escalate when authority is missing | `ESCALATE` → supervisor case packet, tagged with an `EscalationReason` code |
 | Preserve a clear conversation and action record | events, cases, graph edges, and a per-turn audit event |
+| Show it works | containment rate, grounding coverage, p95 latency, and spend at `/api/analytics/containment` |
 
 ## Run locally (one command path)
 
@@ -64,10 +65,18 @@ Four providers are supported — Gemini, Groq, xAI, and OpenAI — because all o
 OpenAI wire format, so only a base URL and model name change. Leave `LLM_PROVIDER` unset and the
 first key present wins, free tiers first. `LLM_PROVIDER=none` forces the deterministic path.
 
+Free-tier quota runs out per model, not per project, so one model going quiet should not cost the
+whole LLM path. Every Gemini model is kept behind the chosen one — `gemini-2.5-flash`, then
+`flash-lite`, `2.0-flash`, `2.0-flash-lite`, and `2.5-pro` — and an unavailable model hands the
+call to the next name in that chain. At most three are tried per call, so a dead family cannot
+stack up one timeout per model in front of the passenger, and a model that refuses stops leading
+the chain for five minutes rather than being retired. `LLM_MODEL` only moves a model to the head
+of the chain; `LLM_FALLBACK_MODELS` replaces the chain, or `=none` tries exactly one model.
+
 Check what loaded, without printing the key:
 
 ```bash
-curl localhost:8000/api/llm/health              # provider, model, caps, budget left
+curl localhost:8000/api/llm/health              # provider, model chain, caps, budget left
 curl localhost:8000/api/llm/health?probe=true   # also confirms the key authenticates
 curl -X POST localhost:8000/api/llm/reload      # re-read .env without a restart
 ```
@@ -137,6 +146,42 @@ across the three scenarios (roughly 5,000 to 1,800 tokens).
 Retrieval grounds and cites. It never decides — `policy/engine.py` keeps its own constants,
 and `pytest` asserts retrieval cannot move a policy outcome.
 
+## Containment: the measured answer
+
+The assessment question is how close an agent gets to replacing a human. That is a number, so
+every turn records one. `GET /api/analytics/containment`, also shown on the AERO OPS Analytics page:
+
+```json
+{
+  "turns": 5,
+  "containment_rate": 0.4,
+  "escalations_by_reason": {
+    "unknown_entitlement": 1,
+    "fare_waiver_above_limit": 1,
+    "legal_or_formal": 1
+  },
+  "grounding_coverage": 1.0,
+  "p95_latency_ms": 250,
+  "est_cost_per_contained_turn_usd": 0.0
+}
+```
+
+**Read the rate next to the reasons.** That 40 percent is measured over the three assignment
+scenarios plus a legal threat — a set selected to force escalation. Every escalation there is a
+boundary the data pack draws on agent authority: ₹2,000 exceeds the ₹1,500 waiver limit, a free
+business upgrade appears in no supplied rule, and a legal threat must go to a human immediately.
+No agent, human or automated, is permitted to decide those alone, so containment on this set is
+capped well below 100 percent by policy rather than by capability. On realistic traffic, where
+most contacts are status and entitlement questions, the same code contains the turn.
+
+`EscalationReason` is a closed enum, which is what makes the breakdown meaningful: escalations
+aggregate by cause instead of by free text, and a test asserts no `ESCALATE` decision can ship
+without one.
+
+**Grounding coverage of 1.0** means every claim the agent made to a passenger traced to a
+retrieved policy clause. That is the anti-hallucination property stated as a measurement rather
+than a promise.
+
 ## Cost control
 
 Every model call passes through `backend/llm/`, which is the only place this codebase talks to
@@ -150,12 +195,19 @@ a provider. That single chokepoint carries all the ceilings:
 | Calls per conversation | 12 | `LLM_MAX_CALLS_PER_SESSION` |
 | Calls per process per day | 500 | `LLM_MAX_CALLS_PER_PROCESS` |
 | Spend per day | $1.00 | `LLM_DAILY_BUDGET_USD` |
+| Models tried per call | 3 | `LlmClient.MAX_ATTEMPTS` |
+| Cooldown after a model refuses | 300s | `LLM_MODEL_COOLDOWN_SECONDS` |
 
 Identical utterances are served from an extraction cache, since extraction runs at temperature 0.
 
+A ceiling is checked once per turn, not once per model, so walking the fallback chain is a retry
+of one logical call and cannot buy itself extra headroom. Only a model that actually answered is
+billed and counted, which is why an exhausted model costs latency and nothing else.
+
 Breaching a ceiling is not an error. `LlmClient.complete` returns nothing and the caller falls
 back to its deterministic path, so the passenger still gets the policy-approved answer and only
-the phrasing degrades. The reason is counted under `degradations` at `/api/llm/health`. Because
+the phrasing degrades. The reason is counted under `degradations` at `/api/llm/health`, where a
+refusal is named against the model that refused. Because
 the policy engine never calls a model, no setting here can change a decision — a claim
 `test_llm.py` and `test_policy.py` enforce together.
 

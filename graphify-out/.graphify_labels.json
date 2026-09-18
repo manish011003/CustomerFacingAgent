@@ -1,5 +1,5 @@
 {
-  "0": "PolicyDecision",
+  "0": "schemas.py",
   "1": "test_retrieval.py",
   "2": "index.ts",
   "3": "devDependencies",
@@ -7,7 +7,7 @@
   "5": "compilerOptions",
   "6": "compilerOptions",
   "7": "main.py",
-  "8": "test_factories.py",
+  "8": "CustomerAgentContext",
   "9": "LlmFactory",
   "10": "15-Minute Live Demo",
   "11": "ElasticsearchOrJSON",
@@ -26,8 +26,8 @@
   "24": "frontend-manager/tailwind.config.js",
   "25": "frontend/next-env.d.ts",
   "26": "frontend/tailwind.config.js",
-  "27": "schemas.py",
-  "28": "factories/__init__.py",
+  "27": "PassengerKnowledgeStore",
+  "28": "AuthSession",
   "29": "kb/__init__.py",
   "30": "handlers/__init__.py",
   "31": "policy/__init__.py",
@@ -43,8 +43,11 @@
   "41": "onboarding/__init__.py",
   "42": "LlmConfig",
   "43": "test_llm.py",
-  "44": "StubSdk",
+  "44": "client_with",
   "45": "LlmBudget",
   "46": "LlmClient",
-  "47": ".disabled"
+  "47": "evaluate_policy",
+  "48": "Customer",
+  "49": "PickySdk",
+  "50": "CredentialHasher"
 }

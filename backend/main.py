@@ -211,6 +211,12 @@ def analytics():
     return store.analytics()
 
 
+@app.get("/api/analytics/containment")
+def containment():
+    """The headline metric: what share of turns needed no human, and why the rest did."""
+    return store.containment()
+
+
 @app.post("/api/simulate")
 def simulate(payload: dict):
     customer = store.identify(customer_id=payload.get("customer_id"))

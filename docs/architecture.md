@@ -34,6 +34,9 @@ AIONOS-style constraint: domain-tuned reasoning grounded in **your** data and po
 - The LLM is reachable only through `llm/client.py`, which caps tokens and enforces
   spend ceilings. Any breach returns nothing and the caller uses its deterministic
   path, so cost control can degrade phrasing but never correctness.
+- Every turn records whether it needed a human, whether each claim was cited, how
+  long it took, and what it cost. Escalations carry an `EscalationReason` code, so
+  the containment rate can be read alongside the authority limits that caused it.
 
 ## Knowledge base
 

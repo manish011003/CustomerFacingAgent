@@ -14,6 +14,23 @@ class DecisionStatus(str, Enum):
     INFORM = "INFORM"
 
 
+class EscalationReason(str, Enum):
+    """Why authority ran out, as a closed set so escalations aggregate.
+
+    Every member is a boundary of agent authority stated in the data pack, not
+    an agent failure. A containment rate is only meaningful alongside this
+    breakdown: it separates "the agent could not cope" from "no agent, human or
+    automated, is permitted to decide this alone".
+    """
+
+    FARE_WAIVER_ABOVE_LIMIT = "fare_waiver_above_limit"
+    LEGAL_OR_FORMAL = "legal_or_formal"
+    COMPENSATION_BEYOND_POLICY = "compensation_beyond_policy"
+    REFUND_ALTERNATE_METHOD = "refund_alternate_method"
+    NON_AIRLINE_CAUSE = "non_airline_cause"
+    UNKNOWN_ENTITLEMENT = "unknown_entitlement"
+
+
 class RequestType(str, Enum):
     STATUS = "status"
     REBOOK_24H = "rebook_24h"
@@ -166,6 +183,9 @@ class PolicyDecision(BaseModel):
     amount_inr: Optional[int] = None
     requires_customer_choice: bool = False
     authority_limit_inr: Optional[int] = None
+    # Set on every ESCALATE decision. The free-text `reason` above stays for the
+    # passenger and the supervisor; this is the field analytics can group by.
+    escalation_reason: Optional[EscalationReason] = None
 
 
 class PolicyEvaluation(BaseModel):

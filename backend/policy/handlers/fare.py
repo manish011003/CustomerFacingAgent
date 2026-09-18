@@ -1,4 +1,4 @@
-from models.schemas import DecisionStatus, PolicyDecision
+from models.schemas import DecisionStatus, EscalationReason, PolicyDecision
 from policy.handlers.base import PolicyHandler
 from policy.ops import FARE_SOURCE, FARE_WAIVER_LIMIT_INR, append_decision
 
@@ -31,6 +31,7 @@ class FareWaiverHandler(PolicyHandler):
                     source=FARE_SOURCE,
                     amount_inr=amount,
                     authority_limit_inr=FARE_WAIVER_LIMIT_INR,
+                    escalation_reason=EscalationReason.FARE_WAIVER_ABOVE_LIMIT,
                 ),
             )
         else:

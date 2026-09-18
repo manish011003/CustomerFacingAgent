@@ -1,13 +1,27 @@
 from __future__ import annotations
 
+import time
+
 from agent import retrieve
 from agent.context import assemble, packet_for_ui
 from agent.planner import expand_scope, plan_retrieval
 from factories.extractor_factory import ExtractorFactory
+from factories.llm_factory import LlmFactory
 from factories.reply_factory import ReplyFactory
 from kb.store import store
-from models.schemas import ChatResponse, DecisionStatus, RequestType, SessionMemory
+from models.schemas import (
+    ChatResponse,
+    DecisionStatus,
+    PolicyEvaluation,
+    RequestType,
+    Retrieval,
+    SessionMemory,
+)
 from policy.engine import evaluate_policy
+
+# Statuses that assert something to the passenger and therefore owe a citation.
+# ASK and INFORM are conversational moves, not claims about entitlement.
+SUBSTANTIVE = {DecisionStatus.ALLOW, DecisionStatus.DENY, DecisionStatus.ESCALATE}
 
 SESSIONS: dict[str, SessionMemory] = {}
 
@@ -22,10 +36,58 @@ def _trace(step: str, detail: str, status: str = "ok") -> dict:
     return {"step": step, "detail": detail, "status": status}
 
 
+def _telemetry(
+    *,
+    started: float,
+    evaluation: PolicyEvaluation | None,
+    retrieval: Retrieval | None,
+    usage: dict,
+    llm_enabled: bool,
+) -> dict:
+    """Per-turn measurements, recorded on the turn event so analytics can aggregate.
+
+    Containment here means no human was required. It is deliberately reported
+    next to the escalation reasons, because an escalation caused by a policy
+    authority limit is a correct outcome, not a miss.
+    """
+    decisions = [d for d in (evaluation.decisions if evaluation else []) if d.status in SUBSTANTIVE]
+    escalated = [d for d in decisions if d.status == DecisionStatus.ESCALATE]
+    cited_actions = {hit.for_action for hit in (retrieval.rules if retrieval else []) if hit.for_action}
+    grounded = [d for d in decisions if d.action in cited_actions]
+
+    return {
+        "latency_ms": int((time.perf_counter() - started) * 1000),
+        "contained": not escalated,
+        "escalation_reasons": [
+            d.escalation_reason.value for d in escalated if d.escalation_reason is not None
+        ],
+        "decisions": len(decisions),
+        "grounded_decisions": len(grounded),
+        # A turn is fully grounded when every claim it made carries a clause.
+        "grounded": len(decisions) > 0 and len(grounded) == len(decisions),
+        # The LLM was available but produced nothing, so wording came from the
+        # template. The answer is still correct; only the phrasing degraded.
+        "degraded": bool(llm_enabled and usage.get("degradations")),
+        "degradations": usage.get("degradations", []),
+        "provider": usage.get("provider", "none"),
+        "model": usage.get("model", ""),
+        "models_used": usage.get("models_used", []),
+        "llm_calls": usage.get("calls", 0),
+        "llm_cached_calls": usage.get("cached_calls", 0),
+        "prompt_tokens": usage.get("prompt_tokens", 0),
+        "completion_tokens": usage.get("completion_tokens", 0),
+        "est_cost_usd": usage.get("est_cost_usd", 0.0),
+    }
+
+
 def handle_chat(session_id: str, message: str, authenticated_customer_id: str | None = None) -> ChatResponse:
+    started = time.perf_counter()
     session = get_session(session_id)
     session.messages.append({"role": "user", "content": message})
     trace = []
+
+    llm = LlmFactory.create()
+    llm.begin_turn(session_id)
 
     extractor = ExtractorFactory.create("auto")
     extraction = extractor.extract(message, session)
@@ -208,7 +270,14 @@ def handle_chat(session_id: str, message: str, authenticated_customer_id: str | 
             "disruption": ctx.disruption,
             "requests": [r.model_dump() for r in extraction.requests],
             "policy_decisions": [d.model_dump() for d in evaluation.decisions],
+            # Prose for the supervisor reading the case; codes for the dashboard
+            # that needs to group escalations by cause.
             "escalation_reasons": [d.reason for d in evaluation.decisions if d.status == DecisionStatus.ESCALATE],
+            "escalation_reason_codes": [
+                d.escalation_reason.value
+                for d in evaluation.decisions
+                if d.status == DecisionStatus.ESCALATE and d.escalation_reason is not None
+            ],
             "transcript": session.messages,
             "graph": store.graph_for(customer.id),
             "recommended_human_question": "Review exception / waiver; do not treat agent silence as approval.",
@@ -220,6 +289,7 @@ def handle_chat(session_id: str, message: str, authenticated_customer_id: str | 
                 "session_id": session.session_id,
                 "customer_id": customer.id,
                 "reasons": escalation["escalation_reasons"],
+                "reason_codes": escalation["escalation_reason_codes"],
             }
         )
         trace.append(_trace("escalate", "; ".join(evaluation.escalate), "escalate"))
@@ -267,6 +337,24 @@ def handle_chat(session_id: str, message: str, authenticated_customer_id: str | 
             for d in evaluation.decisions
         ]
 
+    telemetry = _telemetry(
+        started=started,
+        evaluation=evaluation,
+        retrieval=retrieval,
+        usage=llm.end_turn(session_id),
+        llm_enabled=llm.enabled,
+    )
+    trace.append(
+        _trace(
+            "measure",
+            f"{telemetry['latency_ms']}ms, "
+            f"{'contained' if telemetry['contained'] else 'escalated: ' + ', '.join(telemetry['escalation_reasons'])}, "
+            f"{telemetry['grounded_decisions']}/{telemetry['decisions']} decisions cited, "
+            f"{telemetry['prompt_tokens'] + telemetry['completion_tokens']} tokens",
+            "ok" if telemetry["contained"] else "escalate",
+        )
+    )
+
     audit = store.append_event(
         {
             "kind": "turn",
@@ -274,6 +362,7 @@ def handle_chat(session_id: str, message: str, authenticated_customer_id: str | 
             "customer_id": customer.id if customer else None,
             "message": message,
             "reply": reply,
+            **telemetry,
         }
     )
 

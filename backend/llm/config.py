@@ -31,6 +31,26 @@ PROVIDERS: dict[str, dict[str, str]] = {
 # Free tiers first, so "auto" costs nothing unless nothing free is configured.
 PREFERENCE = ("gemini", "groq", "xai", "openai")
 
+# Models to try, in order, when the one before it is unavailable. A free-tier
+# key runs out of quota per model, not per project, so the whole Gemini family
+# is listed: exhausting 2.5-flash leaves flash-lite and the 2.0 pair still
+# answering. Pro sits last because it is the most expensive of them, and the
+# daily USD ceiling is what stops it running away. A name a provider rejects
+# costs one failed request and the walk moves on, so retiring a model here
+# degrades to the next entry rather than to the template reply.
+MODEL_CHAINS: dict[str, tuple[str, ...]] = {
+    "gemini": (
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+        "gemini-2.5-pro",
+    ),
+    "groq": ("llama-3.3-70b-versatile", "llama-3.1-8b-instant"),
+    "xai": ("grok-4.3", "grok-3-mini"),
+    "openai": ("gpt-4o-mini",),
+}
+
 DISABLED = "none"
 
 
@@ -48,6 +68,16 @@ def _float(name: str, default: float) -> float:
         return default
 
 
+def _dedupe(names: tuple[str, ...]) -> tuple[str, ...]:
+    """Order-preserving, so the head stays the model the operator asked for."""
+    seen: dict[str, None] = {}
+    for name in names:
+        cleaned = name.strip()
+        if cleaned:
+            seen.setdefault(cleaned, None)
+    return tuple(seen)
+
+
 @dataclass(frozen=True)
 class LlmConfig:
     """Resolved provider settings plus every ceiling that bounds spend."""
@@ -62,10 +92,17 @@ class LlmConfig:
     max_calls_per_session: int
     max_calls_per_process: int
     daily_budget_usd: float
+    fallback_models: tuple[str, ...] = ()
+    model_cooldown_seconds: float = 300.0
 
     @property
     def enabled(self) -> bool:
         return self.provider != DISABLED and bool(self.api_key)
+
+    @property
+    def model_chain(self) -> tuple[str, ...]:
+        """`model` first, then every sibling worth trying if it will not answer."""
+        return _dedupe((self.model,) + self.fallback_models)
 
     @property
     def key_fingerprint(self) -> str:
@@ -89,6 +126,25 @@ def _detect_provider() -> str:
         if os.getenv(PROVIDERS[name]["key_env"], "").strip():
             return name
     return DISABLED
+
+
+def _fallback_models(provider: str, base_url: str) -> tuple[str, ...]:
+    """The chain behind the chosen model, from env if set and the family if not.
+
+    A pinned `LLM_MODEL` only moves to the head of the chain; it does not empty
+    it, so pinning a model does not cost you the family behind it. Set
+    `LLM_FALLBACK_MODELS=none` to try exactly one model and nothing else.
+    """
+    requested = (os.getenv("LLM_FALLBACK_MODELS") or "").strip()
+    if requested.lower() in {DISABLED, "off", "false", "disabled"}:
+        return ()
+    if requested:
+        return _dedupe(tuple(requested.split(",")))
+    # A redirected base URL is some other endpoint, and this provider's family
+    # names mean nothing there. Only an explicit list can speak for it.
+    if base_url != PROVIDERS[provider]["base_url"]:
+        return ()
+    return MODEL_CHAINS.get(provider, ())
 
 
 def disabled_config() -> LlmConfig:
@@ -128,6 +184,8 @@ def from_env() -> LlmConfig:
         model=model,
         api_key=api_key,
         base_url=base_url,
+        fallback_models=_fallback_models(provider, base_url),
+        model_cooldown_seconds=_float("LLM_MODEL_COOLDOWN_SECONDS", 300.0),
         timeout_seconds=_float("LLM_TIMEOUT_SECONDS", 8.0),
         max_tokens_extract=_int("LLM_MAX_TOKENS_EXTRACT", 200),
         max_tokens_respond=_int("LLM_MAX_TOKENS_RESPOND", 220),

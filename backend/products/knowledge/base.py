@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
+from math import ceil
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -11,6 +12,14 @@ from products.knowledge.corpus import policy_clauses, style_docs
 from products.knowledge.scoring import score
 
 ISO = lambda: datetime.now(timezone.utc).isoformat()
+
+
+def _percentile(ordered: list[int], pct: int) -> int | None:
+    """Nearest-rank percentile over a pre-sorted list."""
+    if not ordered:
+        return None
+    index = max(0, min(len(ordered) - 1, ceil(pct / 100 * len(ordered)) - 1))
+    return ordered[index]
 
 
 class PassengerKnowledgeStore(ABC):
@@ -317,5 +326,54 @@ class PassengerKnowledgeStore(ABC):
             "kb_backend": self.backend,
             "seeded_members": sum(1 for p in self.passengers.values() if p.get("account_origin") == "seeded"),
             "self_service_members": sum(1 for p in self.passengers.values() if p.get("account_origin") == "self_service"),
+            "containment": self.containment(),
             "note": "Live passenger directory. Assignment profiles are pre-enrolled members; new passengers can onboard.",
+        }
+
+    def containment(self) -> dict[str, Any]:
+        """How much of the work needed no human, and where authority ran out.
+
+        Only turns recorded with telemetry count, so histories written before
+        measurement existed cannot inflate the rate.
+        """
+        turns = [e for e in self.events if e.get("kind") == "turn" and "contained" in e]
+        if not turns:
+            return {
+                "turns": 0,
+                "note": "No measured turns yet. Run a conversation to populate this.",
+            }
+
+        contained = [t for t in turns if t.get("contained")]
+        by_reason: dict[str, int] = {}
+        for turn in turns:
+            for reason in turn.get("escalation_reasons") or []:
+                by_reason[reason] = by_reason.get(reason, 0) + 1
+
+        claimed = sum(int(t.get("decisions") or 0) for t in turns)
+        cited = sum(int(t.get("grounded_decisions") or 0) for t in turns)
+        spend = sum(float(t.get("est_cost_usd") or 0.0) for t in turns)
+        latencies = sorted(int(t.get("latency_ms") or 0) for t in turns)
+
+        return {
+            "turns": len(turns),
+            "contained_turns": len(contained),
+            "containment_rate": round(len(contained) / len(turns), 4),
+            "escalated_turns": len(turns) - len(contained),
+            "escalations_by_reason": dict(sorted(by_reason.items(), key=lambda kv: -kv[1])),
+            "decisions_claimed": claimed,
+            "decisions_cited": cited,
+            "grounding_coverage": round(cited / claimed, 4) if claimed else None,
+            "degraded_turns": sum(1 for t in turns if t.get("degraded")),
+            "p50_latency_ms": _percentile(latencies, 50),
+            "p95_latency_ms": _percentile(latencies, 95),
+            "llm_calls": sum(int(t.get("llm_calls") or 0) for t in turns),
+            "prompt_tokens": sum(int(t.get("prompt_tokens") or 0) for t in turns),
+            "completion_tokens": sum(int(t.get("completion_tokens") or 0) for t in turns),
+            "est_spend_usd": round(spend, 6),
+            "est_cost_per_turn_usd": round(spend / len(turns), 6),
+            "est_cost_per_contained_turn_usd": round(spend / len(contained), 6) if contained else None,
+            "note": (
+                "Every escalation is a policy authority boundary, not an agent failure. "
+                "Read containment_rate alongside escalations_by_reason."
+            ),
         }

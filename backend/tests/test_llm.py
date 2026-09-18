@@ -14,8 +14,8 @@ from factories.llm_factory import LlmFactory
 from factories.reply_factory import ReplyFactory
 from llm.budget import LlmBudget
 from llm.client import LlmClient
-from llm.config import PROVIDERS, LlmConfig, from_env
-from llm.pricing import estimate_usd, rate_for
+from llm.config import MODEL_CHAINS, PROVIDERS, LlmConfig, from_env
+from llm.pricing import UNKNOWN_MODEL_RATE, estimate_usd, rate_for
 from models.schemas import CustomerAgentContext, RequestType, SessionMemory
 from products.extractors.heuristic import HeuristicExtractor
 from products.extractors.llm import LlmExtractor
@@ -32,6 +32,8 @@ def clean_env(monkeypatch):
         "LLM_PROVIDER",
         "LLM_MODEL",
         "LLM_BASE_URL",
+        "LLM_FALLBACK_MODELS",
+        "LLM_MODEL_COOLDOWN_SECONDS",
         "OPENAI_BASE_URL",
         "OPENAI_MODEL",
         "LLM_MAX_CALLS_PER_SESSION",
@@ -96,6 +98,28 @@ class ExplodingSdk:
 
     def create(self, **kwargs):
         raise TimeoutError("provider unreachable")
+
+
+class PickySdk(StubSdk):
+    """Serves only the models it was given a quota for; the rest raise 429.
+
+    This is what an exhausted free tier looks like from the client's side: the
+    key is valid, the endpoint is up, and one model name stops answering.
+    """
+
+    def __init__(self, serves: set[str], **kwargs):
+        super().__init__(**kwargs)
+        self._serves = serves
+
+    def create(self, **kwargs):
+        if kwargs["model"] not in self._serves:
+            self.requests.append(kwargs)
+            raise RuntimeError(f"429 quota exceeded for {kwargs['model']}")
+        return super().create(**kwargs)
+
+
+def models_tried(sdk) -> list[str]:
+    return [request["model"] for request in sdk.requests]
 
 
 def client_with(sdk, cfg: LlmConfig | None = None) -> LlmClient:
@@ -172,6 +196,62 @@ def test_malformed_numeric_settings_fall_back_to_defaults(monkeypatch):
     assert from_env().max_calls_per_session == 12
 
 
+# --- which models stand behind the chosen one -----------------------------
+
+
+def test_gemini_offers_the_whole_family_as_fallback(monkeypatch):
+    """One key covers every Gemini model, so quota on one is not quota on all."""
+    monkeypatch.setenv("GEMINI_API_KEY", "gem-abc")
+    cfg = from_env()
+    assert cfg.model_chain == MODEL_CHAINS["gemini"]
+    assert cfg.model_chain[0] == "gemini-2.5-flash"
+
+
+def test_pinned_model_leads_the_chain_without_emptying_it(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "gem-abc")
+    monkeypatch.setenv("LLM_MODEL", "gemini-2.5-pro")
+    chain = from_env().model_chain
+    assert chain[0] == "gemini-2.5-pro"
+    assert "gemini-2.5-flash" in chain
+    # Pinning a family member must not leave it in the queue twice.
+    assert len(chain) == len(set(chain))
+
+
+def test_an_explicit_list_replaces_the_family(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "gem-abc")
+    monkeypatch.setenv("LLM_FALLBACK_MODELS", "gemini-2.0-flash, gemini-2.5-pro")
+    assert from_env().model_chain == (
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.5-pro",
+    )
+
+
+def test_fallback_can_be_turned_off_entirely(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "gem-abc")
+    monkeypatch.setenv("LLM_FALLBACK_MODELS", "none")
+    assert from_env().model_chain == ("gemini-2.5-flash",)
+
+
+def test_a_redirected_base_url_gets_no_family_chain(monkeypatch):
+    """Family names mean nothing at someone else's endpoint, so none are assumed."""
+    monkeypatch.setenv("GEMINI_API_KEY", "gem-abc")
+    monkeypatch.setenv("LLM_BASE_URL", "http://localhost:11434/v1")
+    monkeypatch.setenv("LLM_MODEL", "llama3")
+    assert from_env().model_chain == ("llama3",)
+
+
+def test_a_disabled_provider_has_no_models_to_fall_back_to():
+    assert from_env().model_chain == ()
+
+
+def test_every_fallback_model_has_a_published_rate():
+    """A chain entry with no rate would be billed at the conservative default."""
+    for chain in MODEL_CHAINS.values():
+        for model in chain:
+            assert rate_for(model) != UNKNOWN_MODEL_RATE, model
+
+
 def test_key_is_never_exposed_by_health(monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "gem-super-secret-value")
     report = LlmFactory.create(refresh=True).health()
@@ -230,7 +310,8 @@ def test_session_call_ceiling_stops_further_calls():
     for _ in range(5):
         client.complete(purpose="respond", system="s", user="u", session_id="s-1")
     assert len(sdk.requests) == 2
-    assert client.budget.snapshot()["degradations"]["session_call_ceiling"] == 3
+    # Labelled with the purpose, so the breakdown says which call was starved.
+    assert client.budget.snapshot()["degradations"]["respond_session_call_ceiling"] == 3
 
 
 def test_session_ceilings_are_independent_per_session():
@@ -268,6 +349,112 @@ def test_empty_response_is_treated_as_a_degradation():
     assert client.complete(purpose="respond", system="s", user="u") is None
 
 
+# --- a model out of quota costs the next model, not the LLM path -----------
+
+
+GEMINI_CHAIN = MODEL_CHAINS["gemini"]
+
+
+def chained(**overrides) -> LlmConfig:
+    return config(fallback_models=GEMINI_CHAIN[1:], **overrides)
+
+
+def test_the_next_model_answers_when_the_first_is_out_of_quota():
+    sdk = PickySdk(serves={"gemini-2.5-flash-lite"}, text="polished by the sibling")
+    client = client_with(sdk, chained())
+    result = client.complete(purpose="respond", system="s", user="u")
+    assert result is not None and result.text == "polished by the sibling"
+    # And the result names the model that actually answered, not the one asked.
+    assert result.model == "gemini-2.5-flash-lite"
+    assert models_tried(sdk) == ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
+
+
+def test_the_refusal_is_recorded_against_the_model_that_refused():
+    client = client_with(PickySdk(serves={"gemini-2.0-flash"}), chained())
+    client.complete(purpose="respond", system="s", user="u")
+    degradations = client.budget.snapshot()["degradations"]
+    assert degradations["model_unavailable:gemini-2.5-flash"] == 1
+    assert degradations["model_unavailable:gemini-2.5-flash-lite"] == 1
+    assert "model_unavailable:gemini-2.0-flash" not in degradations
+
+
+def test_an_empty_answer_also_moves_down_the_chain():
+    """A model that returns nothing is as useless as one that errors."""
+    sdk = PickySdk(serves=set(GEMINI_CHAIN), text="   ")
+    client = client_with(sdk, chained())
+    assert client.complete(purpose="respond", system="s", user="u") is None
+    assert len(sdk.requests) == LlmClient.MAX_ATTEMPTS
+
+
+def test_the_walk_is_capped_so_a_dead_family_cannot_stack_up_timeouts():
+    """Five timeouts in a row would be five times the wait for the passenger."""
+    sdk = PickySdk(serves=set())
+    client = client_with(sdk, chained())
+    assert len(GEMINI_CHAIN) > LlmClient.MAX_ATTEMPTS
+    assert client.complete(purpose="respond", system="s", user="u") is None
+    assert models_tried(sdk) == list(GEMINI_CHAIN[: LlmClient.MAX_ATTEMPTS])
+
+
+def test_a_model_that_refused_is_not_asked_first_again():
+    """Free-tier quota lasts hours, so re-leading with it would waste the walk."""
+    sdk = PickySdk(serves={"gemini-2.5-flash-lite"})
+    client = client_with(sdk, chained())
+    client.complete(purpose="respond", system="s", user="u")
+    client.complete(purpose="respond", system="s", user="u")
+    assert models_tried(sdk) == [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.5-flash-lite",
+    ]
+
+
+def test_a_cooled_model_leads_again_once_the_cooldown_expires(monkeypatch):
+    """Demoted, never retired: quota comes back and the preferred model resumes."""
+    clock = {"now": 1_000.0}
+    monkeypatch.setattr("llm.client.time.monotonic", lambda: clock["now"])
+    sdk = PickySdk(serves={"gemini-2.5-flash-lite"})
+    client = client_with(sdk, chained(model_cooldown_seconds=300.0))
+    client.complete(purpose="respond", system="s", user="u")
+    clock["now"] += 301
+    client.complete(purpose="respond", system="s", user="u")
+    assert models_tried(sdk)[2:] == ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
+
+
+def test_the_walk_spends_one_call_of_the_session_budget_not_three():
+    """Falling back is a retry of one turn, so it must not buy extra headroom."""
+    sdk = PickySdk(serves={"gemini-2.0-flash"})
+    client = client_with(sdk, chained(max_calls_per_session=1))
+    assert client.complete(purpose="respond", system="s", user="u", session_id="s-1") is not None
+    assert client.complete(purpose="respond", system="s", user="u", session_id="s-1") is None
+    assert client.budget.snapshot()["calls_today"] == 1
+
+
+def test_a_cached_answer_survives_the_model_that_produced_it_being_demoted():
+    sdk = PickySdk(serves={"gemini-2.5-flash-lite"}, text='{"emotion": "calm"}')
+    client = client_with(sdk, chained())
+    first = client.complete(purpose="extract", system="s", user="same", cache=True)
+    before = len(sdk.requests)
+    second = client.complete(purpose="extract", system="s", user="same", cache=True)
+    assert len(sdk.requests) == before
+    assert second is not None and second.cached is True
+    assert first is not None and second.text == first.text
+
+
+def test_health_reports_the_queue_and_who_leads_it():
+    client = client_with(PickySdk(serves={"gemini-2.0-flash"}), chained())
+    assert client.health()["next_models"][0] == "gemini-2.5-flash"
+    client.complete(purpose="respond", system="s", user="u")
+    report = client.health()
+    assert report["model_chain"] == list(GEMINI_CHAIN)
+    assert report["next_models"][0] == "gemini-2.0-flash"
+
+
+def test_falling_back_cannot_be_reached_by_a_disabled_client():
+    client = LlmFactory.disabled()
+    assert client.config.model_chain == ()
+    assert client.health()["next_models"] == []
+
+
 # --- caching ---------------------------------------------------------------
 
 
@@ -287,6 +474,86 @@ def test_cache_does_not_confuse_different_utterances():
     client.complete(purpose="extract", system="s", user="refund please", cache=True)
     client.complete(purpose="extract", system="s", user="where is my bag", cache=True)
     assert len(sdk.requests) == 2
+
+
+# --- per-turn metering -----------------------------------------------------
+
+
+def test_a_turn_reports_its_own_tokens_and_cost():
+    """Day totals cannot answer "what did this turn cost" once turns overlap."""
+    client = client_with(StubSdk(prompt_tokens=600, completion_tokens=100))
+    client.begin_turn("s-1")
+    client.complete(purpose="extract", system="s", user="a", session_id="s-1")
+    client.complete(purpose="respond", system="s", user="b", session_id="s-1")
+    usage = client.end_turn("s-1")
+    assert usage["calls"] == 2
+    assert usage["prompt_tokens"] == 1200
+    assert usage["completion_tokens"] == 200
+    # gemini-2.5-flash at $0.30 in / $2.50 out per 1M tokens.
+    expected = (1200 / 1_000_000) * 0.30 + (200 / 1_000_000) * 2.50
+    assert usage["est_cost_usd"] == pytest.approx(expected, rel=1e-6)
+    assert usage["provider"] == "gemini"
+
+
+def test_usage_from_another_session_is_not_billed_to_this_turn():
+    client = client_with(StubSdk(prompt_tokens=600, completion_tokens=100))
+    client.begin_turn("s-1")
+    client.complete(purpose="respond", system="s", user="b", session_id="s-2")
+    assert client.end_turn("s-1")["calls"] == 0
+
+
+def test_a_turn_records_why_it_degraded():
+    client = client_with(ExplodingSdk())
+    client.begin_turn("s-1")
+    client.complete(purpose="respond", system="s", user="b", session_id="s-1")
+    degradations = client.end_turn("s-1")["degradations"]
+    assert "respond_provider_error" in degradations
+    # The chain also names which model refused, so a turn explains itself.
+    assert "model_unavailable:gemini-2.5-flash" in degradations
+
+
+def test_a_ceiling_breach_is_attributed_to_the_turn_that_hit_it():
+    client = client_with(StubSdk(), config(max_calls_per_session=1))
+    client.begin_turn("s-1")
+    client.complete(purpose="respond", system="s", user="a", session_id="s-1")
+    client.complete(purpose="respond", system="s", user="b", session_id="s-1")
+    usage = client.end_turn("s-1")
+    assert usage["calls"] == 1
+    assert usage["degradations"] == ["respond_session_call_ceiling"]
+
+
+def test_a_cached_call_is_counted_but_not_charged():
+    client = client_with(StubSdk(text='{"emotion": "calm"}', prompt_tokens=600, completion_tokens=100))
+    client.complete(purpose="extract", system="s", user="same", session_id="s-1", cache=True)
+    client.begin_turn("s-2")
+    client.complete(purpose="extract", system="s", user="same", session_id="s-2", cache=True)
+    usage = client.end_turn("s-2")
+    assert usage["cached_calls"] == 1
+    assert usage["calls"] == 0
+    assert usage["est_cost_usd"] == 0.0
+
+
+def test_a_turn_names_the_model_that_actually_answered():
+    """With a chain, the configured model and the answering model can differ."""
+    client = client_with(PickySdk(serves={"gemini-2.5-flash-lite"}), chained())
+    client.begin_turn("s-1")
+    result = client.complete(purpose="respond", system="s", user="u", session_id="s-1")
+    usage = client.end_turn("s-1")
+    assert result is not None and result.model == "gemini-2.5-flash-lite"
+    assert usage["model"] == "gemini-2.5-flash-lite"
+    assert usage["models_used"] == ["gemini-2.5-flash-lite"]
+    assert client.config.model == "gemini-2.5-flash"
+
+
+def test_an_unused_turn_reports_the_configured_model():
+    client = client_with(StubSdk())
+    client.begin_turn("s-1")
+    assert client.end_turn("s-1")["model"] == "gemini-2.5-flash"
+
+
+def test_ending_a_turn_that_was_never_begun_is_harmless():
+    usage = client_with(StubSdk()).end_turn("never-started")
+    assert usage["calls"] == 0 and usage["est_cost_usd"] == 0.0
 
 
 # --- pricing ---------------------------------------------------------------
