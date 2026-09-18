@@ -43,11 +43,15 @@ From this GitHub repo: [Deploy to Render](https://render.com/deploy?repo=https:/
 ## Run locally
 
 ```bash
+# 0) Durable store (keeps signups, cases, and login tokens across restarts)
+docker compose up -d postgres
+
 # 1) Backend
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+# copy ../.env.example to .env — includes DATABASE_URL for local Postgres
 uvicorn main:app --reload --port 8000
 
 # 2) Customer chat
@@ -63,7 +67,14 @@ npm run dev
 # http://localhost:3001
 ```
 
-Optional Elasticsearch (passenger knowledge base). Without Docker, the same JSON data pack is used:
+Postgres is the system of record. If `DATABASE_URL` is unset or Postgres is down, the factory falls through to Elasticsearch (when Docker is up), then the in-memory JSON data pack. The JSON path is wiped when uvicorn restarts.
+
+```bash
+docker compose up -d postgres
+# restart uvicorn so it can connect at localhost:5432
+```
+
+Optional Elasticsearch (BM25 retrieval over the same passenger KB):
 
 ```bash
 docker compose up -d elasticsearch
@@ -302,7 +313,7 @@ the policy engine never calls a model, no setting here can change a decision —
 - `backend/agent/context.py` — context assembler and grounded narration
 - `backend/llm/` — provider resolution, token caps, and spend ceilings
 - `backend/products/knowledge/corpus.py` — `policies.json` flattened to clauses
-- `backend/kb/store.py` — Elasticsearch + JSON fallback, same retrieval contract
+- `backend/kb/store.py` — Postgres + Elasticsearch + JSON fallback, same retrieval contract
 - `backend/main.py` — FastAPI
 - `frontend/` — Next.js customer resolution chat
 - `frontend-manager/` — Next.js operations dashboard

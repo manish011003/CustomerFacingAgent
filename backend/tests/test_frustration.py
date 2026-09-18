@@ -18,7 +18,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from agent import frustration as detector
-from agent.loop import handle_chat
+from agent.loop import handle_chat, reset_session
 from agent.tools import TOOL_SCHEMAS, ToolRuntime
 from data.loader import load_bookings, load_customers
 from factories.onboarding_factory import OnboardingFactory
@@ -625,6 +625,7 @@ def test_a_calm_turn_is_contained_and_names_no_distress():
 def test_frustration_does_not_change_the_outcome_of_an_identical_request():
     """The same assertion `test_emotion.py` makes about tone, for the classifier."""
     calm = handle_chat(str(uuid4()), "I want hotel accommodation for this delay", "CUST-ARVIND")
+    reset_session(calm.session["session_id"], "CUST-ARVIND")
     upset = handle_chat(
         str(uuid4()),
         "I am STRANDED with my toddler and NOBODY is helping!! I want hotel "

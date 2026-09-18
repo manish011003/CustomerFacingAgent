@@ -26,6 +26,8 @@ const ACTION_LABELS: Record<string, string> = {
   legal_or_formal: "Formal complaint",
   non_airline_exception: "Exception for a non-airline cause",
   general_help: "General help",
+  booking_assist: "New booking",
+  help_question: "Travel help",
 };
 
 const ACTION_ACTIONS: Record<string, string> = {
@@ -81,17 +83,25 @@ export const ESCALATION_COPY: Record<EscalationReason, string> = {
   unknown_entitlement: "This request is not covered by the policy the agent can apply.",
 };
 
-export function flightStatusCopy(status: string): { label: string; tone: "good" | "stop" | "warn" } {
+export function flightStatusCopy(status: string): { label: string; tone: "good" | "stop" | "warn" | "info" | "neutral" } {
   switch (status.toUpperCase()) {
     case "CANCELLED":
-      return { label: "Cancelled", tone: "stop" };
+    case "NOT FOUND":
+      return { label: status.toUpperCase() === "NOT FOUND" ? "Not found" : "Cancelled", tone: "stop" };
     case "DELAYED":
       return { label: "Delayed", tone: "warn" };
+    case "BOARDING":
+      return { label: "Boarding", tone: "good" };
+    case "GATE OPEN":
+      return { label: "Gate open", tone: "info" };
+    case "SCHEDULED":
+      return { label: "Scheduled", tone: "info" };
     case "UNAFFECTED":
     case "ON_TIME":
+    case "ON TIME":
       return { label: "On time", tone: "good" };
     default:
-      return { label: humanise(status.toLowerCase()), tone: "good" };
+      return { label: humanise(status.toLowerCase()), tone: "neutral" };
   }
 }
 

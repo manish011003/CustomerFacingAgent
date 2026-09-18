@@ -28,6 +28,22 @@ export interface Passenger {
   account_origin?: "seeded" | "self_service";
 }
 
+export interface SuggestedFlight {
+  flight: string;
+  origin: string;
+  destination: string;
+  date?: string;
+  date_label?: string;
+  scheduled_departure: string;
+  scheduled_arrival?: string | null;
+  gate?: string | null;
+  status: string;
+  aircraft?: string | null;
+  source: "scheduled" | "random";
+  passengers?: string | null;
+  href: string;
+}
+
 export interface Booking {
   id: string;
   customer_id: string;
@@ -76,6 +92,14 @@ export interface RuleHit {
   for_action: string | null;
 }
 
+export interface ServiceFeedback {
+  rating?: number | null;
+  comment?: string | null;
+  sentiment: "positive" | "negative" | "mixed";
+  source?: string;
+  ts?: string | null;
+}
+
 export interface ContextPacket {
   unidentified: boolean;
   identity: { id: string; name: string; tier: string; pnr: string; email: string } | null;
@@ -99,6 +123,14 @@ export interface ContextPacket {
   missing_slots: string[];
   authority: Record<string, unknown>;
   executed_actions: string[];
+  recalled_turns?: { ts: string; message: string; reply: string }[];
+  known_facts?: { fact: string; source: string; ts: string }[];
+  kb_backend: string;
+  case_status?: "open" | "resolved" | "escalated" | string;
+  feedback_prompt?: boolean;
+  feedback_popup?: boolean;
+  feedback?: ServiceFeedback | null;
+  suggested_flight?: SuggestedFlight | null;
 }
 
 export interface Escalation {
@@ -119,6 +151,10 @@ export interface ChatResponse {
   eligibility: Eligibility[];
   audit_event: Record<string, unknown>;
   escalation: Escalation | null;
+  case_status?: string | null;
+  feedback_prompt?: boolean;
+  feedback_popup?: boolean;
+  feedback?: ServiceFeedback | null;
   session: {
     session_id: string;
     identified: boolean;
@@ -126,6 +162,8 @@ export interface ChatResponse {
     executed_actions: string[];
     denied: string[];
     escalations: string[];
+    escalated_to_human?: boolean;
+    resolved_by_customer?: boolean;
     open_question: string | null;
     agent_mode?: "llm" | "fallback";
   };
@@ -140,12 +178,27 @@ export interface LlmHealth {
   fallback: string;
 }
 
+export interface ChatMessage {
+  role: "user" | "assistant" | string;
+  content: string;
+}
+
+export interface Conversation {
+  session_id: string | null;
+  messages: ChatMessage[];
+  executed_actions?: string[];
+  escalated_to_human?: boolean;
+  resolved_by_customer?: boolean;
+  feedback?: ServiceFeedback | null;
+}
+
 export interface MeResponse {
   passenger: Passenger | null;
   bookings: Booking[];
   affected_booking: Booking | null;
   eligibility: Eligibility[];
   kb_backend: string;
+  conversation?: Conversation;
 }
 
 export interface AuthResult {
@@ -187,4 +240,8 @@ export interface Turn {
   booking?: Booking | null;
   packet?: ContextPacket | null;
   failed?: boolean;
+  caseStatus?: string | null;
+  feedbackPrompt?: boolean;
+  feedbackPopup?: boolean;
+  suggestedFlight?: SuggestedFlight | null;
 }

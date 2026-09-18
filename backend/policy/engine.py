@@ -8,6 +8,7 @@ from models.schemas import (
     FrustrationCategory,
     PolicyDecision,
     PolicyEvaluation,
+    RequestType,
 )
 from policy.exclusivity import offered_actions
 from policy.ops import (
@@ -182,14 +183,24 @@ def _baseline(customer: Customer, booking: Booking) -> PolicyEvaluation:
 
 def evaluate_policy(
     customer: Customer,
-    booking: Booking,
+    booking: Booking | None,
     requests: list[ExtractedRequest],
     *,
     fare_difference_inr: int | None = None,
     legal_or_formal: bool = False,
     frustration_category: FrustrationCategory | None = None,
 ) -> PolicyEvaluation:
-    evaluation = _baseline(customer, booking)
+    conversation_only = bool(requests) and all(
+        request.type
+        in {RequestType.GENERAL_HELP, RequestType.HELP_QUESTION, RequestType.BOOKING_ASSIST}
+        for request in requests
+    )
+    if conversation_only:
+        evaluation = PolicyEvaluation()
+        if booking:
+            evaluation.disruption_type = booking.status.lower()
+    else:
+        evaluation = _baseline(customer, booking)
 
     if legal_or_formal:
         append_decision(

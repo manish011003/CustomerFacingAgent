@@ -1,0 +1,125 @@
+{
+  "source": "Prototype upcoming-departures catalog. Not live inventory and not a ticket.",
+  "flights": [
+    {
+      "flight": "SK-441",
+      "origin": "Delhi",
+      "destination": "Goa",
+      "date": "2026-09-25",
+      "date_label": "Friday, 25 September 2026",
+      "scheduled_departure": "08:40",
+      "scheduled_arrival": "11:10",
+      "gate": "B12",
+      "status": "SCHEDULED",
+      "aircraft": "A320"
+    },
+    {
+      "flight": "SK-442",
+      "origin": "Goa",
+      "destination": "Delhi",
+      "date": "2026-09-25",
+      "date_label": "Friday, 25 September 2026",
+      "scheduled_departure": "19:20",
+      "scheduled_arrival": "21:50",
+      "gate": "A04",
+      "status": "SCHEDULED",
+      "aircraft": "A320"
+    },
+    {
+      "flight": "SK-118",
+      "origin": "Mumbai",
+      "destination": "Bengaluru",
+      "date": "2026-09-23",
+      "date_label": "Wednesday, 23 September 2026",
+      "scheduled_departure": "07:10",
+      "scheduled_arrival": "09:05",
+      "gate": "C07",
+      "status": "DELAYED",
+      "aircraft": "A321"
+    },
+    {
+      "flight": "SK-204",
+      "origin": "Delhi",
+      "destination": "Goa",
+      "date": "2026-09-23",
+      "date_label": "Wednesday, 23 September 2026",
+      "scheduled_departure": "18:40",
+      "scheduled_arrival": "21:15",
+      "gate": "B09",
+      "status": "CANCELLED",
+      "aircraft": "B737"
+    },
+    {
+      "flight": "SK-305",
+      "origin": "Delhi",
+      "destination": "Hyderabad",
+      "date": "2026-09-23",
+      "date_label": "Wednesday, 23 September 2026",
+      "scheduled_departure": "14:00",
+      "scheduled_arrival": "16:10",
+      "gate": "D02",
+      "status": "DELAYED",
+      "aircraft": "A320"
+    },
+    {
+      "flight": "SK-610",
+      "origin": "Bengaluru",
+      "destination": "Mumbai",
+      "date": "2026-09-26",
+      "date_label": "Saturday, 26 September 2026",
+      "scheduled_departure": "06:55",
+      "scheduled_arrival": "08:40",
+      "gate": "C11",
+      "status": "BOARDING",
+      "aircraft": "A320neo"
+    },
+    {
+      "flight": "SK-722",
+      "origin": "Chennai",
+      "destination": "Kolkata",
+      "date": "2026-09-26",
+      "date_label": "Saturday, 26 September 2026",
+      "scheduled_departure": "12:15",
+      "scheduled_arrival": "14:40",
+      "gate": "A18",
+      "status": "GATE OPEN",
+      "aircraft": "A321"
+    },
+    {
+      "flight": "SK-808",
+      "origin": "Mumbai",
+      "destination": "Jaipur",
+      "date": "2026-09-27",
+      "date_label": "Sunday, 27 September 2026",
+      "scheduled_departure": "16:05",
+      "scheduled_arrival": "17:55",
+      "gate": "B03",
+      "status": "ON TIME",
+      "aircraft": "A320"
+    },
+    {
+      "flight": "SK-919",
+      "origin": "Hyderabad",
+      "destination": "Goa",
+      "date": "2026-09-28",
+      "date_label": "Monday, 28 September 2026",
+      "scheduled_departure": "09:30",
+      "scheduled_arrival": "11:05",
+      "gate": "D14",
+      "status": "ON TIME",
+      "aircraft": "A320neo"
+    },
+    {
+      "flight": "SK-331",
+      "origin": "Pune",
+      "destination": "Bengaluru",
+      "date": "2026-09-29",
+      "date_label": "Tuesday, 29 September 2026",
+      "scheduled_departure": "21:10",
+      "scheduled_arrival": "22:35",
+      "gate": "A07",
+      "status": "SCHEDULED",
+      "aircraft": "ATR-72"
+    }
+  ]
+}

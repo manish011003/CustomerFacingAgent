@@ -51,6 +51,12 @@ def run(
             }
         )
 
+    if plan.need_help:
+        retrieval.rules.extend(store.search_help(plan.query, k=2, max_chars=plan.max_chars))
+        retrieval.queries.append(
+            {"index": "help_articles", "hits": len(retrieval.rules)}
+        )
+
     if plan.need_recall:
         retrieval.recalled_turns = store.recall_turns(customer.id, plan.query, k=plan.max_turns)
         retrieval.queries.append(

@@ -41,6 +41,7 @@ export function ContextPanel() {
       : ["No passenger retrieved yet."];
   const decisions = packet?.policy_decision?.decisions ?? baseline;
   const missing = packet?.missing_slots ?? [];
+  const caseStatus = packet?.case_status;
 
   return (
     <aside className="hidden w-[300px] shrink-0 overflow-y-auto scroll-slim border-l border-line bg-white/90 p-4 lg:block">
@@ -62,6 +63,25 @@ export function ContextPanel() {
           <p className="mt-1 text-2xs text-ink-muted">Not identified.</p>
         )}
       </section>
+
+      {caseStatus && (
+        <section className="mt-4">
+          <div className="text-2xs font-bold uppercase tracking-wide text-ink-faint">Case</div>
+          <div className="mt-1">
+            <Badge
+              tone={caseStatus === "resolved" ? "good" : caseStatus === "escalated" ? "warn" : "neutral"}
+            >
+              {caseStatus}
+            </Badge>
+          </div>
+          {packet?.feedback && (
+            <p className="mt-1 text-2xs text-ink-muted">
+              Feedback {packet.feedback.rating ? `${packet.feedback.rating}/5 · ` : ""}
+              {packet.feedback.sentiment}
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="mt-4">
         <div className="text-2xs font-bold uppercase tracking-wide text-ink-faint">Retrieved facts</div>

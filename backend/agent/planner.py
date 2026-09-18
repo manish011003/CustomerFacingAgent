@@ -4,6 +4,7 @@ from models.schemas import (
     Booking,
     Customer,
     Extraction,
+    IssueFamily,
     RequestType,
     RetrievalPlan,
     SessionMemory,
@@ -21,7 +22,9 @@ ALLOWED_ACTIONS = "ALLOWED_ACTIONS"
 # pulls no policy clauses, no other legs, and no scenario fixture.
 NEEDS: dict[RequestType, dict] = {
     RequestType.STATUS: {"rules": []},
-    RequestType.GENERAL_HELP: {"rules": []},
+    RequestType.GENERAL_HELP: {"rules": [], "help": True},
+    RequestType.HELP_QUESTION: {"rules": [], "help": True},
+    RequestType.BOOKING_ASSIST: {"rules": [], "help": True},
     RequestType.MEAL_VOUCHER: {"rules": [DELAY]},
     RequestType.LOUNGE: {"rules": [DELAY]},
     RequestType.HOTEL_DELAYED_HOURS: {"rules": [DELAY]},
@@ -58,6 +61,9 @@ def plan_retrieval(extraction: Extraction, session: SessionMemory) -> RetrievalP
             plan.reasons.append(f"fare fixture for {request.type.value}")
         if spec.get("escalation_docs"):
             kinds.add("must_escalate")
+        if spec.get("help"):
+            plan.need_help = True
+            plan.reasons.append(f"help corpus for {request.type.value}")
         if request.type == RequestType.REBOOK_24H:
             kinds.add("allowed_action")
 
@@ -98,6 +104,8 @@ def expand_scope(plan: RetrievalPlan, customer: Customer | None, booking: Bookin
 
 
 def _query(extraction: Extraction) -> str:
+    if extraction.issue_family in {IssueFamily.HELP, IssueFamily.ASSIST}:
+        return (extraction.raw_text or "").strip()
     terms = [extraction.raw_text or ""]
     for request in extraction.requests:
         terms.append(request.type.value.replace("_", " "))

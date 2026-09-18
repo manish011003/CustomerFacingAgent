@@ -109,6 +109,18 @@ export function CaseDrawer({
             )}
           </Section>
 
+          {caseData.feedback && (
+            <Section title="Passenger feedback">
+              <p className="text-sm leading-6 text-ink-soft">
+                {caseData.feedback.rating != null ? `${caseData.feedback.rating}/5` : "No rating"}
+                {caseData.feedback.sentiment ? ` · ${humanise(caseData.feedback.sentiment)}` : ""}
+              </p>
+              {caseData.feedback.comment && (
+                <p className="mt-1 text-xs leading-5 text-ink-muted">{caseData.feedback.comment}</p>
+              )}
+            </Section>
+          )}
+
           {(caseData.escalation_status || caseData.escalation_reasons?.length) && (
             <Section title="Escalation">
               <p className="text-sm leading-6 text-ink-soft">{(caseData.escalation_reasons || []).join(" ")}</p>

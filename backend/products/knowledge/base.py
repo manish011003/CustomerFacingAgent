@@ -20,7 +20,7 @@ from models.schemas import (
     StyleHit,
     TurnHit,
 )
-from products.knowledge.corpus import policy_clauses, style_docs
+from products.knowledge.corpus import help_docs, policy_clauses, style_docs
 from products.knowledge.scoring import score
 
 ISO = lambda: datetime.now(timezone.utc).isoformat()
@@ -71,7 +71,7 @@ def _percentile(ordered: list[int], pct: int) -> int | None:
 class PassengerKnowledgeStore(ABC):
     """Product: passenger 360 / events / cases / graph. Clients never construct a backend."""
 
-    backend: Literal["elasticsearch", "json"]
+    backend: Literal["postgres", "elasticsearch", "json"]
 
     def __init__(self) -> None:
         self.backend = "json"
@@ -82,8 +82,12 @@ class PassengerKnowledgeStore(ABC):
         self.graph_edges: list[dict[str, Any]] = []
         self.accounts: dict[str, dict[str, Any]] = {}
         self.policy_docs: list[dict[str, Any]] = policy_clauses()
+        self.help_docs: list[dict[str, Any]] = help_docs()
         self.style_samples: list[dict[str, Any]] = style_docs()
         self.memories: list[dict[str, Any]] = []
+        # Live chat per passenger. Keyed by customer_id so a new browser session
+        # can pick up the same transcript instead of starting empty.
+        self.sessions: dict[str, dict[str, Any]] = {}
         self._init_backend()
         self.seed()
 
@@ -93,6 +97,9 @@ class PassengerKnowledgeStore(ABC):
 
     def _persist(self, index: str, doc_id: str, document: dict[str, Any]) -> None:
         """Optional dual-write. JSON product is in-memory only."""
+
+    def _drop(self, index: str, doc_id: str) -> None:
+        """Optional durable delete. JSON product is in-memory only."""
 
     def seed(self) -> None:
         from factories.hasher_factory import HasherFactory
@@ -111,12 +118,14 @@ class PassengerKnowledgeStore(ABC):
                 "created_at": c.created_at or ISO(),
             }
             self.passengers[c.id] = record
-            self.accounts[c.email.lower()] = {
+            account = {
                 "customer_id": c.id,
                 "email": c.email.lower(),
                 "password_hash": hasher.hash(SEED_PASSWORD),
             }
+            self.accounts[c.email.lower()] = account
             self._persist("passengers", c.id, {k: v for k, v in record.items() if k != "known_facts"})
+            self._persist("accounts", c.email.lower(), account)
         for b in bookings:
             self._persist("bookings", b.id, b.model_dump())
         for doc in self.policy_docs:
@@ -171,12 +180,14 @@ class PassengerKnowledgeStore(ABC):
     def register_passenger(self, customer: Customer, password_hash: str) -> Customer:
         record = customer.model_dump() | {"known_facts": []}
         self.passengers[customer.id] = record
-        self.accounts[customer.email.lower()] = {
+        account = {
             "customer_id": customer.id,
             "email": customer.email.lower(),
             "password_hash": password_hash,
         }
+        self.accounts[customer.email.lower()] = account
         self._persist("passengers", customer.id, customer.model_dump())
+        self._persist("accounts", customer.email.lower(), account)
         return customer
 
     def attach_booking(self, customer: Customer, payload: Any) -> Booking:
@@ -253,6 +264,23 @@ class PassengerKnowledgeStore(ABC):
         if not chosen and scope:
             # Scoped but no lexical overlap: the scope itself is the evidence.
             chosen = hits[:k]
+        for hit in chosen:
+            if len(hit.text) > max_chars:
+                hit.text = hit.text[: max_chars - 3].rstrip() + "..."
+        return chosen
+
+    def search_help(self, query: str, *, k: int = 2, max_chars: int = 400) -> list[RuleHit]:
+        hits: list[RuleHit] = []
+        for doc in self.help_docs:
+            ranked = (
+                score(query, doc["title"]) * 3
+                + score(query, doc.get("topics", "")) * 2
+                + score(query, doc["text"])
+            )
+            payload = {key: value for key, value in doc.items() if key in {"clause_id", "rule_id", "title", "text", "kind"}}
+            hits.append(RuleHit(**payload, score=ranked))
+        hits.sort(key=lambda h: (-h.score, h.clause_id))
+        chosen = [h for h in hits if h.score > 0][:k]
         for hit in chosen:
             if len(hit.text) > max_chars:
                 hit.text = hit.text[: max_chars - 3].rstrip() + "..."
@@ -378,6 +406,114 @@ class PassengerKnowledgeStore(ABC):
                 }
             )
         return event
+
+    def record_feedback(
+        self,
+        *,
+        customer_id: str,
+        session_id: str,
+        feedback,
+    ) -> dict[str, Any]:
+        """Persist a passenger rating as an event, a memory, and a graph edge."""
+        rating = getattr(feedback, "rating", None)
+        sentiment = getattr(feedback, "sentiment", None) or "mixed"
+        comment = getattr(feedback, "comment", None)
+        if isinstance(feedback, dict):
+            rating = feedback.get("rating")
+            sentiment = feedback.get("sentiment") or "mixed"
+            comment = feedback.get("comment")
+        bits = [f"{rating}/5" if rating is not None else None, sentiment]
+        if comment:
+            bits.append(comment.strip())
+        fact = "Service feedback: " + ", ".join(part for part in bits if part) + "."
+        event = self.append_event(
+            {
+                "kind": "feedback",
+                "session_id": session_id,
+                "customer_id": customer_id,
+                "rating": rating,
+                "comment": comment,
+                "sentiment": sentiment,
+            }
+        )
+        self.remember_fact(customer_id, fact, "customer feedback")
+        node_id = f"feedback-{rating}" if rating is not None else f"feedback-{sentiment}"
+        self.append_edge(
+            {
+                "customer_id": customer_id,
+                "session_id": session_id,
+                "from_id": customer_id,
+                "from_type": "Customer",
+                "rel": "GAVE_FEEDBACK",
+                "to_id": node_id,
+                "to_type": "Feedback",
+                "reason": fact,
+                "source": "Customer feedback",
+                "label": f"{rating}/5" if rating is not None else sentiment,
+                "rating": rating,
+                "sentiment": sentiment,
+            }
+        )
+        return event
+
+    def upsert_session(self, customer_id: str, session) -> dict[str, Any]:
+        """Write the passenger's live conversation so the next login can restore it."""
+        payload = session.model_dump() if hasattr(session, "model_dump") else dict(session)
+        payload["customer_id"] = customer_id
+        payload.pop("cleared", None)
+        self.sessions[customer_id] = payload
+        self._persist("sessions", f"session-{customer_id}", payload)
+        return payload
+
+    def load_session(self, customer_id: str) -> dict[str, Any] | None:
+        row = self.sessions.get(customer_id)
+        if not row:
+            return None
+        if row.get("cleared"):
+            return {
+                "session_id": row.get("session_id") or f"session-{customer_id}",
+                "customer_id": customer_id,
+                "identified": True,
+                "messages": [],
+            }
+        return row
+
+    def clear_session(self, customer_id: str) -> None:
+        marker = {
+            "customer_id": customer_id,
+            "session_id": f"session-{customer_id}",
+            "identified": True,
+            "messages": [],
+            "cleared": True,
+        }
+        self.sessions[customer_id] = marker
+        self._persist("sessions", f"session-{customer_id}", marker)
+
+    def conversation_for(self, customer_id: str) -> dict[str, Any]:
+        """What the customer UI should show: this passenger's transcript, nobody else's."""
+        row = self.load_session(customer_id)
+        messages = list((row or {}).get("messages") or [])
+        if not messages and customer_id not in self.sessions:
+            case = self.cases.get(f"case-{customer_id}") or {}
+            messages = list(case.get("transcript") or [])
+            if messages:
+                row = {
+                    "session_id": f"session-{customer_id}",
+                    "customer_id": customer_id,
+                    "identified": True,
+                    "messages": messages,
+                    "executed_actions": list(case.get("action_taken") or []),
+                    "escalated_to_human": case.get("status") == "escalated",
+                    "feedback": case.get("feedback"),
+                }
+        return {
+            "session_id": (row or {}).get("session_id"),
+            "messages": messages,
+            "executed_actions": list((row or {}).get("executed_actions") or []),
+            "escalated_to_human": bool((row or {}).get("escalated_to_human")),
+            "resolved_by_customer": bool((row or {}).get("resolved_by_customer")),
+            "feedback": (row or {}).get("feedback"),
+        }
 
     def upsert_case(self, case: dict[str, Any]) -> dict[str, Any]:
         case_id = case.get("id") or str(uuid4())
@@ -516,6 +652,8 @@ class PassengerKnowledgeStore(ABC):
             return node_id
         if node_type == "Session":
             return f"session {node_id[-6:]}" if len(node_id) > 8 else node_id
+        if node_type == "Feedback":
+            return hint or node_id.replace("feedback-", "").replace("_", " ")
         return hint or node_id
 
     def operations(self) -> dict[str, Any]:

@@ -175,7 +175,7 @@ def _intents(message: str) -> set[str]:
     return {
         request.type.value
         for request in extraction.requests
-        if request.type.value not in {"general_help", "status"}
+        if request.type.value not in {"general_help", "status", "booking_assist", "help_question"}
     }
 
 

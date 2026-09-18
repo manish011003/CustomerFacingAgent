@@ -42,7 +42,11 @@ AIONOS-style constraint: domain-tuned reasoning grounded in **your** data and po
 
 ## Knowledge base
 
-Elasticsearch indices (when Docker is up): `passengers`, `bookings`, `events`, `cases`,
+Postgres (when `DATABASE_URL` is set) is the system of record for passengers, accounts,
+bookings, events, cases, graph edges, memories, and login tokens. Restarting uvicorn
+reloads that store; it does not wipe self-service signups.
+
+Elasticsearch indices (when Docker is up, and Postgres is not selected): `passengers`, `bookings`, `events`, `cases`,
 `graph_edges`, `policy_rules`, `style_samples`, `memories`.
 
 Elasticsearch is a read path, not just a write sink. Three retrievers query it:
@@ -62,8 +66,9 @@ Compensation Rule becomes three documents, one per band. A six-hour delay cites 
 more-than-five-hours clause, so the model never receives the ₹500 under-three-hours band it
 could misapply. `test_retrieval.py` asserts a four-hour delay never surfaces `500`.
 
-If Elasticsearch is down, `KnowledgeStoreFactory.create("auto")` returns `JsonKnowledgeStore`,
-which implements the same retrieval contract with a length-normalized term-overlap scorer in
+`KnowledgeStoreFactory.create("auto")` prefers Postgres when `DATABASE_URL` is reachable,
+then Elasticsearch, then `JsonKnowledgeStore`. The JSON product implements the same
+retrieval contract with a length-normalized term-overlap scorer in
 `products/knowledge/scoring.py`. Ranking is not BM25-identical, which is why the planner
 narrows candidates by rule scope before either backend ranks them. Every Elasticsearch search
 also falls back to the in-memory implementation on error or an empty result, so a flaky
@@ -96,7 +101,7 @@ Observations below `KB_AUTO_STORE_THRESHOLD` (default 0.75) are still written, t
 | `IntentExtractor` | heuristic, LLM+fallback | `ExtractorFactory` | `agent/loop.py` |
 | `ReplyRenderer` | template, LLM polish | `ReplyFactory` | `agent/loop.py` |
 | `PolicyHandler` | status, cancel, delay, fare, exceptions | `PolicyHandlerFactory` | `policy/engine.py` |
-| `PassengerKnowledgeStore` | JSON, Elasticsearch | `KnowledgeStoreFactory` | `kb/store.py` singleton |
+| `PassengerKnowledgeStore` | Postgres, JSON, Elasticsearch | `KnowledgeStoreFactory` | `kb/store.py` singleton |
 | `LlmClient` | Gemini, Groq, xAI, OpenAI, disabled | `LlmFactory` | extractor and reply products |
 
 ## Surfaces

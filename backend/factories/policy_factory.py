@@ -8,6 +8,7 @@ from policy.handlers.exceptions import (
     LegalNoOpHandler,
     NonAirlineExceptionHandler,
 )
+from policy.handlers.assist import BookingAssistHandler, HelpQuestionHandler
 from policy.handlers.fare import FareWaiverHandler
 from policy.handlers.status import StatusHandler
 
@@ -17,7 +18,9 @@ class PolicyHandlerFactory:
 
     _registry: dict[RequestType, type[PolicyHandler]] = {
         RequestType.STATUS: StatusHandler,
-        RequestType.GENERAL_HELP: StatusHandler,
+        RequestType.GENERAL_HELP: HelpQuestionHandler,
+        RequestType.HELP_QUESTION: HelpQuestionHandler,
+        RequestType.BOOKING_ASSIST: BookingAssistHandler,
         RequestType.REBOOK_24H: RebookHandler,
         RequestType.REFUND_ORIGINAL: RefundOriginalHandler,
         RequestType.REFUND_OTHER_METHOD: RefundOtherMethodHandler,

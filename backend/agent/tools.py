@@ -59,7 +59,17 @@ ACTIONS: dict[str, RequestType] = {
     "legal": RequestType.LEGAL_OR_FORMAL,
     "legal_or_formal": RequestType.LEGAL_OR_FORMAL,
     "non_airline_exception": RequestType.NON_AIRLINE_EXCEPTION,
+    "booking_assist": RequestType.BOOKING_ASSIST,
+    "book": RequestType.BOOKING_ASSIST,
+    "booking": RequestType.BOOKING_ASSIST,
+    "help_question": RequestType.HELP_QUESTION,
+    "help": RequestType.HELP_QUESTION,
 }
+
+BENEFIT_UNKNOWN = re.compile(
+    r"compensat|waiver|upgrade|voucher|lounge|hotel|refund|cash|₹|inr|entitlement",
+    re.I,
+)
 
 POLICY_TOPICS: dict[str, tuple[list[str], tuple[str, ...]]] = {
     "cancellation": (["CANCELLATION_REBOOKING_RULE"], ("rule",)),
@@ -152,13 +162,28 @@ TOOL_SCHEMAS: list[dict] = [
     ),
     _schema(
         "escalate_to_human",
-        "Create a supervisor case. Use when authority is exceeded, policy is unknown, or the passenger threatens legal/formal action.",
+        "Create a supervisor case. Use when authority is exceeded, the passenger wants a benefit not in policy, or they threaten legal/formal action. Do not use this for how-to questions.",
         {
             "reason": {"type": "string"},
             "requested_action": {"type": "string"},
             "notes": {"type": "string"},
         },
         ["reason"],
+    ),
+    _schema(
+        "answer_help",
+        "Answer a how-to question from the passenger help guide: booking a trip, check-in, baggage, seats. Not compensation policy.",
+        {"topic": {"type": "string", "description": "What the passenger asked, in their words."}},
+        ["topic"],
+    ),
+    _schema(
+        "collect_booking_slot",
+        "Save one field for a new-trip request: origin, destination, date, or passengers. Does not invent inventory.",
+        {
+            "name": {"type": "string", "description": "origin, destination, date, or passengers"},
+            "value": {"type": "string"},
+        },
+        ["name", "value"],
     ),
 ]
 
@@ -198,6 +223,8 @@ class ToolRuntime:
             "grant_lounge_access": self.grant_lounge_access,
             "arrange_hotel": self.arrange_hotel,
             "escalate_to_human": self.escalate_to_human,
+            "answer_help": self.answer_help,
+            "collect_booking_slot": self.collect_booking_slot,
         }
 
     def call(self, name: str, arguments: dict[str, Any] | None) -> dict[str, Any]:
@@ -378,25 +405,43 @@ class ToolRuntime:
         action: str,
         fare_difference_inr: int | None = None,
     ) -> dict[str, Any]:
-        if not self.customer or not self.booking:
-            return {"ok": False, "error": "Call get_booking first."}
         request_type = ACTIONS.get((action or "").strip().lower())
+        conversation = request_type in {
+            RequestType.BOOKING_ASSIST,
+            RequestType.HELP_QUESTION,
+            RequestType.GENERAL_HELP,
+        }
+        if not self.customer:
+            return {"ok": False, "error": "Sign in first."}
+        if not self.booking and not conversation and request_type is not None:
+            return {"ok": False, "error": "Call get_booking first."}
         if request_type is None:
+            if BENEFIT_UNKNOWN.search(action or ""):
+                return {
+                    "ok": True,
+                    "eligible": False,
+                    "authority": "supervisor",
+                    "status": "ESCALATE",
+                    "action": action,
+                    "reason": "No supplied policy covers that request. Unknown is not allowed.",
+                    "escalation_reason": "unknown_entitlement",
+                }
             return {
                 "ok": True,
                 "eligible": False,
-                "authority": "supervisor",
-                "status": "ESCALATE",
+                "authority": "agent",
+                "status": "INFORM",
                 "action": action,
-                "reason": "No supplied policy covers that request. Unknown is not allowed.",
-                "escalation_reason": "unknown_entitlement",
+                "reason": "That is not a compensation entitlement. Call answer_help or collect_booking_slot.",
             }
         amount = fare_difference_inr
-        if amount is None and self.booking.quoted_fare_difference_inr:
+        if amount is None and self.booking and self.booking.quoted_fare_difference_inr:
             amount = self.booking.quoted_fare_difference_inr
         if amount is None and self.fixture:
             amount = self.fixture.fare_difference_inr
         request = ExtractedRequest(type=request_type, fare_difference_inr=amount)
+        if request_type == RequestType.BOOKING_ASSIST:
+            request.notes = json.dumps(self.session.choices.get("assist") or {}, ensure_ascii=False)
         self.requests = [r for r in self.requests if r.type != request_type]
         self.requests.append(request)
         if request_type == RequestType.LEGAL_OR_FORMAL:
@@ -462,6 +507,9 @@ class ToolRuntime:
                     self.requests,
                     legal_or_formal=self.legal_or_formal,
                 )
+        self.session.escalated_to_human = True
+        if action not in self.session.escalations:
+            self.session.escalations.append(action)
         return {
             "ok": True,
             "status": "ESCALATED",
@@ -472,6 +520,55 @@ class ToolRuntime:
             "eligibility": checked,
             "escalation_reason": checked.get("escalation_reason"),
             "simulated": False,
+        }
+
+    def answer_help(self, topic: str) -> dict[str, Any]:
+        hits = store.search_help(topic or "", k=2, max_chars=280)
+        for hit in hits:
+            if not any(existing.clause_id == hit.clause_id for existing in self.retrieval.rules):
+                self.retrieval.rules.append(hit)
+        request = ExtractedRequest(type=RequestType.HELP_QUESTION, notes=topic)
+        self.requests = [r for r in self.requests if r.type != RequestType.HELP_QUESTION]
+        self.requests.append(request)
+        if self.customer:
+            self.evaluation = evaluate_policy(
+                self.customer,
+                self.booking,
+                self.requests,
+                legal_or_formal=self.legal_or_formal,
+                frustration_category=self.frustration_category(),
+            )
+        return {
+            "ok": True,
+            "topic": topic,
+            "articles": [{"title": hit.title, "text": hit.text} for hit in hits],
+        }
+
+    def collect_booking_slot(self, name: str, value: str) -> dict[str, Any]:
+        from agent.router import SLOT_KEYS, missing_slots, persist_assist
+
+        key = (name or "").strip().lower()
+        if key not in SLOT_KEYS:
+            return {"ok": False, "error": "Slot must be origin, destination, date, or passengers."}
+        persist_assist(self.session, {key: (value or "").strip()})
+        filled = dict(self.session.choices.get("assist") or {})
+        notes = json.dumps(filled, ensure_ascii=False)
+        request = ExtractedRequest(type=RequestType.BOOKING_ASSIST, notes=notes)
+        self.requests = [r for r in self.requests if r.type != RequestType.BOOKING_ASSIST]
+        self.requests.append(request)
+        if self.customer:
+            self.evaluation = evaluate_policy(
+                self.customer,
+                self.booking,
+                self.requests,
+                legal_or_formal=self.legal_or_formal,
+                frustration_category=self.frustration_category(),
+            )
+        return {
+            "ok": True,
+            "slots": filled,
+            "missing": missing_slots(filled),
+            "inventory": "none — do not invent a flight number or fare",
         }
 
     def _escalate_distress(self, assessment: FrustrationAssessment) -> dict[str, Any]:
@@ -508,6 +605,7 @@ class ToolRuntime:
             "simulated": False,
         }
         self.frustration_escalation = packet
+        self.session.escalated_to_human = True
         if self.customer:
             store.append_event(
                 {

@@ -24,7 +24,8 @@ def needs_model(extraction: Extraction) -> bool:
     GENERAL_HELP is the extractor's way of saying no pattern matched, so it is
     the one signal that a model might add something.
     """
-    return [request.type for request in extraction.requests] == [RequestType.GENERAL_HELP]
+    types = [request.type for request in extraction.requests]
+    return types == [RequestType.GENERAL_HELP]
 
 
 class LlmExtractor(IntentExtractor):

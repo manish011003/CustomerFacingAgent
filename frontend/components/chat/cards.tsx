@@ -5,6 +5,7 @@ import { ArrowUpRight, CheckCircle2, Plane } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InlineCard } from "@/components/chat/inline-card";
+import { SuggestedFlightCard } from "@/components/chat/suggested-flight-card";
 import { choiceDecisions, newActions } from "@/lib/cards";
 import { ESCALATION_COPY, actionButtonLabel, actionLabel, actionRequestPhrase, flightStatusCopy } from "@/lib/labels";
 import type { Booking, Escalation, PolicyDecision, Turn } from "@/lib/types";
@@ -77,7 +78,7 @@ export function ConfirmationCard({ actions }: { actions: string[] }) {
   return (
     <InlineCard
       className="border-good-line bg-good-bg/40"
-      title="Resolution confirmed"
+      title="Arranged for you"
       aside={
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-good-bg">
           <CheckCircle2 className="h-3.5 w-3.5 text-good-fg" strokeWidth={2.2} />
@@ -122,7 +123,7 @@ export function EscalationCard({ escalation }: { escalation: Escalation }) {
           ))}
         </ul>
       )}
-      <p className="mt-2.5 text-2xs text-ink-faint">Case {escalation.id}</p>
+      <p className="mt-2.5 text-2xs text-ink-faint">Case {escalation.id} stays with a supervisor until they close it.</p>
     </InlineCard>
   );
 }
@@ -146,6 +147,7 @@ export function AgentCards({
   return (
     <div className="mt-2 space-y-2">
       {turn.booking && <BookingCard booking={turn.booking} />}
+      {turn.suggestedFlight && <SuggestedFlightCard flight={turn.suggestedFlight} />}
       {choices.length > 0 && <ChoiceCard decisions={choices} disabled={sending} onChoose={onChoose} />}
       {confirmed.length > 0 && <ConfirmationCard actions={confirmed} />}
       {turn.escalation && <EscalationCard escalation={turn.escalation} />}

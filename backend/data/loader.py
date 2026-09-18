@@ -30,3 +30,17 @@ def load_fixtures() -> list[ScenarioFixture]:
 
 def load_style_samples() -> dict:
     return load_json("style_samples.json")
+
+
+def load_help() -> dict:
+    return load_json("help.json")
+
+
+def load_scheduled_flights() -> dict:
+    try:
+        payload = load_json("scheduled_flights.json")
+    except FileNotFoundError:
+        return {"flights": []}
+    if isinstance(payload, list):
+        return {"flights": payload}
+    return payload if isinstance(payload, dict) else {"flights": []}

@@ -6,12 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
-from agent.loop import handle_chat, reset_session
+from agent.loop import conversation_for, handle_chat, reset_session, submit_feedback
 from factories.llm_factory import LlmFactory
 from factories.onboarding_factory import OnboardingFactory
 from factories.staff_factory import StaffFactory
 from kb.store import store
-from models.schemas import BookingIntake, ChatRequest, LoginRequest, SignupRequest
+from models.schemas import BookingIntake, ChatRequest, FeedbackRequest, LoginRequest, SignupRequest
 from policy.engine import baseline_for_booking, evaluate_policy
 from models.schemas import ExtractedRequest, RequestType
 from web import mount_ui
@@ -140,6 +140,7 @@ def me(authorization: str | None = Header(default=None)):
         "affected_booking": booking.model_dump() if booking else None,
         "eligibility": _eligibility(customer, booking),
         "kb_backend": store.backend,
+        "conversation": conversation_for(customer.id),
     }
 
 
@@ -153,16 +154,30 @@ def add_my_booking(body: BookingIntake, authorization: str | None = Header(defau
     return booking.model_dump()
 
 
+@app.get("/api/flights/upcoming")
+def upcoming_flights():
+    from products.inventory import upcoming_flights as catalog
+
+    flights = [row.model_dump() for row in catalog()]
+    return {"flights": flights, "source": "scheduled" if flights else "random"}
+
+
 @app.post("/api/chat")
 def chat(body: ChatRequest, authorization: str | None = Header(default=None)):
     customer = require_passenger(authorization)
     return handle_chat(body.session_id, body.message, customer.id).model_dump()
 
 
+@app.post("/api/feedback")
+def feedback(body: FeedbackRequest, authorization: str | None = Header(default=None)):
+    customer = require_passenger(authorization)
+    return submit_feedback(body.session_id, customer.id, body.rating, body.comment)
+
+
 @app.post("/api/session/{session_id}/reset")
 def reset(session_id: str, authorization: str | None = Header(default=None)):
-    require_passenger(authorization)
-    reset_session(session_id)
+    customer = require_passenger(authorization)
+    reset_session(session_id, customer.id)
     return {"ok": True}
 
 

@@ -1,3 +1,4 @@
+import pytest
 from factories.onboarding_factory import OnboardingFactory
 from factories.policy_factory import PolicyHandlerFactory
 from factories.reply_factory import ReplyFactory
@@ -44,7 +45,34 @@ def test_knowledge_factory_json_product_is_interface_not_elasticsearch():
 def test_knowledge_factory_auto_never_raises_when_es_is_down():
     product = KnowledgeStoreFactory.create("auto")
     assert isinstance(product, PassengerKnowledgeStore)
-    assert product.backend in {"json", "elasticsearch"}
+    assert product.backend in {"json", "elasticsearch", "postgres"}
+
+
+def test_knowledge_factory_postgres_requires_database_url(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    with pytest.raises(ConnectionError, match="DATABASE_URL"):
+        KnowledgeStoreFactory.create("postgres")
+
+
+def test_register_passenger_persists_the_account_row():
+    store = JsonKnowledgeStore()
+    written: list[str] = []
+    store._persist = lambda index, doc_id, document: written.append(index)
+    from models.schemas import Customer
+
+    store.register_passenger(
+        Customer(
+            id="CUST-X",
+            name="Test Passenger",
+            loyalty_tier="Standard",
+            email="test.passenger@example.com",
+            phone="+91-00",
+        ),
+        "hash",
+    )
+    assert "passengers" in written
+    assert "accounts" in written
+    assert store.account_for_email("test.passenger@example.com")["customer_id"] == "CUST-X"
 
 
 def test_onboarding_factory_signs_in_seeded_member():

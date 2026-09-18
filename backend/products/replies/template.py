@@ -39,6 +39,29 @@ class TemplateReplyRenderer(ReplyRenderer):
                     "New travellers can open an account from Join.",
                 ] if p
             )
+
+        help_hits = [
+            hit for hit in (ctx.retrieval.rules if ctx.retrieval else []) if hit.kind == "help"
+        ]
+        assist = [
+            d
+            for d in (ctx.policy_decision.decisions if ctx.policy_decision else [])
+            if d.action in {"booking_assist", "help_question"}
+        ]
+        if assist:
+            parts: list[str] = []
+            if ack:
+                parts.append(ack)
+            first = (ctx.identity.name.split()[0] if ctx.identity else "there")
+            for decision in assist:
+                if decision.action == "help_question" and help_hits:
+                    parts.append(help_hits[0].text)
+                else:
+                    parts.append(decision.reason)
+            if ctx.missing_slots and any(d.action == "booking_assist" for d in assist):
+                parts.append(f"{first}, reply with the missing details in one message if you can.")
+            return " ".join(p for p in parts if p)
+
         if not ctx.booking:
             first = (ctx.identity.name.split()[0] if ctx.identity else "there")
             return " ".join(

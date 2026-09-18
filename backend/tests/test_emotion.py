@@ -2,7 +2,7 @@ from uuid import uuid4
 
 from agent.context import narrate, render_respond_prompt
 from agent.extract import extract
-from agent.loop import handle_chat
+from agent.loop import handle_chat, reset_session
 from products.replies.template import ACKNOWLEDGEMENT
 
 
@@ -44,6 +44,7 @@ def test_tone_does_not_change_a_single_policy_outcome():
     calm = handle_chat(
         str(uuid4()), "I want hotel accommodation for this delay", "CUST-ARVIND"
     )
+    reset_session(calm.session["session_id"], "CUST-ARVIND")
     angry = handle_chat(
         str(uuid4()),
         "I am absolutely furious and this is unacceptable. I want hotel accommodation for this delay",

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 
 from agent.frustration import detect_emotion, detect_legal_or_formal
-from models.schemas import ExtractedRequest, Extraction, RequestType
+from models.schemas import ExtractedRequest, Extraction, IssueFamily, RequestType
 from products.extractors.base import IntentExtractor
 
 
@@ -64,10 +64,38 @@ class HeuristicExtractor(IntentExtractor):
         if re.search(r"meal voucher|meal", lower):
             extraction.requests.append(ExtractedRequest(type=RequestType.MEAL_VOUCHER))
 
+        from agent.closure import wants_escalation, wants_more
+
+        if wants_more(text) or wants_escalation(text, session):
+            if not any(r.type == RequestType.COMPENSATION_BEYOND_POLICY for r in extraction.requests):
+                extraction.requests.append(ExtractedRequest(type=RequestType.COMPENSATION_BEYOND_POLICY))
+
         if re.search(r"status|what happened|my flight|cancelled|delayed|where's my", lower) and not extraction.requests:
             extraction.requests.append(ExtractedRequest(type=RequestType.STATUS))
 
+        disruption = [
+            req
+            for req in extraction.requests
+            if req.type not in {RequestType.GENERAL_HELP, RequestType.LEGAL_OR_FORMAL}
+        ]
+        if disruption:
+            extraction.issue_family = IssueFamily.DISRUPTION
+        else:
+            from agent.router import classify, persist_assist, request_for, slots_from
+
+            family = classify(text, session)
+            extraction.issue_family = family
+            routed = request_for(family, text, session)
+            if family == IssueFamily.ASSIST and session is not None:
+                persist_assist(session, slots_from(text, session))
+                routed = request_for(family, text, session)
+            extraction.requests = [
+                req for req in extraction.requests if req.type == RequestType.LEGAL_OR_FORMAL
+            ]
+            extraction.requests.append(routed)
+
         if not extraction.requests:
             extraction.requests.append(ExtractedRequest(type=RequestType.GENERAL_HELP))
+            extraction.issue_family = IssueFamily.UNCLASSIFIED
 
         return extraction

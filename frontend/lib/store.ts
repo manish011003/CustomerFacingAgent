@@ -30,12 +30,15 @@ interface State extends Persisted {
   loading: boolean;
   authError: string | null;
   hydrated: boolean;
+  csatDismissed: boolean;
 
   markHydrated: () => void;
   signIn: (email: string, password: string) => Promise<void>;
   join: (payload: SignupPayload) => Promise<void>;
   signOut: () => Promise<void>;
   send: (text: string) => Promise<void>;
+  submitFeedback: (rating: number, comment?: string) => Promise<void>;
+  dismissCsat: () => void;
   restart: () => Promise<void>;
   clearAuthError: () => void;
 }
@@ -70,6 +73,7 @@ export const useConversation = create<State>()(
       loading: false,
       authError: null,
       hydrated: false,
+      csatDismissed: false,
 
       markHydrated: () => set({ hydrated: true }),
       clearAuthError: () => set({ authError: null }),
@@ -143,8 +147,15 @@ export const useConversation = create<State>()(
                 escalation: response.escalation,
                 booking: state.turns.some((turn) => turn.booking) ? undefined : packet.booking,
                 packet,
+                caseStatus: response.case_status ?? packet.case_status,
+                feedbackPrompt: Boolean(response.feedback_prompt ?? packet.feedback_prompt),
+                feedbackPopup: Boolean(response.feedback_popup ?? packet.feedback_popup),
+                suggestedFlight: response.context_packet.suggested_flight ?? packet.suggested_flight ?? null,
               },
             ],
+            csatDismissed: Boolean(response.feedback_popup ?? packet.feedback_popup)
+              ? false
+              : state.csatDismissed,
           }));
         } catch (error) {
           set((state) => ({
@@ -163,12 +174,81 @@ export const useConversation = create<State>()(
         }
       },
 
+      submitFeedback: async (rating, comment) => {
+        const { token, sessionId, sending } = get();
+        if (!token || !sessionId || sending) return;
+
+        set((state) => ({
+          sending: true,
+          turns: [
+            ...state.turns,
+            {
+              id: turnId(),
+              role: "passenger",
+              text: `I'd rate this service ${rating}/5.${comment ? ` ${comment}` : ""}`,
+              at: Date.now(),
+            },
+          ],
+        }));
+
+        try {
+          const response = await api.feedback(token, sessionId, rating, comment);
+          set((state) => ({
+            sending: false,
+            packet: state.packet
+              ? {
+                  ...state.packet,
+                  case_status: response.case_status,
+                  feedback_prompt: false,
+                  feedback: {
+                    rating,
+                    comment: comment ?? null,
+                    sentiment: response.feedback.sentiment as "positive" | "negative" | "mixed",
+                    source: "card",
+                  },
+                }
+              : state.packet,
+            turns: [
+              ...state.turns,
+              {
+                id: turnId(),
+                role: "agent",
+                text: response.reply,
+                at: Date.now(),
+                caseStatus: response.case_status,
+                feedbackPrompt: false,
+                feedbackPopup: false,
+              },
+            ],
+            csatDismissed: true,
+          }));
+        } catch (error) {
+          set((state) => ({
+            sending: false,
+            turns: [
+              ...state.turns,
+              {
+                id: turnId(),
+                role: "agent",
+                text: messageFor(error),
+                at: Date.now(),
+                failed: true,
+              },
+            ],
+          }));
+        }
+      },
+
+      dismissCsat: () => set({ csatDismissed: true }),
+
       restart: async () => {
         const { token, sessionId, passenger, booking } = get();
         if (token && sessionId) await api.resetSession(token, sessionId).catch(() => undefined);
         set({
           sessionId: newSessionId(),
           turns: passenger ? [greeting(passenger, booking)] : [],
+          csatDismissed: false,
+          packet: null,
         });
       },
     }),
@@ -188,6 +268,18 @@ export const useConversation = create<State>()(
   ),
 );
 
+function turnsFromMessages(messages: { role?: string; content?: string }[] | undefined, booking: Booking | null): Turn[] {
+  const rows = (messages || []).filter((message) => message.role === "user" || message.role === "assistant");
+  if (!rows.length) return [];
+  return rows.map((message, index) => ({
+    id: `hist-${index}`,
+    role: message.role === "user" ? "passenger" : "agent",
+    text: message.content || "",
+    at: Date.now() - (rows.length - index) * 1000,
+    booking: index === 0 && message.role === "assistant" ? booking : undefined,
+  }));
+}
+
 async function openConversation(
   set: (partial: Partial<State>) => void,
   token: string,
@@ -195,15 +287,16 @@ async function openConversation(
 ) {
   const me = await api.me(token).catch(() => null);
   const booking = me?.affected_booking ?? null;
+  const restored = turnsFromMessages(me?.conversation?.messages, booking);
 
   set({
     token,
     passenger: me?.passenger ?? passenger,
-    sessionId: newSessionId(),
+    sessionId: me?.conversation?.session_id || newSessionId(),
     booking,
     baseline: me?.eligibility ?? [],
     packet: null,
-    turns: [greeting(me?.passenger ?? passenger, booking)],
+    turns: restored.length ? restored : [greeting(me?.passenger ?? passenger, booking)],
     loading: false,
     authError: null,
   });

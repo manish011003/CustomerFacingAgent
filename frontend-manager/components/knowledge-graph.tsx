@@ -10,6 +10,7 @@ const TYPE_COLOR: Record<string, string> = {
   Disruption: "#fbbf24",
   PolicyRule: "#34d399",
   FrustrationCategory: "#fb7185",
+  Feedback: "#34d399",
   Session: "#a78bfa",
   Unknown: "#94a3b8",
 };

@@ -21,6 +21,7 @@ export function choiceDecisions(turn: Turn): PolicyDecision[] {
     if (!CHOICE_STATUSES.has(decision.status)) return false;
     if (!decision.eligible && decision.status !== "ASK") return false;
     if (executed.has(decision.action)) return false;
+    if (decision.action === "booking_assist" || decision.action === "help_question") return false;
     if (decision.requires_customer_choice) return true;
     return decision.status === "ALLOW" && decision.eligible;
   });
@@ -67,6 +68,11 @@ export function starterReplies(booking: Booking | null): QuickReply[] {
         message: "My flight is delayed. Please tell me what I'm entitled to.",
         tone: "primary",
       },
+      {
+        id: "start-book",
+        label: "Help me book a flight",
+        message: "I want to book a flight from Delhi to Goa next Friday for 2 passengers.",
+      },
     ];
   }
   return [
@@ -75,6 +81,27 @@ export function starterReplies(booking: Booking | null): QuickReply[] {
       label: "What's happening with my flight?",
       message: "What's the status of my flight?",
       tone: "primary",
+    },
+    {
+      id: "start-book",
+      label: "Help me book a flight",
+      message: "I want to book a flight from Delhi to Goa next Friday for 2 passengers.",
+    },
+  ];
+}
+
+export function resolvedReplies(): QuickReply[] {
+  return [
+    {
+      id: "fb-done",
+      label: "That's all, thanks",
+      message: "That's all, thank you. This is resolved.",
+      tone: "primary",
+    },
+    {
+      id: "fb-more",
+      label: "I still need help",
+      message: "I still need help.",
     },
   ];
 }

@@ -68,6 +68,19 @@ FRUSTRATION_SEVERITY: tuple[FrustrationCategory, ...] = (
 )
 
 
+class IssueFamily(str, Enum):
+    """What kind of conversation this turn is, before a RequestType is chosen.
+
+    Disruption stays on the packed policy engine. Assist and help never grant money.
+    Unclassified is the only signal that optional NLU should try again.
+    """
+
+    DISRUPTION = "disruption"
+    ASSIST = "assist"
+    HELP = "help"
+    UNCLASSIFIED = "unclassified"
+
+
 class RequestType(str, Enum):
     STATUS = "status"
     REBOOK_24H = "rebook_24h"
@@ -84,6 +97,8 @@ class RequestType(str, Enum):
     LEGAL_OR_FORMAL = "legal_or_formal"
     NON_AIRLINE_EXCEPTION = "non_airline_exception"
     GENERAL_HELP = "general_help"
+    BOOKING_ASSIST = "booking_assist"
+    HELP_QUESTION = "help_question"
 
 
 class TravelHistory(BaseModel):
@@ -140,7 +155,7 @@ class RuleHit(BaseModel):
     rule_id: str
     title: str
     text: str
-    kind: Literal["rule", "allowed_action", "must_escalate", "assumption"] = "rule"
+    kind: Literal["rule", "allowed_action", "must_escalate", "assumption", "help"] = "rule"
     score: float = 0.0
     for_action: Optional[str] = None
 
@@ -177,6 +192,7 @@ class RetrievalPlan(BaseModel):
     query: str = ""
     need_recall: bool = False
     need_style: bool = False
+    need_help: bool = False
     max_rules: int = 2
     max_turns: int = 3
     max_chars: int = 400
@@ -186,7 +202,7 @@ class RetrievalPlan(BaseModel):
 class Retrieval(BaseModel):
     """What retrieval actually returned, plus how it was asked. Shown in the context panel."""
 
-    backend: Literal["elasticsearch", "json"] = "json"
+    backend: Literal["postgres", "elasticsearch", "json"] = "json"
     rules: list[RuleHit] = Field(default_factory=list)
     recalled_turns: list[TurnHit] = Field(default_factory=list)
     style: Optional[StyleHit] = None
@@ -207,6 +223,7 @@ class Extraction(BaseModel):
     mentioned_name: Optional[str] = None
     mentioned_pnr: Optional[str] = None
     raw_text: str = ""
+    issue_family: IssueFamily = IssueFamily.DISRUPTION
 
 
 class FrustrationAssessment(BaseModel):
@@ -240,6 +257,24 @@ class FrustrationAssessment(BaseModel):
         }
 
 
+class SuggestedFlight(BaseModel):
+    """Look-only departure shown during booking assist. Never a ticket."""
+
+    flight: str
+    origin: str
+    destination: str
+    date: str = ""
+    date_label: str = ""
+    scheduled_departure: str
+    scheduled_arrival: Optional[str] = None
+    gate: Optional[str] = None
+    status: str = "SCHEDULED"
+    aircraft: Optional[str] = None
+    source: Literal["scheduled", "random"] = "random"
+    passengers: Optional[str] = None
+    href: str = "/exit"
+
+
 class PolicyDecision(BaseModel):
     action: str
     status: DecisionStatus
@@ -270,6 +305,17 @@ class PolicyEvaluation(BaseModel):
     # from `decisions` by policy/exclusivity.py — a strict subset, so it can
     # never widen eligibility. Frustration may reorder it and nothing else.
     offered_actions: list[str] = Field(default_factory=list)
+    suggested_flight: Optional[SuggestedFlight] = None
+
+
+class ServiceFeedback(BaseModel):
+    """Passenger rating of the agent service, stored on the case and in the KB."""
+
+    rating: Optional[int] = Field(default=None, ge=1, le=5)
+    comment: Optional[str] = None
+    sentiment: Literal["positive", "negative", "mixed"] = "mixed"
+    source: str = "chat"
+    ts: Optional[str] = None
 
 
 class SessionMemory(BaseModel):
@@ -280,6 +326,10 @@ class SessionMemory(BaseModel):
     executed_actions: list[str] = Field(default_factory=list)
     denied: list[str] = Field(default_factory=list)
     escalations: list[str] = Field(default_factory=list)
+    escalated_to_human: bool = False
+    resolved_by_customer: bool = False
+    feedback: Optional[ServiceFeedback] = None
+    awaiting_feedback: bool = False
     open_question: Optional[str] = None
     messages: list[dict[str, str]] = Field(default_factory=list)
     last_extraction: Optional[Extraction] = None
@@ -311,12 +361,19 @@ class CustomerAgentContext(BaseModel):
     style: dict[str, Any] = Field(default_factory=dict)
     retrieved_facts: list[str] = Field(default_factory=list)
     forbidden_notes: list[str] = Field(default_factory=list)
-    kb_backend: Literal["elasticsearch", "json"] = "json"
+    kb_backend: Literal["postgres", "elasticsearch", "json"] = "json"
 
 
 class ChatRequest(BaseModel):
     session_id: str
     message: str
+
+
+class FeedbackRequest(BaseModel):
+    session_id: str
+    rating: int = Field(ge=1, le=5)
+    comment: Optional[str] = None
+    resolved: bool = True
 
 
 class SignupRequest(BaseModel):
@@ -361,3 +418,7 @@ class ChatResponse(BaseModel):
     audit_event: dict[str, Any]
     escalation: Optional[dict[str, Any]] = None
     session: dict[str, Any]
+    case_status: Optional[str] = None
+    feedback_prompt: bool = False
+    feedback_popup: bool = False
+    feedback: Optional[dict[str, Any]] = None

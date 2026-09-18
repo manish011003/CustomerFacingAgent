@@ -57,6 +57,11 @@ export interface CaseSummary {
   updated_at?: string;
   created_at?: string;
   resolved_at?: string | null;
+  feedback?: {
+    rating?: number | null;
+    comment?: string | null;
+    sentiment?: string;
+  } | null;
 }
 
 export interface CaseDetail extends CaseSummary {

@@ -82,6 +82,16 @@ export const api = {
       body: JSON.stringify({ session_id: sessionId, message }),
     }),
 
+  feedback: (token: string, sessionId: string, rating: number, comment?: string) =>
+    request<{ ok: boolean; reply: string; case_status: string; feedback: { rating: number; sentiment: string } }>(
+      "/api/feedback",
+      {
+        method: "POST",
+        token,
+        body: JSON.stringify({ session_id: sessionId, rating, comment, resolved: rating >= 4 }),
+      },
+    ),
+
   resetSession: (token: string, sessionId: string) =>
     request<{ ok: boolean }>(`/api/session/${sessionId}/reset`, { method: "POST", token }),
 };

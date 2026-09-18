@@ -68,10 +68,43 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        "plane-wiggle": {
+          "0%, 100%": { transform: "translateX(0) rotate(-12deg)" },
+          "50%": { transform: "translateX(6px) rotate(8deg)" },
+        },
+        "plane-cruise": {
+          "0%": { transform: "translateX(-20vw) translateY(0) rotate(12deg)", opacity: "0" },
+          "8%": { opacity: "1" },
+          "92%": { opacity: "1" },
+          "100%": { transform: "translateX(110vw) translateY(-18px) rotate(8deg)", opacity: "0" },
+        },
+        "scan-drift": {
+          from: { transform: "translateY(0)" },
+          to: { transform: "translateY(12px)" },
+        },
+        "glitch-shift": {
+          "0%, 90%, 100%": { transform: "translate(0)" },
+          "92%": { transform: "translate(-3px, 1px)" },
+          "94%": { transform: "translate(3px, -1px)" },
+          "96%": { transform: "translate(-2px, 0)" },
+        },
+        "exit-letter": {
+          from: { opacity: "0", letterSpacing: "0.6em", transform: "translateY(8px)" },
+          to: { opacity: "1", letterSpacing: "0.28em", transform: "translateY(0)" },
+        },
+        "row-in": {
+          from: { opacity: "0", transform: "translateY(14px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "status-pulse": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.45" },
+        },
       },
       animation: {
         "dot-bounce": "dot-bounce 1.1s ease-in-out infinite",
         "bubble-in": "bubble-in 240ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "status-pulse": "status-pulse 1.6s ease-in-out infinite",
       },
       transitionTimingFunction: {
         swift: "cubic-bezier(0.22, 1, 0.36, 1)",

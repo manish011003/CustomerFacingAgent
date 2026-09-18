@@ -193,6 +193,9 @@ def packet_for_ui(ctx: CustomerAgentContext) -> dict:
         "known_facts": [f.model_dump() for f in ctx.session_memory.known_facts],
         "kb_backend": ctx.kb_backend,
         "forbidden_notes": ctx.forbidden_notes,
+        "suggested_flight": None
+        if not ctx.policy_decision or not ctx.policy_decision.suggested_flight
+        else ctx.policy_decision.suggested_flight.model_dump(),
     }
 
 
@@ -307,7 +310,18 @@ def narrate(ctx: CustomerAgentContext) -> list[str]:
         lines.append(
             "Already actioned this session (simulated): "
             + ", ".join(ctx.session_memory.executed_actions)
-            + "."
+            + ". That does not close the case."
+        )
+    if ctx.session_memory.escalated_to_human:
+        lines.append("This case is with a supervisor. Do not treat later messages as a resolution.")
+    if ctx.session_memory.resolved_by_customer:
+        lines.append("The passenger has said this case is resolved.")
+    if ctx.session_memory.feedback:
+        fb = ctx.session_memory.feedback
+        lines.append(
+            "Passenger feedback recorded: "
+            + (f"{fb.rating}/5, " if fb.rating is not None else "")
+            + f"{fb.sentiment}."
         )
 
     for fact in (ctx.retrieval.known_facts if ctx.retrieval else []):

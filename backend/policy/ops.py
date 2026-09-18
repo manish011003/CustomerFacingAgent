@@ -6,7 +6,17 @@ REFUND_SOURCE = "Refund Processing Rule"
 FARE_SOURCE = "Fare Difference Rule"
 LOYALTY_SOURCE = "Loyalty Tier Rule"
 AUTHORITY_SOURCE = "Allowed vs. Prohibited Actions"
+HELP_SOURCE = "Passenger Help Guide"
 FARE_WAIVER_LIMIT_INR = 1500
+
+# Turns that are conversation, not entitlements. They skip disruption baseline offers.
+CONVERSATION_TYPES = frozenset(
+    {
+        "general_help",
+        "booking_assist",
+        "help_question",
+    }
+)
 
 
 def find_decision(evaluation: PolicyEvaluation, action: str) -> PolicyDecision | None:

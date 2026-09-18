@@ -45,7 +45,7 @@ Staff     ──► Operations (:3001)       ──┘
                                          │
                     ┌────────────────────┼────────────────────┐
                     │ Policy engine      │ Knowledge store     │
-                    │ (code + clauses)   │ JSON  or  ES        │
+                    │ (code + clauses)   │ Postgres / JSON / ES│
                     │ Frustration clf    │ events / cases /    │
                     │ LLM client (opt.)  │ graph_edges         │
                     └────────────────────┴────────────────────┘
@@ -112,6 +112,7 @@ Legal/formal and distress are **independent** short-circuits. A passenger can be
 | FastAPI | `backend/main.py` | 8000 |
 | Customer Next.js | `frontend/` | 3000 |
 | Ops Next.js | `frontend-manager/` | 3001 |
+| Postgres (durable KB) | docker compose | 5432 |
 | Elasticsearch (optional) | docker compose | 9200 |
 
 Both Next apps rewrite `/api/*` to the backend.
@@ -127,6 +128,7 @@ flowchart LR
   Orch --> Tools[ToolRuntime]
   Tools --> Eng[Policy engine]
   Tools --> KB[Knowledge store]
+  KB --> PG[PostgresKnowledgeStore]
   KB --> JSON[JsonKnowledgeStore]
   KB --> ES[ElasticsearchKnowledgeStore]
 ```
@@ -258,7 +260,7 @@ Planner (`plan_retrieval` / `expand_scope`) narrows rule ids **before** rank.
 
 `policies.json` is indexed at **clause** granularity, not rule granularity. The Delay Compensation Rule becomes three documents, one per band. A six-hour delay cites only the more-than-five-hours clause.
 
-If Elasticsearch is down, `KnowledgeStoreFactory.create("auto")` returns `JsonKnowledgeStore` with a length-normalized term-overlap scorer. Ranking is not BM25-identical; the planner therefore narrows candidates by rule scope first. Every ES search also falls back in-memory on error or empty result: a flaky cluster degrades ranking, never the turn.
+`KnowledgeStoreFactory.create("auto")` prefers Postgres when `DATABASE_URL` is reachable, then Elasticsearch, then `JsonKnowledgeStore` with a length-normalized term-overlap scorer. Ranking is not BM25-identical; the planner therefore narrows candidates by rule scope first. Every ES search also falls back in-memory on error or empty result: a flaky cluster degrades ranking, never the turn.
 
 ### 5.7 LLM client engine
 
@@ -298,7 +300,9 @@ Execute tools run only if eligibility already returned ALLOW with authority = ag
 
 ### 7.1 Indices / collections
 
-`passengers`, `bookings`, `events`, `cases`, `graph_edges`, `policy_rules`, `style_samples`, `memories`
+Postgres tables: `passengers`, `accounts`, `bookings`, `documents` (events / cases / graph_edges / memories), `auth_tokens`.
+
+Elasticsearch indices (optional search path): `passengers`, `bookings`, `events`, `cases`, `graph_edges`, `policy_rules`, `style_samples`, `memories`
 
 Clients import `store` from `kb/store.py` and never construct a backend.
 
@@ -330,7 +334,7 @@ Edges are written as the conversation happens — not a side table:
 | `IntentExtractor` | heuristic, LLM + fallback | `ExtractorFactory` | `agent/loop.py` |
 | `ReplyRenderer` | template, LLM polish | `ReplyFactory` | `agent/loop.py` |
 | `PolicyHandler` | status, cancel, delay, fare, exceptions | `PolicyHandlerFactory` | `policy/engine.py` |
-| `PassengerKnowledgeStore` | JSON, Elasticsearch | `KnowledgeStoreFactory` | `kb/store.py` singleton |
+| `PassengerKnowledgeStore` | Postgres, JSON, Elasticsearch | `KnowledgeStoreFactory` | `kb/store.py` singleton |
 | `LlmClient` | Gemini, Groq, xAI, OpenAI, disabled | `LlmFactory` | extractor and reply products |
 
 ---

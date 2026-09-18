@@ -10,6 +10,7 @@ from products.knowledge.base import PassengerKnowledgeStore
 # documents invisible to the next search, so isolation-by-filter would be a
 # claim the tests could not actually exercise.
 SEARCHABLE = frozenset({"passengers", "events", "policy_rules", "style_samples", "memories"})
+INDEXED = SEARCHABLE | frozenset({"bookings", "cases", "graph_edges", "sessions"})
 
 
 class ElasticsearchKnowledgeStore(PassengerKnowledgeStore):
@@ -54,6 +55,8 @@ class ElasticsearchKnowledgeStore(PassengerKnowledgeStore):
                 self._es.indices.create(index=name, mappings=body["mappings"])
 
     def _persist(self, index: str, doc_id: str, document: dict[str, Any]) -> None:
+        if index not in INDEXED:
+            return
         try:
             self._es.index(
                 index=index,

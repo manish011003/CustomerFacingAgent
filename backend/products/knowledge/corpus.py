@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from data.loader import load_policies, load_style_samples
+from data.loader import load_help, load_policies, load_style_samples
 
 CLAUSE_SPLIT = re.compile(r"(?<=\.)\s+")
 
@@ -59,3 +59,20 @@ def style_docs() -> list[dict]:
         {"id": s["id"], "customer": s["customer"], "agent": s["agent"]}
         for s in payload.get("samples", [])
     ]
+
+
+def help_docs() -> list[dict]:
+    payload = load_help()
+    docs: list[dict] = []
+    for article in payload.get("articles", []):
+        docs.append(
+            {
+                "clause_id": article["id"],
+                "rule_id": article["id"],
+                "title": article["title"],
+                "text": article["text"],
+                "kind": "help",
+                "topics": " ".join(article.get("topics") or []),
+            }
+        )
+    return docs

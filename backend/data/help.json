@@ -1,0 +1,35 @@
+{
+  "source": "Passenger help guide. Informational only — not compensation policy.",
+  "articles": [
+    {
+      "id": "HELP_BOOK_FLIGHT",
+      "title": "Book a flight",
+      "topics": ["book", "booking", "new flight", "ticket", "itinerary"],
+      "text": "I can help you plan a new booking. I need origin, destination, travel date, and how many passengers. This prototype has no live inventory, so I will not invent a flight number or fare. Once those slots are filled I will confirm the request and hand a supervisor the details if you want it ticketed."
+    },
+    {
+      "id": "HELP_CHECK_IN",
+      "title": "Check-in",
+      "topics": ["check-in", "check in", "boarding pass", "web check"],
+      "text": "Web check-in usually opens 48 hours before departure. Bring a photo ID that matches the name on the booking. If your current flight is delayed or cancelled, check-in for that leg is handled as a disruption, not a new booking."
+    },
+    {
+      "id": "HELP_BAGGAGE",
+      "title": "Baggage",
+      "topics": ["baggage", "luggage", "cabin bag", "checked bag", "excess"],
+      "text": "Cabin and checked-bag allowances depend on the fare you bought. I cannot waive excess-baggage fees. If a bag was delayed or damaged on this disruption, say so and I will open a supervisor case — that is not a meal-voucher or hotel entitlement."
+    },
+    {
+      "id": "HELP_SEATS",
+      "title": "Seats",
+      "topics": ["seat", "window", "aisle", "extra legroom"],
+      "text": "Seat changes on an operating flight are a booking-assist request, not compensation. I will not invent a seat map. If the airline cancelled the flight, free rebooking within 24 hours is the disruption rule, not a free seat upgrade."
+    },
+    {
+      "id": "HELP_VS_DISRUPTION",
+      "title": "New trip versus this disruption",
+      "topics": ["help", "assist", "what can you do", "how does this work"],
+      "text": "For this disrupted booking I can apply the airline's delay and cancellation rules only. For a new trip I can collect origin, destination, date, and passenger count. I cannot invent extra compensation, flight numbers, or fares."
+    }
+  ]
+}
