@@ -8,6 +8,18 @@ This is not a generic LLM chatbot. The model talks. Deterministic code decides.
 
 > Simulated prototype. It does not book real flights, pay refunds, or reserve hotels.
 
+## Assignment 3 requirement coverage
+
+| Brief requirement | Where it lives |
+| --- | --- |
+| Understand the customer's intent | `agent/extract.py`, heuristic extractor with optional LLM |
+| Ask only necessary questions | `missing_slots` and `DecisionStatus.ASK`; one slot per turn |
+| Use the supplied data and policies | `policies.json` indexed as clauses, retrieved and quoted with a clause id |
+| Recommend or execute the correct next action | `ALLOW` → simulated action, logged as `SIMULATED` |
+| Handle an angry or confused customer | emotion detected in the extractor, acknowledged in one line; `test_emotion.py` proves tone cannot change an outcome |
+| Escalate when authority is missing | `ESCALATE` → supervisor case packet with transcript, decisions, and graph |
+| Preserve a clear conversation and action record | events, cases, graph edges, and a per-turn audit event |
+
 ## Run locally (one command path)
 
 ```bash
