@@ -3,11 +3,13 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
-import secrets
 from typing import Any
+
+from products.auth.signing import sign, verify
 
 DEFAULT_STAFF_EMAIL = "ops@aeroresolve.local"
 DEFAULT_STAFF_PASSWORD = "AeroOps2026!"
+_STAFF_SUBJECT = "staff:STAFF-OPS"
 
 
 def _digest(value: str) -> bytes:
@@ -16,9 +18,6 @@ def _digest(value: str) -> bytes:
 
 class StaffAccess:
     """Operations sign-in is a separate product from passenger accounts."""
-
-    def __init__(self) -> None:
-        self._tokens: dict[str, dict[str, Any]] = {}
 
     def login(self, email: str, password: str) -> dict[str, Any]:
         expected_email = os.getenv("STAFF_EMAIL", DEFAULT_STAFF_EMAIL).strip().lower()
@@ -29,16 +28,13 @@ class StaffAccess:
         pass_ok = hmac.compare_digest(_digest(got_password), _digest(expected_password))
         if not (email_ok and pass_ok):
             raise ValueError("Email or password is incorrect.")
-        token = secrets.token_urlsafe(32)
         profile = {"id": "STAFF-OPS", "role": "staff", "name": "Operations"}
-        self._tokens[token] = profile
-        return {"token": token, **profile}
+        return {"token": sign(_STAFF_SUBJECT), **profile}
 
     def current(self, token: str | None) -> dict[str, Any] | None:
-        if not token:
+        if verify(token) != _STAFF_SUBJECT:
             return None
-        return self._tokens.get(token)
+        return {"id": "STAFF-OPS", "role": "staff", "name": "Operations"}
 
     def sign_out(self, token: str | None) -> None:
-        if token:
-            self._tokens.pop(token, None)
+        return None

@@ -1,22 +1,19 @@
-import secrets
-
 from products.auth.session_base import AuthSession
+from products.auth.signing import sign, verify
 
 
 class InMemoryTokenSession(AuthSession):
-    def __init__(self) -> None:
-        self._tokens: dict[str, str] = {}
+    """Signed tokens — no process-local map, so Vercel isolates can share a login."""
 
     def issue(self, customer_id: str) -> str:
-        token = secrets.token_urlsafe(32)
-        self._tokens[token] = customer_id
-        return token
+        return sign(customer_id)
 
     def resolve(self, token: str | None) -> str | None:
-        if not token:
+        subject = verify(token)
+        if not subject or subject.startswith("staff:"):
             return None
-        return self._tokens.get(token)
+        return subject
 
     def revoke(self, token: str | None) -> None:
-        if token:
-            self._tokens.pop(token, None)
+        # Signed tokens expire only when AUTH_SECRET rotates.
+        return None

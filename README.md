@@ -36,18 +36,28 @@ Exactly two product surfaces, plus one look-only exit:
 Passenger chat and Operations run from one origin. Staff is at `/ops`.
 
 ```bash
+npx vercel --prod
+# passenger  https://aeroresolve.vercel.app
+# operations https://aeroresolve.vercel.app/ops
+```
+
+`vercel.json` is a Vercel Services project: passenger Next.js, operations Next.js at `/ops`, and FastAPI at `/api/*`. In the Vercel project set:
+
+- `GROQ_API_KEY` or `GEMINI_API_KEY` — live phrasing; without a key the heuristic path still answers
+- `LLM_PROVIDER=groq` — recommended so a spent Gemini quota does not stall every turn
+- `DATABASE_URL` — optional. Unset, the JSON pack loads (demo accounts work; tokens reset on a cold start)
+
+Health check: `GET /api/health`.
+
+Docker / Render remain available for a long-lived process with Postgres:
+
+```bash
 docker compose up --build web
 # http://localhost:8000          passenger
 # http://localhost:8000/ops      operations
 ```
 
-From this GitHub repo: [Deploy to Render](https://render.com/deploy?repo=https://github.com/manish011003/CustomerFacingAgent) (`render.yaml` + `Dockerfile`). Blueprint name: `aeroresolve`. In the Render dashboard set:
-
-- `GROQ_API_KEY` or `GEMINI_API_KEY` — live phrasing; without a key the heuristic path still answers
-- `DATABASE_URL` — attach a Render Postgres instance so signups and cases survive deploys
-- `LLM_PROVIDER=groq` is already in the blueprint
-
-Pushing `main` rebuilds the one-origin image (passenger chat + `/ops` + FastAPI). Health check: `GET /api/health`.
+[Deploy to Render](https://render.com/deploy?repo=https://github.com/manish011003/CustomerFacingAgent) (`render.yaml` + `Dockerfile`).
 
 ## Run locally
 

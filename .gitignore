@@ -10,6 +10,8 @@ __pycache__/
 node_modules
 .next/
 out/
+/public
+.vercel
 backend/static/web/
 backend/static/ops/
 *.tsbuildinfo

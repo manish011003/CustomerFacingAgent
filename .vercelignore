@@ -1,0 +1,13 @@
+.env
+**/.env
+**/.venv
+**/.next
+**/out
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+backend/tests
+backend/static
+graphify-out
+docs
+.git
