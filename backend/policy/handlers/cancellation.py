@@ -5,7 +5,7 @@ from policy.ops import CANCELLATION_SOURCE, REFUND_SOURCE, AUTHORITY_SOURCE, app
 
 class RebookHandler(PolicyHandler):
     def apply(self, evaluation, customer, booking, request, fare_difference_inr=None) -> None:
-        if booking.status == "CANCELLED" and booking.airline_caused:
+        if booking and booking.status == "CANCELLED" and booking.airline_caused:
             append_decision(
                 evaluation,
                 PolicyDecision(
@@ -32,7 +32,7 @@ class RebookHandler(PolicyHandler):
 
 class RefundOriginalHandler(PolicyHandler):
     def apply(self, evaluation, customer, booking, request, fare_difference_inr=None) -> None:
-        if booking.status == "CANCELLED" and booking.airline_caused:
+        if booking and booking.status == "CANCELLED" and booking.airline_caused:
             append_decision(
                 evaluation,
                 PolicyDecision(

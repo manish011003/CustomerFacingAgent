@@ -1,5 +1,9 @@
+from uuid import uuid4
+
+from agent.loop import handle_chat, reset_session
 from data.loader import load_bookings, load_customers
-from models.schemas import ExtractedRequest, RequestType
+from kb.store import store
+from models.schemas import DecisionStatus, EscalationReason, ExtractedRequest, RequestType
 from policy.engine import FARE_WAIVER_LIMIT_INR, delay_entitlements, evaluate_policy
 
 
@@ -99,6 +103,48 @@ def test_business_upgrade_not_approved():
     assert refund.status.value == "ALLOW"
 
 
+def test_compound_refund_and_upgrade_keeps_both_outcomes():
+    """One evaluate_policy call: cancellation cleanup still runs; escalate is not offered."""
+    customers, bookings = _people()
+    evaluation = evaluate_policy(
+        customers["CUST-PRIYA"],
+        bookings["BK-PRIYA-OUT"],
+        [
+            ExtractedRequest(type=RequestType.REFUND_ORIGINAL),
+            ExtractedRequest(type=RequestType.BUSINESS_UPGRADE),
+        ],
+    )
+    refund = next(d for d in evaluation.decisions if d.action == "refund_original")
+    rebook = next(d for d in evaluation.decisions if d.action == "rebook_24h")
+    upgrade = next(d for d in evaluation.decisions if d.action == "business_upgrade")
+    assert refund.status is DecisionStatus.ALLOW
+    assert rebook.status is DecisionStatus.INFORM
+    assert upgrade.status is DecisionStatus.ESCALATE
+    assert upgrade.escalation_reason is EscalationReason.UNKNOWN_ENTITLEMENT
+    assert "refund_original" in evaluation.offered_actions
+    assert "business_upgrade" not in evaluation.offered_actions
+    offerable = {
+        d.action for d in evaluation.decisions if d.status in {DecisionStatus.ALLOW, DecisionStatus.ASK}
+    }
+    assert set(evaluation.offered_actions) <= offerable
+
+    sid = str(uuid4())
+    reset_session(sid, "CUST-PRIYA")
+    store.cases.pop("case-CUST-PRIYA", None)
+    response = handle_chat(
+        sid,
+        "I want a full cash refund plus a free upgrade to business class on my return.",
+        "CUST-PRIYA",
+    )
+    actions = {e["action"]: e["status"] for e in response.eligibility}
+    assert actions["refund_original"] == "ALLOW"
+    assert actions["business_upgrade"] == "ESCALATE"
+    assert response.escalation is not None
+    assert EscalationReason.UNKNOWN_ENTITLEMENT.value in response.escalation["escalation_reason_codes"]
+    reset_session(sid, "CUST-PRIYA")
+    store.cases.pop("case-CUST-PRIYA", None)
+
+
 def test_legal_threat_immediate_escalation():
     customers, bookings = _people()
     evaluation = evaluate_policy(
@@ -144,3 +190,16 @@ def test_gold_no_extra_compensation():
     evaluation = evaluate_policy(customers["CUST-PRIYA"], bookings["BK-PRIYA-OUT"], [])
     loyalty = next(d for d in evaluation.decisions if d.action == "priority_rebooking")
     assert "no additional compensation" in loyalty.reason.lower()
+
+
+def test_evaluate_policy_without_a_booking_does_not_crash():
+    """Joined Standard passengers have no disrupted leg. Chat used to 500 here."""
+    customers, _bookings = _people()
+    evaluation = evaluate_policy(
+        customers["CUST-ARVIND"],
+        None,
+        [ExtractedRequest(type=RequestType.STATUS), ExtractedRequest(type=RequestType.REBOOK_24H)],
+    )
+    assert evaluation.disruption_type is None or evaluation.disruption_type == ""
+    rebook = next(d for d in evaluation.decisions if d.action == "rebook_24h")
+    assert rebook.status.value == "DENY"

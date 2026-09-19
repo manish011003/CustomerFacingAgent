@@ -104,8 +104,10 @@ def baseline_for_booking(
     return evaluation
 
 
-def _baseline(customer: Customer, booking: Booking) -> PolicyEvaluation:
+def _baseline(customer: Customer, booking: Booking | None) -> PolicyEvaluation:
     evaluation = PolicyEvaluation()
+    if booking is None:
+        return evaluation
     if booking.status == "CANCELLED" and booking.airline_caused:
         evaluation.disruption_type = "cancellation"
         evaluation.entitlements = [
@@ -194,7 +196,7 @@ def evaluate_policy(
         request.type in {RequestType.HELP_QUESTION, RequestType.BOOKING_ASSIST}
         for request in requests
     )
-    if conversation_only:
+    if conversation_only or booking is None:
         evaluation = PolicyEvaluation()
         if booking:
             evaluation.disruption_type = booking.status.lower()
