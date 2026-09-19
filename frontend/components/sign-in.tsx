@@ -13,6 +13,37 @@ import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "join" | "staff";
 
+const DEMO_ACCOUNTS = [
+  {
+    name: "Priya Nair",
+    email: "priya.nair@example.com",
+    password: "Aero2026!",
+    note: "Cancellation",
+    kind: "signin",
+  },
+  {
+    name: "Arvind Kulkarni",
+    email: "arvind.kulkarni@example.com",
+    password: "Aero2026!",
+    note: "4h delay",
+    kind: "signin",
+  },
+  {
+    name: "Meher Kaur",
+    email: "meher.kaur@example.com",
+    password: "Aero2026!",
+    note: "6h delay",
+    kind: "signin",
+  },
+  {
+    name: "Operations",
+    email: "ops@aeroresolve.local",
+    password: "AeroOps2026!",
+    note: "Staff",
+    kind: "staff",
+  },
+] as const;
+
 export function SignIn() {
   const [mode, setMode] = useState<Mode>("signin");
   const { signIn, join, loading, authError, clearAuthError } = useConversation();
@@ -160,7 +191,40 @@ export function SignIn() {
           </form>
         </section>
 
-        <div className="mt-4 flex justify-center">
+        <section className="mt-4 rounded-[22px] border border-line bg-white/80 px-3.5 py-3">
+          <p className="px-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+            Reviewer accounts
+          </p>
+          <ul className="mt-1.5">
+            {DEMO_ACCOUNTS.map((account) => (
+              <li key={account.email}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode(account.kind);
+                    setEmail(account.email);
+                    setPassword(account.password);
+                    clearAuthError();
+                    setStaffError(null);
+                  }}
+                  className="flex w-full items-baseline justify-between gap-3 rounded-xl px-1.5 py-1.5 text-left transition-colors hover:bg-ice"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-[12px] font-medium text-ink-soft">{account.name}</span>
+                    <span className="mt-0.5 block text-[11px] leading-4 text-ink-muted">
+                      {account.email}
+                      <span className="text-ink-faint"> · </span>
+                      {account.password}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[10px] text-ink-faint">{account.note}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <div className="mt-3 flex justify-center">
           <button
             type="button"
             onClick={() => {

@@ -68,6 +68,24 @@ export function StaffLogin({ onSignedIn }: { onSignedIn: (token: string) => void
         >
           {busy ? "Signing in…" : "Sign in"}
         </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setEmail("ops@aeroresolve.local");
+            setPassword("AeroOps2026!");
+            setError("");
+          }}
+          className="mt-4 w-full rounded-xl px-2 py-2 text-left transition-colors hover:bg-canvas"
+        >
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+            Reviewer account
+          </span>
+          <span className="mt-1 block text-[12px] font-medium text-ink-soft">Operations</span>
+          <span className="mt-0.5 block text-[11px] text-ink-muted">
+            ops@aeroresolve.local · AeroOps2026!
+          </span>
+        </button>
       </form>
     </main>
   );

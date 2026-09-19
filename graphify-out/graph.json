@@ -60,8 +60,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_agent_init",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "agent/__init__.py"
     },
     {
@@ -131,8 +131,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_closure_is_thanks",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "is_thanks()"
     },
     {
@@ -179,8 +179,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_closure_remaining_offered",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "remaining_offered()"
     },
     {
@@ -249,8 +249,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_closure_should_prompt_feedback",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "should_prompt_feedback()"
     },
     {
@@ -261,8 +261,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_closure_should_show_feedback_popup",
-      "community": 50,
-      "community_name": "loop.py",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "should_show_feedback_popup()"
     },
     {
@@ -309,8 +309,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_closure_case_status",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 78,
+      "community_name": "loop.py",
       "norm_label": "case_status()"
     },
     {
@@ -353,8 +353,8 @@
       "source_location": "L263",
       "_origin": "ast",
       "id": "backend_agent_closure_rationale_263",
-      "community": 50,
-      "community_name": "loop.py",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "csat is a post-close popup, not a card that closes the case."
     },
     {
@@ -375,8 +375,8 @@
       "source_location": "L311",
       "_origin": "ast",
       "id": "backend_agent_closure_rationale_311",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 78,
+      "community_name": "loop.py",
       "norm_label": "sticky case state for this conversation. executed actions never close it."
     },
     {
@@ -458,7 +458,7 @@
       "_origin": "ast",
       "id": "backend_agent_context_render_extract_prompt",
       "community": 76,
-      "community_name": "SessionMemory",
+      "community_name": "render_extract_prompt",
       "norm_label": "render_extract_prompt()"
     },
     {
@@ -493,8 +493,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_context_context_contains_forbidden",
-      "community": 52,
-      "community_name": "test_context.py",
+      "community": 76,
+      "community_name": "render_extract_prompt",
       "norm_label": "context_contains_forbidden()"
     },
     {
@@ -515,8 +515,8 @@
       "source_location": "L382",
       "_origin": "ast",
       "id": "backend_agent_context_rationale_382",
-      "community": 52,
-      "community_name": "test_context.py",
+      "community": 76,
+      "community_name": "render_extract_prompt",
       "norm_label": "code-side gate: other passengers, raw policy bodies, and history-as-benefit."
     },
     {
@@ -561,7 +561,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "frustration.py"
     },
     {
@@ -572,8 +572,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_frustration_detect_emotion",
-      "community": 91,
-      "community_name": "detect_emotion",
+      "community": 11,
+      "community_name": "reset_session",
       "norm_label": "detect_emotion()"
     },
     {
@@ -584,8 +584,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_frustration_detect_legal_or_formal",
-      "community": 7,
-      "community_name": "frustration.py",
+      "community": 11,
+      "community_name": "reset_session",
       "norm_label": "detect_legal_or_formal()"
     },
     {
@@ -597,7 +597,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_caps_lock",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "_caps_lock()"
     },
     {
@@ -609,7 +609,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_punctuation_escalation",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "_punctuation_escalation()"
     },
     {
@@ -621,7 +621,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_intents",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "_intents()"
     },
     {
@@ -633,7 +633,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_repeated_request",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "_repeated_request()"
     },
     {
@@ -645,7 +645,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_signals",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "_signals()"
     },
     {
@@ -656,8 +656,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_frustration_category",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "_category()"
     },
     {
@@ -668,8 +668,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_frustration_confidence",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "_confidence()"
     },
     {
@@ -680,8 +680,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_frustration_classify",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "classify()"
     },
     {
@@ -693,7 +693,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_latest_user",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "_latest_user()"
     },
     {
@@ -705,7 +705,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_classify_llm_user",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "_classify_llm_user()"
     },
     {
@@ -716,8 +716,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_frustration_assessment_from_llm",
-      "community": 7,
-      "community_name": "frustration.py",
+      "community": 75,
+      "community_name": "should_escalate",
       "norm_label": "_assessment_from_llm()"
     },
     {
@@ -729,7 +729,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_classify_llm",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "classify_llm()"
     },
     {
@@ -752,8 +752,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_frustration_is_low_confidence",
-      "community": 7,
-      "community_name": "frustration.py",
+      "community": 75,
+      "community_name": "should_escalate",
       "norm_label": "is_low_confidence()"
     },
     {
@@ -764,7 +764,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_rationale_1",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "frustration detection: a signal, never an authority. this module owns the text..."
     },
     {
@@ -774,8 +774,8 @@
       "source_location": "L142",
       "_origin": "ast",
       "id": "backend_agent_frustration_rationale_142",
-      "community": 91,
-      "community_name": "detect_emotion",
+      "community": 11,
+      "community_name": "reset_session",
       "norm_label": "the existing tone axis: angry / frustrated / confused, or nothing. kept..."
     },
     {
@@ -786,7 +786,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_rationale_164",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "shouting, not acronyms. needs enough letters to mean something."
     },
     {
@@ -797,7 +797,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_rationale_177",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "request types this message asks for, via the existing heuristic extractor...."
     },
     {
@@ -808,7 +808,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_rationale_194",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "the same ask, already made earlier in this conversation. asking twice is the..."
     },
     {
@@ -818,8 +818,8 @@
       "source_location": "L289",
       "_origin": "ast",
       "id": "backend_agent_frustration_rationale_289",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "assess one turn. deterministic, offline, and safe to call every turn."
     },
     {
@@ -830,7 +830,7 @@
       "_origin": "ast",
       "id": "backend_agent_frustration_rationale_345",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "assess one turn via the model. same schema as classify(); never an authority."
     },
     {
@@ -851,8 +851,8 @@
       "source_location": "L377",
       "_origin": "ast",
       "id": "backend_agent_frustration_rationale_377",
-      "community": 7,
-      "community_name": "frustration.py",
+      "community": 75,
+      "community_name": "should_escalate",
       "norm_label": "below the store threshold the observation is logged but not aggregated."
     },
     {
@@ -863,7 +863,7 @@
       "_origin": "ast",
       "id": "backend_agent_kb_match",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "kb_match.py"
     },
     {
@@ -875,7 +875,7 @@
       "_origin": "ast",
       "id": "backend_agent_kb_match_ground_prior_resolution",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "ground_prior_resolution()"
     },
     {
@@ -886,7 +886,7 @@
       "_origin": "ast",
       "id": "backend_agent_kb_match_rationale_1",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "reuse a prior resolution's phrasing, or queue the turn for ops approval. runs..."
     },
     {
@@ -897,7 +897,7 @@
       "_origin": "ast",
       "id": "backend_agent_kb_match_rationale_27",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "embed this turn, reuse a close prior phrasing, or queue a pending row."
     },
     {
@@ -907,7 +907,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_agent_loop",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "loop.py"
     },
@@ -919,8 +919,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_remember",
-      "community": 50,
-      "community_name": "loop.py",
+      "community": 9,
+      "community_name": "test_history.py",
       "norm_label": "_remember()"
     },
     {
@@ -931,8 +931,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_stored_session",
-      "community": 50,
-      "community_name": "loop.py",
+      "community": 9,
+      "community_name": "test_history.py",
       "norm_label": "_stored_session()"
     },
     {
@@ -943,8 +943,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_get_session",
-      "community": 50,
-      "community_name": "loop.py",
+      "community": 9,
+      "community_name": "test_history.py",
       "norm_label": "get_session()"
     },
     {
@@ -967,7 +967,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_trace",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "_trace()"
     },
@@ -979,7 +979,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_kb_match_trace",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "_kb_match_trace()"
     },
@@ -991,7 +991,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_frustration_trace",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "_frustration_trace()"
     },
@@ -1003,7 +1003,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_telemetry",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "_telemetry()"
     },
@@ -1015,7 +1015,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_identify",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "_identify()"
     },
@@ -1038,8 +1038,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "chatresponse",
-      "community": 50,
-      "community_name": "loop.py",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "chatresponse"
     },
     {
@@ -1050,8 +1050,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_spoken_before",
-      "community": 50,
-      "community_name": "loop.py",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "_spoken_before()"
     },
     {
@@ -1086,7 +1086,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_deterministic_turn",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "_deterministic_turn()"
     },
@@ -1098,8 +1098,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_finish",
-      "community": 50,
-      "community_name": "loop.py",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "_finish()"
     },
     {
@@ -1146,8 +1146,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_record_turn_graph",
-      "community": 50,
-      "community_name": "loop.py",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "_record_turn_graph()"
     },
     {
@@ -1158,7 +1158,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_issue_label",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "_issue_label()"
     },
@@ -1170,8 +1170,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_case_status",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 78,
+      "community_name": "loop.py",
       "norm_label": "_case_status()"
     },
     {
@@ -1182,7 +1182,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_loop_write_case",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "_write_case()"
     },
@@ -1193,7 +1193,7 @@
       "source_location": "L127",
       "_origin": "ast",
       "id": "backend_agent_loop_rationale_127",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "one trace line, identical on both agent paths, so a reviewer can see the signal..."
     },
@@ -1204,7 +1204,7 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "backend_agent_loop_rationale_148",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "per-turn measurements, recorded on the turn event so analytics can aggregate...."
     },
@@ -1248,8 +1248,8 @@
       "source_location": "L881",
       "_origin": "ast",
       "id": "backend_agent_loop_rationale_881",
-      "community": 50,
-      "community_name": "loop.py",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "same edges on both agent paths, so operations can draw the live kb."
     },
     {
@@ -1259,7 +1259,7 @@
       "source_location": "L972",
       "_origin": "ast",
       "id": "backend_agent_loop_rationale_972",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "one auditable record per passenger conversation. does not decide policy."
     },
@@ -1270,8 +1270,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_agent_orchestrator",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "orchestrator.py"
     },
     {
@@ -1282,8 +1282,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_orchestrator_run_llm_agent",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "run_llm_agent()"
     },
     {
@@ -1294,8 +1294,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_orchestrator_system_for",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "_system_for()"
     },
     {
@@ -1306,8 +1306,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_orchestrator_history",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "_history()"
     },
     {
@@ -1318,8 +1318,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_orchestrator_assistant_tools",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "_assistant_tools()"
     },
     {
@@ -1330,8 +1330,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_orchestrator_invented_money",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "_invented_money()"
     },
     {
@@ -1341,8 +1341,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_agent_orchestrator_rationale_1",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "llm-as-orchestrator loop. the model decides which tools to call. tools enforce..."
     },
     {
@@ -1352,8 +1352,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_agent_planner",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 68,
+      "community_name": "schemas.py",
       "norm_label": "planner.py"
     },
     {
@@ -1364,8 +1364,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_planner_plan_retrieval",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "plan_retrieval()"
     },
     {
@@ -1376,8 +1376,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_planner_expand_scope",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "expand_scope()"
     },
     {
@@ -1387,8 +1387,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "backend_agent_planner_py_booking",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "booking"
     },
     {
@@ -1399,8 +1399,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_planner_query",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "_query()"
     },
     {
@@ -1410,8 +1410,8 @@
       "source_location": "L45",
       "_origin": "ast",
       "id": "backend_agent_planner_rationale_45",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "classify the turn into the retrievers it needs, before any fetching happens."
     },
     {
@@ -1421,8 +1421,8 @@
       "source_location": "L83",
       "_origin": "ast",
       "id": "backend_agent_planner_rationale_83",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "widen the citable scope using facts only known after the booking is loaded. a..."
     },
     {
@@ -1432,8 +1432,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_agent_prompts",
-      "community": 52,
-      "community_name": "test_context.py",
+      "community": 76,
+      "community_name": "render_extract_prompt",
       "norm_label": "prompts.py"
     },
     {
@@ -1443,8 +1443,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_agent_prompts_rationale_1",
-      "community": 52,
-      "community_name": "test_context.py",
+      "community": 76,
+      "community_name": "render_extract_prompt",
       "norm_label": "extract and respond prompt contracts. rendered from an assembled..."
     },
     {
@@ -1455,7 +1455,7 @@
       "_origin": "ast",
       "id": "backend_agent_reply",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "reply.py"
     },
     {
@@ -1467,7 +1467,7 @@
       "_origin": "ast",
       "id": "backend_agent_reply_render_reply",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "render_reply()"
     },
     {
@@ -1478,7 +1478,7 @@
       "_origin": "ast",
       "id": "backend_agent_reply_rationale_5",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "facade \u2014 always goes through replyfactory."
     },
     {
@@ -1489,7 +1489,7 @@
       "_origin": "ast",
       "id": "backend_agent_retrieve",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "retrieve.py"
     },
     {
@@ -1501,7 +1501,7 @@
       "_origin": "ast",
       "id": "backend_agent_retrieve_strip_style_identifiers",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "strip_style_identifiers()"
     },
     {
@@ -1512,8 +1512,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_retrieve_run",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 78,
+      "community_name": "loop.py",
       "norm_label": "run()"
     },
     {
@@ -1524,7 +1524,7 @@
       "_origin": "ast",
       "id": "backend_agent_retrieve_rationale_23",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "remove amounts, pnrs, and flight numbers from a tone sample."
     },
     {
@@ -1534,8 +1534,8 @@
       "source_location": "L38",
       "_origin": "ast",
       "id": "backend_agent_retrieve_rationale_38",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 78,
+      "community_name": "loop.py",
       "norm_label": "execute a retrieval plan. facade \u2014 always goes through the knowledge store."
     },
     {
@@ -1593,8 +1593,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_router_missing_slots",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "missing_slots()"
     },
     {
@@ -1617,8 +1617,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_router_persist_assist",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 11,
+      "community_name": "reset_session",
       "norm_label": "persist_assist()"
     },
     {
@@ -1629,8 +1629,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_router_parse_notes",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "parse_notes()"
     },
     {
@@ -1640,8 +1640,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "backend_agent_router_py_any",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "any"
     },
     {
@@ -1662,8 +1662,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_agent_tools",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "tools.py"
     },
     {
@@ -1674,8 +1674,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_tools_schema",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "_schema()"
     },
     {
@@ -1699,7 +1699,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_tools_toolruntime_init",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": ".__init__()"
     },
@@ -1746,8 +1746,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_tools_toolruntime_extraction",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 11,
+      "community_name": "reset_session",
       "norm_label": ".extraction()"
     },
     {
@@ -1986,8 +1986,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_tools_money_in",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "money_in()"
     },
     {
@@ -1998,8 +1998,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_tools_collect_money",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "_collect_money()"
     },
     {
@@ -2010,8 +2010,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_agent_tools_money_in_text",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "_money_in_text()"
     },
     {
@@ -2021,8 +2021,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_agent_tools_rationale_1",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "deterministic tools the llm agent may invoke. the model chooses *when* to call..."
     },
     {
@@ -2076,8 +2076,8 @@
       "source_location": "L759",
       "_origin": "ast",
       "id": "backend_agent_tools_rationale_759",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "figures a tool (or the passenger) actually stated. walks the payload instead of..."
     },
     {
@@ -2087,8 +2087,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_data_loader",
-      "community": 44,
-      "community_name": "knowledge/base.py",
+      "community": 52,
+      "community_name": "test_context.py",
       "norm_label": "loader.py"
     },
     {
@@ -2099,8 +2099,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_data_loader_load_json",
-      "community": 44,
-      "community_name": "knowledge/base.py",
+      "community": 52,
+      "community_name": "test_context.py",
       "norm_label": "load_json()"
     },
     {
@@ -2146,8 +2146,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_data_loader_load_policies",
-      "community": 44,
-      "community_name": "knowledge/base.py",
+      "community": 52,
+      "community_name": "test_context.py",
       "norm_label": "load_policies()"
     },
     {
@@ -2158,8 +2158,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_data_loader_load_fixtures",
-      "community": 44,
-      "community_name": "knowledge/base.py",
+      "community": 52,
+      "community_name": "test_context.py",
       "norm_label": "load_fixtures()"
     },
     {
@@ -2170,8 +2170,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_data_loader_load_style_samples",
-      "community": 44,
-      "community_name": "knowledge/base.py",
+      "community": 52,
+      "community_name": "test_context.py",
       "norm_label": "load_style_samples()"
     },
     {
@@ -2183,7 +2183,7 @@
       "_origin": "ast",
       "id": "backend_data_loader_load_help",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": "load_help()"
     },
     {
@@ -2194,8 +2194,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_data_loader_load_scheduled_flights",
-      "community": 44,
-      "community_name": "knowledge/base.py",
+      "community": 52,
+      "community_name": "test_context.py",
       "norm_label": "load_scheduled_flights()"
     },
     {
@@ -2403,8 +2403,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_factories_auth_factory",
-      "community": 42,
-      "community_name": "factories/__init__.py",
+      "community": 51,
+      "community_name": "AuthSession",
       "norm_label": "auth_factory.py"
     },
     {
@@ -2428,7 +2428,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_factories_auth_factory_authfactory_create",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": ".create()"
     },
@@ -2500,7 +2500,7 @@
       "_origin": "ast",
       "id": "backend_factories_embedding_factory_embeddingfactory_reset",
       "community": 47,
-      "community_name": "llm_factory.py",
+      "community_name": "LlmFactory",
       "norm_label": ".reset()"
     },
     {
@@ -2532,8 +2532,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_factories_extractor_factory",
-      "community": 11,
-      "community_name": "reset_session",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "extractor_factory.py"
     },
     {
@@ -2546,7 +2546,7 @@
       "_origin": "ast",
       "id": "backend_factories_extractor_factory_extractorfactory",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "extractorfactory"
     },
     {
@@ -2558,7 +2558,7 @@
       "_origin": "ast",
       "id": "backend_factories_extractor_factory_extractorfactory_create",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": ".create()"
     },
     {
@@ -2569,7 +2569,7 @@
       "_origin": "ast",
       "id": "backend_factories_extractor_factory_rationale_10",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "clients request an intentextractor. they never construct concrete extractors."
     },
     {
@@ -2615,8 +2615,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_factories_knowledge_factory",
-      "community": 8,
-      "community_name": "test_factories.py",
+      "community": 68,
+      "community_name": "schemas.py",
       "norm_label": "knowledge_factory.py"
     },
     {
@@ -2663,7 +2663,7 @@
       "_origin": "ast",
       "id": "backend_factories_llm_factory",
       "community": 47,
-      "community_name": "llm_factory.py",
+      "community_name": "LlmFactory",
       "norm_label": "llm_factory.py"
     },
     {
@@ -2675,7 +2675,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_factories_llm_factory_llmfactory",
-      "community": 45,
+      "community": 47,
       "community_name": "LlmFactory",
       "norm_label": "llmfactory"
     },
@@ -2699,8 +2699,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_factories_llm_factory_llmfactory_disabled",
-      "community": 72,
-      "community_name": ".disabled",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": ".disabled()"
     },
     {
@@ -2711,8 +2711,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_factories_llm_factory_llmfactory_reset",
-      "community": 82,
-      "community_name": "LlmExtractor",
+      "community": 47,
+      "community_name": "LlmFactory",
       "norm_label": ".reset()"
     },
     {
@@ -2722,7 +2722,7 @@
       "source_location": "L17",
       "_origin": "ast",
       "id": "backend_factories_llm_factory_rationale_17",
-      "community": 45,
+      "community": 47,
       "community_name": "LlmFactory",
       "norm_label": "clients request an llmclient. they never read provider environment variables...."
     },
@@ -2733,8 +2733,8 @@
       "source_location": "L37",
       "_origin": "ast",
       "id": "backend_factories_llm_factory_rationale_37",
-      "community": 72,
-      "community_name": ".disabled",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "a client that can never call out, for tests and for llm_provider=none."
     },
     {
@@ -2828,7 +2828,7 @@
       "_origin": "ast",
       "id": "backend_factories_reply_factory",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "reply_factory.py"
     },
     {
@@ -2841,7 +2841,7 @@
       "_origin": "ast",
       "id": "backend_factories_reply_factory_replyfactory",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "replyfactory"
     },
     {
@@ -2853,7 +2853,7 @@
       "_origin": "ast",
       "id": "backend_factories_reply_factory_replyfactory_create",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": ".create()"
     },
     {
@@ -2933,8 +2933,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_kb_store",
-      "community": 8,
-      "community_name": "test_factories.py",
+      "community": 78,
+      "community_name": "loop.py",
       "norm_label": "store.py"
     },
     {
@@ -2955,8 +2955,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_llm_budget",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 55,
+      "community_name": "LlmBudget",
       "norm_label": "budget.py"
     },
     {
@@ -3228,8 +3228,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_llm_client_toolcall",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 55,
+      "community_name": "LlmBudget",
       "norm_label": "toolcall"
     },
     {
@@ -3509,8 +3509,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_llm_config",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "config.py"
     },
     {
@@ -3521,8 +3521,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_llm_config_int",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "_int()"
     },
     {
@@ -3533,8 +3533,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_llm_config_float",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "_float()"
     },
     {
@@ -3545,8 +3545,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_llm_config_dedupe",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "_dedupe()"
     },
     {
@@ -3582,8 +3582,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_llm_config_llmconfig_model_chain",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": ".model_chain()"
     },
     {
@@ -3618,8 +3618,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_llm_config_detect_provider",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "_detect_provider()"
     },
     {
@@ -3630,8 +3630,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_llm_config_fallback_models",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "_fallback_models()"
     },
     {
@@ -3642,8 +3642,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_llm_config_reasoning_effort",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "_reasoning_effort()"
     },
     {
@@ -3654,8 +3654,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_llm_config_disabled_config",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "disabled_config()"
     },
     {
@@ -3677,8 +3677,8 @@
       "source_location": "L98",
       "_origin": "ast",
       "id": "backend_llm_config_rationale_98",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "order-preserving, so the head stays the model the operator asked for."
     },
     {
@@ -3699,8 +3699,8 @@
       "source_location": "L132",
       "_origin": "ast",
       "id": "backend_llm_config_rationale_132",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "`model` first, then every sibling worth trying if it will not answer."
     },
     {
@@ -3721,8 +3721,8 @@
       "source_location": "L151",
       "_origin": "ast",
       "id": "backend_llm_config_rationale_151",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "honour an explicit choice, else take the first provider holding a key."
     },
     {
@@ -3732,8 +3732,8 @@
       "source_location": "L164",
       "_origin": "ast",
       "id": "backend_llm_config_rationale_164",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "the chain behind the chosen model, from env if set and the family if not. a..."
     },
     {
@@ -3743,8 +3743,8 @@
       "source_location": "L183",
       "_origin": "ast",
       "id": "backend_llm_config_rationale_183",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "whether to ask this provider to skip deliberation. sending the parameter to a..."
     },
     {
@@ -3754,8 +3754,8 @@
       "source_location": "L198",
       "_origin": "ast",
       "id": "backend_llm_config_rationale_198",
-      "community": 47,
-      "community_name": "llm_factory.py",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "no provider, no model, no ceilings that could ever be consulted."
     },
     {
@@ -4340,7 +4340,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_models_init",
-      "community": 60,
+      "community": 68,
       "community_name": "schemas.py",
       "norm_label": "models/__init__.py"
     },
@@ -4351,7 +4351,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_models_schemas",
-      "community": 60,
+      "community": 68,
       "community_name": "schemas.py",
       "norm_label": "schemas.py"
     },
@@ -4412,8 +4412,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_frustrationcategory",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "frustrationcategory"
     },
     {
@@ -4452,7 +4452,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_travelhistory",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "travelhistory"
     },
     {
@@ -4462,7 +4462,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "basemodel",
-      "community": 60,
+      "community": 68,
       "community_name": "schemas.py",
       "norm_label": "basemodel"
     },
@@ -4476,7 +4476,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_customer",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "customer"
     },
     {
@@ -4488,7 +4488,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_booking",
-      "community": 60,
+      "community": 68,
       "community_name": "schemas.py",
       "norm_label": "booking"
     },
@@ -4501,8 +4501,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_scenariofixture",
-      "community": 44,
-      "community_name": "knowledge/base.py",
+      "community": 52,
+      "community_name": "test_context.py",
       "norm_label": "scenariofixture"
     },
     {
@@ -4515,7 +4515,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_rulehit",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "rulehit"
     },
     {
@@ -4528,7 +4528,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_turnhit",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "turnhit"
     },
     {
@@ -4541,7 +4541,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_stylehit",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "stylehit"
     },
     {
@@ -4553,7 +4553,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_kbhit",
-      "community": 60,
+      "community": 68,
       "community_name": "schemas.py",
       "norm_label": "kbhit"
     },
@@ -4566,8 +4566,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_kbmatch",
-      "community": 78,
-      "community_name": "test_kb_match.py",
+      "community": 68,
+      "community_name": "schemas.py",
       "norm_label": "kbmatch"
     },
     {
@@ -4580,7 +4580,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_knownfact",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "knownfact"
     },
     {
@@ -4592,8 +4592,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_retrievalplan",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 68,
+      "community_name": "schemas.py",
       "norm_label": "retrievalplan"
     },
     {
@@ -4605,7 +4605,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_retrieval",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "retrieval"
     },
@@ -4631,8 +4631,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_extraction",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "extraction"
     },
     {
@@ -4645,7 +4645,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_frustrationassessment",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "frustrationassessment"
     },
     {
@@ -4657,7 +4657,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_frustrationassessment_payload",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": ".payload()"
     },
     {
@@ -4668,7 +4668,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_py_any",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "any"
     },
     {
@@ -4680,7 +4680,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_suggestedflight",
-      "community": 60,
+      "community": 68,
       "community_name": "schemas.py",
       "norm_label": "suggestedflight"
     },
@@ -4706,8 +4706,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_policyevaluation",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "policyevaluation"
     },
     {
@@ -4732,7 +4732,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_sessionmemory",
-      "community": 76,
+      "community": 7,
       "community_name": "SessionMemory",
       "norm_label": "sessionmemory"
     },
@@ -4746,7 +4746,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_customeragentcontext",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "customeragentcontext"
     },
     {
@@ -4785,7 +4785,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_signuprequest",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "signuprequest"
     },
     {
@@ -4811,7 +4811,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_bookingintake",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "bookingintake"
     },
     {
@@ -4823,7 +4823,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_models_schemas_chatresponse",
-      "community": 60,
+      "community": 68,
       "community_name": "schemas.py",
       "norm_label": "chatresponse"
     },
@@ -4845,8 +4845,8 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "backend_models_schemas_rationale_47",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "how much distress the turn carries. a signal, never an authority. ordered, so..."
     },
     {
@@ -4868,7 +4868,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_rationale_152",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "one retrieved policy clause. clause-level, never a whole rule body."
     },
     {
@@ -4878,7 +4878,7 @@
       "source_location": "L179",
       "_origin": "ast",
       "id": "backend_models_schemas_rationale_179",
-      "community": 60,
+      "community": 68,
       "community_name": "schemas.py",
       "norm_label": "one approved prior resolution, ranked by embedding cosine."
     },
@@ -4889,8 +4889,8 @@
       "source_location": "L188",
       "_origin": "ast",
       "id": "backend_models_schemas_rationale_188",
-      "community": 78,
-      "community_name": "test_kb_match.py",
+      "community": 68,
+      "community_name": "schemas.py",
       "norm_label": "whether this turn reused a prior resolution or queued one for ops."
     },
     {
@@ -4900,8 +4900,8 @@
       "source_location": "L205",
       "_origin": "ast",
       "id": "backend_models_schemas_rationale_205",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 68,
+      "community_name": "schemas.py",
       "norm_label": "which retrievers this turn needs. zia-style function classification."
     },
     {
@@ -4911,7 +4911,7 @@
       "source_location": "L224",
       "_origin": "ast",
       "id": "backend_models_schemas_rationale_224",
-      "community": 50,
+      "community": 78,
       "community_name": "loop.py",
       "norm_label": "what retrieval actually returned, plus how it was asked. shown in the context..."
     },
@@ -4923,7 +4923,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_rationale_251",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "what the turn observed about the passenger's state. `category`, `confidence`,..."
     },
     {
@@ -4934,7 +4934,7 @@
       "_origin": "ast",
       "id": "backend_models_schemas_rationale_272",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "the strict tool schema. audit fields are deliberately absent."
     },
     {
@@ -4944,7 +4944,7 @@
       "source_location": "L282",
       "_origin": "ast",
       "id": "backend_models_schemas_rationale_282",
-      "community": 60,
+      "community": 68,
       "community_name": "schemas.py",
       "norm_label": "look-only departure shown during booking assist. never a ticket."
     },
@@ -4966,7 +4966,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_persistence_init",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "persistence/__init__.py"
     },
@@ -4977,7 +4977,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_persistence_postgres",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "postgres.py"
     },
@@ -4989,7 +4989,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_persistence_postgres_database_url",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "database_url()"
     },
@@ -5001,7 +5001,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_persistence_postgres_connect",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "connect()"
     },
@@ -5012,7 +5012,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "backend_persistence_postgres_py_any",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "any"
     },
@@ -5024,7 +5024,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_persistence_postgres_reset",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "reset()"
     },
@@ -5035,7 +5035,7 @@
       "source_location": "L72",
       "_origin": "ast",
       "id": "backend_persistence_postgres_rationale_72",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "thread-local psycopg connection. schema is applied once per connection."
     },
@@ -5057,8 +5057,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_policy_engine",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "engine.py"
     },
     {
@@ -5092,8 +5092,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_policy_engine_baseline_for_booking",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "baseline_for_booking()"
     },
     {
@@ -5103,8 +5103,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "backend_policy_engine_py_booking",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "booking"
     },
     {
@@ -5115,8 +5115,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_policy_engine_baseline",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "_baseline()"
     },
     {
@@ -5149,8 +5149,8 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "backend_policy_engine_rationale_96",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "entitlements this disruption carries before the passenger asks anything...."
     },
     {
@@ -5160,8 +5160,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_policy_exclusivity",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "exclusivity.py"
     },
     {
@@ -5172,8 +5172,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_policy_exclusivity_resolution_track",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "resolution_track()"
     },
     {
@@ -5184,8 +5184,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_policy_exclusivity_excluded_actions",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "excluded_actions()"
     },
     {
@@ -5196,8 +5196,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_policy_exclusivity_offered_actions",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "offered_actions()"
     },
     {
@@ -5207,8 +5207,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_policy_exclusivity_rationale_1",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "which already-eligible actions may be offered together, and in what order. two..."
     },
     {
@@ -5218,8 +5218,8 @@
       "source_location": "L62",
       "_origin": "ast",
       "id": "backend_policy_exclusivity_rationale_62",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "which track the engine has actually put on the table, if any."
     },
     {
@@ -5229,8 +5229,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "backend_policy_exclusivity_rationale_71",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "goodwill actions the active track rules out. empty when there is no track."
     },
     {
@@ -5240,8 +5240,8 @@
       "source_location": "L82",
       "_origin": "ast",
       "id": "backend_policy_exclusivity_rationale_82",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "the ordered, exclusivity-filtered subset of what the engine allowed. exclusion..."
     },
     {
@@ -5922,7 +5922,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_memory_session",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "memory_session.py"
     },
     {
@@ -5935,7 +5935,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_memory_session_inmemorytokensession",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "inmemorytokensession"
     },
     {
@@ -5947,7 +5947,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_memory_session_inmemorytokensession_issue",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": ".issue()"
     },
     {
@@ -5959,7 +5959,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_memory_session_inmemorytokensession_resolve",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": ".resolve()"
     },
     {
@@ -5971,7 +5971,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_memory_session_inmemorytokensession_claims",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": ".claims()"
     },
     {
@@ -5983,7 +5983,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_memory_session_inmemorytokensession_revoke",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": ".revoke()"
     },
     {
@@ -5994,7 +5994,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_memory_session_rationale_6",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "signed tokens \u2014 no process-local map, so vercel isolates can share a login."
     },
     {
@@ -6052,7 +6052,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_products_auth_postgres_session",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "postgres_session.py"
     },
@@ -6065,7 +6065,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_products_auth_postgres_session_postgrestokensession",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "postgrestokensession"
     },
@@ -6077,7 +6077,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_auth_postgres_session_postgrestokensession_init",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": ".__init__()"
     },
@@ -6089,7 +6089,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_auth_postgres_session_postgrestokensession_issue",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": ".issue()"
     },
@@ -6101,7 +6101,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_auth_postgres_session_postgrestokensession_resolve",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": ".resolve()"
     },
@@ -6113,7 +6113,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_auth_postgres_session_postgrestokensession_revoke",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": ".revoke()"
     },
@@ -6124,7 +6124,7 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "backend_products_auth_postgres_session_rationale_7",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "passenger login tokens survive a process restart when postgres is up."
     },
@@ -6135,7 +6135,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_products_auth_session_base",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "session_base.py"
     },
@@ -6148,7 +6148,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_products_auth_session_base_authsession",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "authsession"
     },
@@ -6159,7 +6159,7 @@
       "source_location": "",
       "_origin": "ast",
       "id": "backend_products_auth_session_base_py_abc",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "abc"
     },
@@ -6171,7 +6171,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_auth_session_base_authsession_issue",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": ".issue()"
     },
@@ -6183,7 +6183,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_auth_session_base_authsession_resolve",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": ".resolve()"
     },
@@ -6195,7 +6195,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_auth_session_base_authsession_claims",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": ".claims()"
     },
@@ -6207,7 +6207,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_auth_session_base_authsession_revoke",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": ".revoke()"
     },
@@ -6218,7 +6218,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "backend_products_auth_session_base_rationale_5",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "product: issue and resolve passenger session tokens."
     },
@@ -6230,7 +6230,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_signing",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "signing.py"
     },
     {
@@ -6242,7 +6242,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_signing_secret",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "_secret()"
     },
     {
@@ -6254,7 +6254,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_signing_sign",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "sign()"
     },
     {
@@ -6266,7 +6266,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_signing_verify",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "verify()"
     },
     {
@@ -6278,7 +6278,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_signing_sign_claims",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "sign_claims()"
     },
     {
@@ -6290,7 +6290,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_signing_read_claims",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "read_claims()"
     },
     {
@@ -6301,7 +6301,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_signing_rationale_1",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "hmac tokens that any process can verify. in-memory maps die on a vercel..."
     },
     {
@@ -6312,7 +6312,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_signing_rationale_51",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "passenger claims, or `{id}` for the first signed tokens that carried only an id."
     },
     {
@@ -6323,7 +6323,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_staff",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "staff.py"
     },
     {
@@ -6335,7 +6335,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_staff_digest",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "_digest()"
     },
     {
@@ -6348,7 +6348,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_staff_staffaccess",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "staffaccess"
     },
     {
@@ -6360,7 +6360,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_staff_staffaccess_login",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": ".login()"
     },
     {
@@ -6371,7 +6371,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_staff_py_any",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "any"
     },
     {
@@ -6383,7 +6383,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_staff_staffaccess_current",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": ".current()"
     },
     {
@@ -6395,7 +6395,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_staff_staffaccess_sign_out",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": ".sign_out()"
     },
     {
@@ -6406,7 +6406,7 @@
       "_origin": "ast",
       "id": "backend_products_auth_staff_rationale_20",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "operations sign-in is a separate product from passenger accounts."
     },
     {
@@ -6427,8 +6427,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_products_extractors_base",
-      "community": 11,
-      "community_name": "reset_session",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "extractors/base.py"
     },
     {
@@ -6440,8 +6440,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_products_extractors_base_intentextractor",
-      "community": 11,
-      "community_name": "reset_session",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "intentextractor"
     },
     {
@@ -6451,8 +6451,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "backend_products_extractors_base_py_abc",
-      "community": 11,
-      "community_name": "reset_session",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "abc"
     },
     {
@@ -6463,8 +6463,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_extractors_base_intentextractor_extract",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": ".extract()"
     },
     {
@@ -6474,8 +6474,8 @@
       "source_location": "L7",
       "_origin": "ast",
       "id": "backend_products_extractors_base_rationale_7",
-      "community": 11,
-      "community_name": "reset_session",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "product: turn a customer utterance into structured extraction. never decides..."
     },
     {
@@ -6533,8 +6533,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_products_extractors_llm",
-      "community": 11,
-      "community_name": "reset_session",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "extractors/llm.py"
     },
     {
@@ -6545,8 +6545,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_extractors_llm_needs_model",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "needs_model()"
     },
     {
@@ -6559,7 +6559,7 @@
       "_origin": "ast",
       "id": "backend_products_extractors_llm_llmextractor",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "llmextractor"
     },
     {
@@ -6570,8 +6570,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_extractors_llm_llmextractor_init",
-      "community": 82,
-      "community_name": "LlmExtractor",
+      "community": 55,
+      "community_name": "LlmBudget",
       "norm_label": ".__init__()"
     },
     {
@@ -6583,7 +6583,7 @@
       "_origin": "ast",
       "id": "backend_products_extractors_llm_llmextractor_llm",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "._llm()"
     },
     {
@@ -6594,8 +6594,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_extractors_llm_llmextractor_extract",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": ".extract()"
     },
     {
@@ -6605,8 +6605,8 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "backend_products_extractors_llm_rationale_16",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "true only when the regex extractor understood nothing. measured on a live..."
     },
     {
@@ -6617,7 +6617,7 @@
       "_origin": "ast",
       "id": "backend_products_extractors_llm_rationale_32",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "optional nlu. both the fallback extractor and the client are injected."
     },
     {
@@ -6800,8 +6800,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_products_knowledge_base",
-      "community": 44,
-      "community_name": "knowledge/base.py",
+      "community": 68,
+      "community_name": "schemas.py",
       "norm_label": "knowledge/base.py"
     },
     {
@@ -6812,8 +6812,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_base_seconds_between",
-      "community": 58,
-      "community_name": "Any",
+      "community": 66,
+      "community_name": ".operations",
       "norm_label": "_seconds_between()"
     },
     {
@@ -6908,7 +6908,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_init",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": ".__init__()"
     },
     {
@@ -6920,7 +6920,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_init_backend",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": "._init_backend()"
     },
     {
@@ -6955,8 +6955,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_seed",
-      "community": 80,
-      "community_name": "._persist",
+      "community": 52,
+      "community_name": "test_context.py",
       "norm_label": ".seed()"
     },
     {
@@ -7110,8 +7110,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_fixture_for",
-      "community": 44,
-      "community_name": "knowledge/base.py",
+      "community": 52,
+      "community_name": "test_context.py",
       "norm_label": ".fixture_for()"
     },
     {
@@ -7205,8 +7205,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_get_pending_kb_entry",
-      "community": 27,
-      "community_name": "PassengerKnowledgeStore",
+      "community": 58,
+      "community_name": "Any",
       "norm_label": ".get_pending_kb_entry()"
     },
     {
@@ -7229,8 +7229,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_index_kb_entry",
-      "community": 85,
-      "community_name": ".approve_pending_kb_entry",
+      "community": 80,
+      "community_name": "._persist",
       "norm_label": ".index_kb_entry()"
     },
     {
@@ -7241,8 +7241,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_approve_pending_kb_entry",
-      "community": 85,
-      "community_name": ".approve_pending_kb_entry",
+      "community": 80,
+      "community_name": "._persist",
       "norm_label": ".approve_pending_kb_entry()"
     },
     {
@@ -7265,8 +7265,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_embedding_client",
-      "community": 85,
-      "community_name": ".approve_pending_kb_entry",
+      "community": 80,
+      "community_name": "._persist",
       "norm_label": "._embedding_client()"
     },
     {
@@ -7529,8 +7529,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_operations",
-      "community": 58,
-      "community_name": "Any",
+      "community": 66,
+      "community_name": ".operations",
       "norm_label": ".operations()"
     },
     {
@@ -7541,8 +7541,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_analytics",
-      "community": 58,
-      "community_name": "Any",
+      "community": 66,
+      "community_name": ".operations",
       "norm_label": ".analytics()"
     },
     {
@@ -7589,8 +7589,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_base_passengerknowledgestore_containment",
-      "community": 58,
-      "community_name": "Any",
+      "community": 66,
+      "community_name": ".operations",
       "norm_label": ".containment()"
     },
     {
@@ -7699,8 +7699,8 @@
       "source_location": "L368",
       "_origin": "ast",
       "id": "backend_products_knowledge_base_rationale_368",
-      "community": 85,
-      "community_name": ".approve_pending_kb_entry",
+      "community": 80,
+      "community_name": "._persist",
       "norm_label": "write one approved resolution into the corpus semantic_search reads."
     },
     {
@@ -7710,8 +7710,8 @@
       "source_location": "L391",
       "_origin": "ast",
       "id": "backend_products_knowledge_base_rationale_391",
-      "community": 85,
-      "community_name": ".approve_pending_kb_entry",
+      "community": 80,
+      "community_name": "._persist",
       "norm_label": "embed and index. the only write path into the searchable kb."
     },
     {
@@ -7798,8 +7798,8 @@
       "source_location": "L843",
       "_origin": "ast",
       "id": "backend_products_knowledge_base_rationale_843",
-      "community": 58,
-      "community_name": "Any",
+      "community": 66,
+      "community_name": ".operations",
       "norm_label": "lightweight dashboard numbers. policy is not computed here."
     },
     {
@@ -7842,8 +7842,8 @@
       "source_location": "L984",
       "_origin": "ast",
       "id": "backend_products_knowledge_base_rationale_984",
-      "community": 58,
-      "community_name": "Any",
+      "community": 66,
+      "community_name": ".operations",
       "norm_label": "how much of the work needed no human, and where authority ran out. only turns..."
     },
     {
@@ -7854,7 +7854,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_corpus",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": "corpus.py"
     },
     {
@@ -7866,7 +7866,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_corpus_clauses",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": "_clauses()"
     },
     {
@@ -7878,7 +7878,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_corpus_policy_clauses",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": "policy_clauses()"
     },
     {
@@ -7890,7 +7890,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_corpus_style_docs",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": "style_docs()"
     },
     {
@@ -7902,7 +7902,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_corpus_help_docs",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": "help_docs()"
     },
     {
@@ -7913,7 +7913,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_corpus_rationale_23",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": "policies.json flattened to clause granularity. clause-level rather than rule-..."
     },
     {
@@ -7924,7 +7924,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "elasticsearch_store.py"
     },
     {
@@ -7937,7 +7937,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "elasticsearchknowledgestore"
     },
     {
@@ -7949,7 +7949,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_init",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": ".__init__()"
     },
     {
@@ -7961,7 +7961,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_init_backend",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "._init_backend()"
     },
     {
@@ -7973,7 +7973,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_ensure_indices",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "._ensure_indices()"
     },
     {
@@ -7985,7 +7985,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_persist",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "._persist()"
     },
     {
@@ -7996,7 +7996,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_py_any",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "any"
     },
     {
@@ -8007,8 +8007,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_identify",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 60,
+      "community_name": "Customer",
       "norm_label": ".identify()"
     },
     {
@@ -8020,7 +8020,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_seed",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": ".seed()"
     },
     {
@@ -8032,7 +8032,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_search_policy",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": ".search_policy()"
     },
     {
@@ -8043,7 +8043,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_py_rulehit",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "rulehit"
     },
     {
@@ -8055,7 +8055,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_recall_turns",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": ".recall_turns()"
     },
     {
@@ -8067,7 +8067,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_search_style",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": ".search_style()"
     },
     {
@@ -8079,7 +8079,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_known_facts",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": ".known_facts()"
     },
     {
@@ -8091,7 +8091,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_elasticsearchknowledgestore_semantic_search",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": ".semantic_search()"
     },
     {
@@ -8102,7 +8102,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_rationale_18",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "concrete product: elasticsearch dual-write plus query-backed retrieval. every..."
     },
     {
@@ -8112,8 +8112,8 @@
       "source_location": "L99",
       "_origin": "ast",
       "id": "backend_products_knowledge_elasticsearch_store_rationale_99",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 60,
+      "community_name": "Customer",
       "norm_label": "passenger lookup is a filtered query, not a scan of `self.passengers`."
     },
     {
@@ -8123,8 +8123,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_products_knowledge_json_store",
-      "community": 83,
-      "community_name": "JsonKnowledgeStore",
+      "community": 68,
+      "community_name": "schemas.py",
       "norm_label": "json_store.py"
     },
     {
@@ -8136,7 +8136,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_json_store_cosine",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "_cosine()"
     },
     {
@@ -8173,7 +8173,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_json_store_jsonknowledgestore_semantic_search",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": ".semantic_search()"
     },
     {
@@ -8184,7 +8184,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_json_store_rationale_8",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "in-memory cosine similarity. numpy only \u2014 not the lexical `score()` path."
     },
     {
@@ -8206,7 +8206,7 @@
       "_origin": "ast",
       "id": "backend_products_knowledge_json_store_rationale_28",
       "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community_name": "schemas.py",
       "norm_label": "rank approved prior resolutions by numpy cosine similarity."
     },
     {
@@ -8216,8 +8216,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_products_knowledge_postgres_store",
-      "community": 65,
-      "community_name": "PostgresKnowledgeStore",
+      "community": 68,
+      "community_name": "schemas.py",
       "norm_label": "postgres_store.py"
     },
     {
@@ -8276,7 +8276,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_postgres_store_postgresknowledgestore_init_backend",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "._init_backend()"
     },
@@ -8312,8 +8312,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_postgres_store_postgresknowledgestore_upsert_seed_pack",
-      "community": 65,
-      "community_name": "PostgresKnowledgeStore",
+      "community": 52,
+      "community_name": "test_context.py",
       "norm_label": "._upsert_seed_pack()"
     },
     {
@@ -8360,8 +8360,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_postgres_store_postgresknowledgestore_semantic_search",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 65,
+      "community_name": "PostgresKnowledgeStore",
       "norm_label": ".semantic_search()"
     },
     {
@@ -8372,7 +8372,7 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_knowledge_postgres_store_postgresknowledgestore_drop",
-      "community": 66,
+      "community": 51,
       "community_name": "AuthSession",
       "norm_label": "._drop()"
     },
@@ -8475,7 +8475,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "onboarding/base.py"
     },
     {
@@ -8488,7 +8488,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_passengeronboarding",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "passengeronboarding"
     },
     {
@@ -8499,7 +8499,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_py_abc",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "abc"
     },
     {
@@ -8511,7 +8511,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_passengeronboarding_signup",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".signup()"
     },
     {
@@ -8522,7 +8522,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_py_any",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "any"
     },
     {
@@ -8534,7 +8534,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_passengeronboarding_login",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".login()"
     },
     {
@@ -8546,7 +8546,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_passengeronboarding_current",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".current()"
     },
     {
@@ -8558,7 +8558,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_passengeronboarding_sign_out",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".sign_out()"
     },
     {
@@ -8570,7 +8570,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_passengeronboarding_add_booking",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".add_booking()"
     },
     {
@@ -8581,7 +8581,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_py_booking",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "booking"
     },
     {
@@ -8593,7 +8593,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_passengeronboarding_public_members",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".public_members()"
     },
     {
@@ -8604,7 +8604,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_base_rationale_8",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "product: sign up, sign in, and attach bookings. pages never write passenger..."
     },
     {
@@ -8615,7 +8615,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "self_service.py"
     },
     {
@@ -8627,7 +8627,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_token_claims",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "_token_claims()"
     },
     {
@@ -8639,7 +8639,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_customer_from_claims",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "_customer_from_claims()"
     },
     {
@@ -8650,7 +8650,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_py_any",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "any"
     },
     {
@@ -8663,7 +8663,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_passengerselfserviceonboarding",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "passengerselfserviceonboarding"
     },
     {
@@ -8687,7 +8687,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_passengerselfserviceonboarding_signup",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".signup()"
     },
     {
@@ -8699,7 +8699,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_passengerselfserviceonboarding_login",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".login()"
     },
     {
@@ -8711,7 +8711,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_passengerselfserviceonboarding_current",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".current()"
     },
     {
@@ -8723,7 +8723,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_passengerselfserviceonboarding_sign_out",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".sign_out()"
     },
     {
@@ -8735,7 +8735,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_passengerselfserviceonboarding_add_booking",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".add_booking()"
     },
     {
@@ -8746,7 +8746,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_py_booking",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "booking"
     },
     {
@@ -8758,7 +8758,7 @@
       "_origin": "ast",
       "id": "backend_products_onboarding_self_service_passengerselfserviceonboarding_public_members",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": ".public_members()"
     },
     {
@@ -8780,7 +8780,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_base",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "replies/base.py"
     },
     {
@@ -8793,7 +8793,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_base_replyrenderer",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "replyrenderer"
     },
     {
@@ -8804,7 +8804,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_base_py_abc",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "abc"
     },
     {
@@ -8816,7 +8816,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_base_replyrenderer_render",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": ".render()"
     },
     {
@@ -8827,7 +8827,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_llm",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "replies/llm.py"
     },
     {
@@ -8839,7 +8839,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_llm_normalise",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "normalise()"
     },
     {
@@ -8851,7 +8851,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_llm_money_amounts",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "money_amounts()"
     },
     {
@@ -8863,8 +8863,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_products_replies_llm_llmpolishedreplyrenderer",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "llmpolishedreplyrenderer"
     },
     {
@@ -8875,8 +8875,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_replies_llm_llmpolishedreplyrenderer_init",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 55,
+      "community_name": "LlmBudget",
       "norm_label": ".__init__()"
     },
     {
@@ -8888,7 +8888,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_llm_llmpolishedreplyrenderer_llm",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "._llm()"
     },
     {
@@ -8900,7 +8900,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_llm_llmpolishedreplyrenderer_render",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": ".render()"
     },
     {
@@ -8911,7 +8911,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_llm_rationale_36",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "plain ascii spacing, so the same figure compares equal either side."
     },
     {
@@ -8921,8 +8921,8 @@
       "source_location": "L48",
       "_origin": "ast",
       "id": "backend_products_replies_llm_rationale_48",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "phrasing only. the template reply is already policy-approved, and every path..."
     },
     {
@@ -8932,8 +8932,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_products_replies_template",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "template.py"
     },
     {
@@ -8944,8 +8944,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_replies_template_name",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "_name()"
     },
     {
@@ -8956,8 +8956,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_replies_template_asked",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "_asked()"
     },
     {
@@ -8968,8 +8968,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_replies_template_has_spoken",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": "_has_spoken()"
     },
     {
@@ -8982,7 +8982,7 @@
       "_origin": "ast",
       "id": "backend_products_replies_template_templatereplyrenderer",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "templatereplyrenderer"
     },
     {
@@ -8993,8 +8993,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_products_replies_template_templatereplyrenderer_render",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 46,
+      "community_name": "closure.py",
       "norm_label": ".render()"
     },
     {
@@ -9016,7 +9016,7 @@
       "_origin": "ast",
       "id": "backend_tests_conftest",
       "community": 47,
-      "community_name": "llm_factory.py",
+      "community_name": "LlmFactory",
       "norm_label": "conftest.py"
     },
     {
@@ -9027,7 +9027,7 @@
       "_origin": "ast",
       "id": "backend_tests_conftest_py_fixture",
       "community": 47,
-      "community_name": "llm_factory.py",
+      "community_name": "LlmFactory",
       "norm_label": "fixture"
     },
     {
@@ -9039,7 +9039,7 @@
       "_origin": "ast",
       "id": "backend_tests_conftest_no_real_provider_key",
       "community": 47,
-      "community_name": "llm_factory.py",
+      "community_name": "LlmFactory",
       "norm_label": "no_real_provider_key()"
     },
     {
@@ -9051,7 +9051,7 @@
       "_origin": "ast",
       "id": "backend_tests_conftest_no_live_postgres",
       "community": 47,
-      "community_name": "llm_factory.py",
+      "community_name": "LlmFactory",
       "norm_label": "no_live_postgres()"
     },
     {
@@ -9063,7 +9063,7 @@
       "_origin": "ast",
       "id": "backend_tests_conftest_isolate_passenger_chats",
       "community": 47,
-      "community_name": "llm_factory.py",
+      "community_name": "LlmFactory",
       "norm_label": "isolate_passenger_chats()"
     },
     {
@@ -9074,7 +9074,7 @@
       "_origin": "ast",
       "id": "backend_tests_conftest_rationale_1",
       "community": 47,
-      "community_name": "llm_factory.py",
+      "community_name": "LlmFactory",
       "norm_label": "suite-wide isolation from whatever keys a developer has lying around. `pytest`..."
     },
     {
@@ -9085,7 +9085,7 @@
       "_origin": "ast",
       "id": "backend_tests_conftest_rationale_55",
       "community": 47,
-      "community_name": "llm_factory.py",
+      "community_name": "LlmFactory",
       "norm_label": "each test starts without another test's transcript on the seeded passengers."
     },
     {
@@ -9095,8 +9095,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_tests_test_agent",
-      "community": 59,
-      "community_name": "test_agent.py",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": "test_agent.py"
     },
     {
@@ -9108,8 +9108,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_scriptedsdk",
-      "community": 59,
-      "community_name": "test_agent.py",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": "scriptedsdk"
     },
     {
@@ -9120,8 +9120,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_scriptedsdk_init",
-      "community": 59,
-      "community_name": "test_agent.py",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": ".__init__()"
     },
     {
@@ -9132,8 +9132,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_scriptedsdk_completions",
-      "community": 59,
-      "community_name": "test_agent.py",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": ".completions()"
     },
     {
@@ -9144,8 +9144,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_scriptedsdk_create",
-      "community": 59,
-      "community_name": "test_agent.py",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": ".create()"
     },
     {
@@ -9156,8 +9156,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_args",
-      "community": 59,
-      "community_name": "test_agent.py",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": "_args()"
     },
     {
@@ -9180,8 +9180,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_test_agent_calls_booking_then_policy_then_answers",
-      "community": 59,
-      "community_name": "test_agent.py",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": "test_agent_calls_booking_then_policy_then_answers()"
     },
     {
@@ -9192,8 +9192,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_test_execute_hotel_is_blocked_when_policy_denies",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_execute_hotel_is_blocked_when_policy_denies()"
     },
     {
@@ -9204,8 +9204,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_test_fare_waiver_above_limit_escalates_and_cannot_be_executed",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_fare_waiver_above_limit_escalates_and_cannot_be_executed()"
     },
     {
@@ -9216,8 +9216,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_test_get_customer_cannot_load_another_passenger",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_get_customer_cannot_load_another_passenger()"
     },
     {
@@ -9228,8 +9228,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_test_live_agent_path_records_tool_calls",
-      "community": 59,
-      "community_name": "test_agent.py",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": "test_live_agent_path_records_tool_calls()"
     },
     {
@@ -9252,8 +9252,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_test_rupee_escape_in_json_dumps_does_not_license_a_phantom_amount",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "test_rupee_escape_in_json_dumps_does_not_license_a_phantom_amount()"
     },
     {
@@ -9264,8 +9264,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_agent_test_frustration_confidence_does_not_flatten_into_a_rupee_figure",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "test_frustration_confidence_does_not_flatten_into_a_rupee_figure()"
     },
     {
@@ -9275,8 +9275,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_tests_test_agent_rationale_1",
-      "community": 59,
-      "community_name": "test_agent.py",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": "llm agent loop: the model orchestrates, tools enforce policy."
     },
     {
@@ -9286,8 +9286,8 @@
       "source_location": "L18",
       "_origin": "ast",
       "id": "backend_tests_test_agent_rationale_18",
-      "community": 59,
-      "community_name": "test_agent.py",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": "returns a sequence of chat.completions payloads, including tool calls."
     },
     {
@@ -9297,8 +9297,8 @@
       "source_location": "L160",
       "_origin": "ast",
       "id": "backend_tests_test_agent_rationale_160",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "json.dumps(ensure_ascii=true) writes \u20b9 as \\\\u20b9. the 9 used to bleed into the..."
     },
     {
@@ -9308,8 +9308,8 @@
       "source_location": "L187",
       "_origin": "ast",
       "id": "backend_tests_test_agent_rationale_187",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 50,
+      "community_name": "orchestrator.py",
       "norm_label": "0.91 and 0.15 must stay scores. they must not become 910 / 1500."
     },
     {
@@ -10031,7 +10031,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_context_test_extract_prompt_is_narrow_and_has_no_policy_schema",
       "community": 76,
-      "community_name": "SessionMemory",
+      "community_name": "render_extract_prompt",
       "norm_label": "test_extract_prompt_is_narrow_and_has_no_policy_schema()"
     },
     {
@@ -10641,8 +10641,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_factories_test_extractor_factory_returns_product_interface",
-      "community": 82,
-      "community_name": "LlmExtractor",
+      "community": 8,
+      "community_name": "test_factories.py",
       "norm_label": "test_extractor_factory_returns_product_interface()"
     },
     {
@@ -10653,8 +10653,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_factories_test_reply_factory_returns_product_interface",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 8,
+      "community_name": "test_factories.py",
       "norm_label": "test_reply_factory_returns_product_interface()"
     },
     {
@@ -10677,8 +10677,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_factories_test_embedding_factory_disabled_is_a_noop",
-      "community": 83,
-      "community_name": "JsonKnowledgeStore",
+      "community": 8,
+      "community_name": "test_factories.py",
       "norm_label": "test_embedding_factory_disabled_is_a_noop()"
     },
     {
@@ -10749,8 +10749,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_factories_test_onboarding_factory_signs_in_seeded_member",
-      "community": 42,
-      "community_name": "factories/__init__.py",
+      "community": 8,
+      "community_name": "test_factories.py",
       "norm_label": "test_onboarding_factory_signs_in_seeded_member()"
     },
     {
@@ -10819,8 +10819,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_every_classification_matches_the_declared_schema",
-      "community": 75,
-      "community_name": "should_escalate",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_every_classification_matches_the_declared_schema()"
     },
     {
@@ -10831,8 +10831,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_audit_fields_never_reach_the_model",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_audit_fields_never_reach_the_model()"
     },
     {
@@ -10843,8 +10843,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_the_same_input_always_produces_the_same_output",
-      "community": 75,
-      "community_name": "should_escalate",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_the_same_input_always_produces_the_same_output()"
     },
     {
@@ -10855,8 +10855,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_signal_order_is_canonical_not_insertion_order",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_signal_order_is_canonical_not_insertion_order()"
     },
     {
@@ -10867,8 +10867,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_a_calm_question_is_neutral_with_no_signals",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_a_calm_question_is_neutral_with_no_signals()"
     },
     {
@@ -10879,8 +10879,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_fuck_is_profanity_and_not_neutral",
-      "community": 91,
-      "community_name": "detect_emotion",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_fuck_is_profanity_and_not_neutral()"
     },
     {
@@ -10891,8 +10891,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_help_me_book_is_not_vulnerability",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_help_me_book_is_not_vulnerability()"
     },
     {
@@ -10903,8 +10903,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_distress_outranks_mere_hostility",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_distress_outranks_mere_hostility()"
     },
     {
@@ -10915,8 +10915,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_asking_the_same_thing_twice_is_itself_a_signal",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_asking_the_same_thing_twice_is_itself_a_signal()"
     },
     {
@@ -10927,8 +10927,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_shouting_needs_more_than_a_short_acronym",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_shouting_needs_more_than_a_short_acronym()"
     },
     {
@@ -10939,8 +10939,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_frustration_classifier_is_read_from_the_environment_like_the_store_threshold",
-      "community": 90,
-      "community_name": "test_loop_calls_classify_llm_when_the_client_is_live",
+      "community": 48,
+      "community_name": "test_frustration.py",
       "norm_label": "test_frustration_classifier_is_read_from_the_environment_like_the_store_threshold()"
     },
     {
@@ -10975,8 +10975,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_classify_llm_falls_back_to_classify_when_the_model_is_silent",
-      "community": 72,
-      "community_name": ".disabled",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "test_classify_llm_falls_back_to_classify_when_the_model_is_silent()"
     },
     {
@@ -11011,8 +11011,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_loop_calls_classify_llm_when_the_client_is_live",
-      "community": 90,
-      "community_name": "test_loop_calls_classify_llm_when_the_client_is_live",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": "test_loop_calls_classify_llm_when_the_client_is_live()"
     },
     {
@@ -11036,7 +11036,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_the_legal_detector_is_shared_not_duplicated",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "test_the_legal_detector_is_shared_not_duplicated()"
     },
     {
@@ -11047,8 +11047,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_confidence_at_or_above_the_threshold_is_counted",
-      "community": 7,
-      "community_name": "frustration.py",
+      "community": 75,
+      "community_name": "should_escalate",
       "norm_label": "test_confidence_at_or_above_the_threshold_is_counted()"
     },
     {
@@ -11203,8 +11203,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_exclusivity_is_inert_when_there_is_no_track",
-      "community": 67,
-      "community_name": "tools.py",
+      "community": 0,
+      "community_name": "PolicyDecision",
       "norm_label": "test_exclusivity_is_inert_when_there_is_no_track()"
     },
     {
@@ -11275,8 +11275,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_distress_escalation_adds_no_policy_decision",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 67,
+      "community_name": "test_distress_escalation_adds_no_policy_decision",
       "norm_label": "test_distress_escalation_adds_no_policy_decision()"
     },
     {
@@ -11287,8 +11287,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_the_distress_escalation_is_not_a_tool_the_model_can_call",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 67,
+      "community_name": "test_distress_escalation_adds_no_policy_decision",
       "norm_label": "test_the_distress_escalation_is_not_a_tool_the_model_can_call()"
     },
     {
@@ -11299,8 +11299,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_the_classifier_tool_ignores_text_the_model_supplies",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 85,
+      "community_name": "test_the_classifier_tool_ignores_text_the_model_supplies",
       "norm_label": "test_the_classifier_tool_ignores_text_the_model_supplies()"
     },
     {
@@ -11335,8 +11335,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_policy_and_distress_escalations_are_logged_as_distinct_reasons",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 67,
+      "community_name": "test_distress_escalation_adds_no_policy_decision",
       "norm_label": "test_policy_and_distress_escalations_are_logged_as_distinct_reasons()"
     },
     {
@@ -11347,8 +11347,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_a_distressed_turn_escalates_and_records_with_zero_llm_key",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 48,
+      "community_name": "test_frustration.py",
       "norm_label": "test_a_distressed_turn_escalates_and_records_with_zero_llm_key()"
     },
     {
@@ -11371,8 +11371,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_frustration_does_not_change_the_outcome_of_an_identical_request",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 11,
+      "community_name": "reset_session",
       "norm_label": "test_frustration_does_not_change_the_outcome_of_an_identical_request()"
     },
     {
@@ -11383,8 +11383,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_frustration_test_the_reply_never_names_a_category_or_a_score",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 48,
+      "community_name": "test_frustration.py",
       "norm_label": "test_the_reply_never_names_a_category_or_a_score()"
     },
     {
@@ -11549,8 +11549,8 @@
       "source_location": "L100",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_100",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "`low_confidence` and `source` are for the store, not the prompt."
     },
     {
@@ -11560,8 +11560,8 @@
       "source_location": "L109",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_109",
-      "community": 75,
-      "community_name": "should_escalate",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "no sampling, no clock, no model. ci must not need a retry."
     },
     {
@@ -11571,8 +11571,8 @@
       "source_location": "L143",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_143",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "a stranded passenger with a child is a care case, not an angry one."
     },
     {
@@ -11582,8 +11582,8 @@
       "source_location": "L153",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_153",
-      "community": 94,
-      "community_name": "classify",
+      "community": 7,
+      "community_name": "SessionMemory",
       "norm_label": "repetition means the previous answer did not land, whatever words were used."
     },
     {
@@ -11593,8 +11593,8 @@
       "source_location": "L174",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_174",
-      "community": 90,
-      "community_name": "test_loop_calls_classify_llm_when_the_client_is_live",
+      "community": 48,
+      "community_name": "test_frustration.py",
       "norm_label": "same import-time getenv as kb_auto_store_threshold, so tests can pin it."
     },
     {
@@ -11604,8 +11604,8 @@
       "source_location": "L253",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_253",
-      "community": 90,
-      "community_name": "test_loop_calls_classify_llm_when_the_client_is_live",
+      "community": 63,
+      "community_name": "client_with",
       "norm_label": "the same live-client test as agent_mode, not a third branch."
     },
     {
@@ -11616,7 +11616,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_287",
       "community": 7,
-      "community_name": "frustration.py",
+      "community_name": "SessionMemory",
       "norm_label": "one regex, so the escalation rule and the signal cannot disagree."
     },
     {
@@ -11714,8 +11714,8 @@
       "source_location": "L649",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_649",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 67,
+      "community_name": "test_distress_escalation_adds_no_policy_decision",
       "norm_label": "it must not borrow another reason's code to get a supervisor."
     },
     {
@@ -11725,8 +11725,8 @@
       "source_location": "L671",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_671",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 67,
+      "community_name": "test_distress_escalation_adds_no_policy_decision",
       "norm_label": "absent from handlers(), so the model cannot self-serve a reason code."
     },
     {
@@ -11736,8 +11736,8 @@
       "source_location": "L693",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_693",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 85,
+      "community_name": "test_the_classifier_tool_ignores_text_the_model_supplies",
       "norm_label": "the model chooses when to look, never what it sees."
     },
     {
@@ -11758,8 +11758,8 @@
       "source_location": "L729",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_729",
-      "community": 79,
-      "community_name": "ToolRuntime",
+      "community": 67,
+      "community_name": "test_distress_escalation_adds_no_policy_decision",
       "norm_label": "both fire on the same turn, and neither hides behind the other."
     },
     {
@@ -11769,8 +11769,8 @@
       "source_location": "L798",
       "_origin": "ast",
       "id": "backend_tests_test_frustration_rationale_798",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 11,
+      "community_name": "reset_session",
       "norm_label": "the same assertion `test_emotion.py` makes about tone, for the classifier."
     },
     {
@@ -11899,7 +11899,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_kb_match",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "test_kb_match.py"
     },
     {
@@ -11911,7 +11911,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_kb_match_scripted",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "_scripted()"
     },
     {
@@ -11923,7 +11923,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_kb_match_test_strip_style_identifiers_removes_amounts_pnrs_and_flights",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "test_strip_style_identifiers_removes_amounts_pnrs_and_flights()"
     },
     {
@@ -11934,8 +11934,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_kb_match_test_style_retrieval_strips_sample_identifiers",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 78,
+      "community_name": "loop.py",
       "norm_label": "test_style_retrieval_strips_sample_identifiers()"
     },
     {
@@ -11947,7 +11947,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_kb_match_test_close_match_adds_stripped_phrasing_to_the_packet",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "test_close_match_adds_stripped_phrasing_to_the_packet()"
     },
     {
@@ -11959,7 +11959,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_kb_match_test_below_threshold_queues_pending_and_does_not_index",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "test_below_threshold_queues_pending_and_does_not_index()"
     },
     {
@@ -11971,7 +11971,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_kb_match_test_approve_embeds_and_indexes_reject_does_not",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "test_approve_embeds_and_indexes_reject_does_not()"
     },
     {
@@ -11995,7 +11995,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_kb_match_test_ground_is_idempotent_within_a_turn",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "test_ground_is_idempotent_within_a_turn()"
     },
     {
@@ -12006,7 +12006,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_kb_match_rationale_1",
       "community": 78,
-      "community_name": "test_kb_match.py",
+      "community_name": "loop.py",
       "norm_label": "prior-resolution reuse and the ops approve/reject gate."
     },
     {
@@ -12027,8 +12027,8 @@
       "source_location": "",
       "_origin": "ast",
       "id": "backend_tests_test_llm_py_fixture",
-      "community": 82,
-      "community_name": "LlmExtractor",
+      "community": 47,
+      "community_name": "LlmFactory",
       "norm_label": "fixture"
     },
     {
@@ -12039,8 +12039,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_clean_env",
-      "community": 82,
-      "community_name": "LlmExtractor",
+      "community": 47,
+      "community_name": "LlmFactory",
       "norm_label": "clean_env()"
     },
     {
@@ -12114,7 +12114,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_explodingsdk",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "explodingsdk"
     },
     {
@@ -12126,7 +12126,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_explodingsdk_init",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": ".__init__()"
     },
     {
@@ -12138,7 +12138,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_explodingsdk_completions",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": ".completions()"
     },
     {
@@ -12150,7 +12150,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_explodingsdk_create",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": ".create()"
     },
     {
@@ -12223,8 +12223,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_fixed",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "fixed"
     },
     {
@@ -12247,8 +12247,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_fixed_render",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": ".render()"
     },
     {
@@ -12259,8 +12259,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_ctx_for",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "ctx_for()"
     },
     {
@@ -12475,8 +12475,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_disabled_client_never_builds_an_sdk",
-      "community": 72,
-      "community_name": ".disabled",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "test_disabled_client_never_builds_an_sdk()"
     },
     {
@@ -12487,8 +12487,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_disabled_client_raises_if_it_ever_tried_to_call_out",
-      "community": 72,
-      "community_name": ".disabled",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "test_disabled_client_raises_if_it_ever_tried_to_call_out()"
     },
     {
@@ -12584,7 +12584,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_provider_error_degrades_quietly",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "test_provider_error_degrades_quietly()"
     },
     {
@@ -12727,8 +12727,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_falling_back_cannot_be_reached_by_a_disabled_client",
-      "community": 72,
-      "community_name": ".disabled",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "test_falling_back_cannot_be_reached_by_a_disabled_client()"
     },
     {
@@ -12788,7 +12788,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_a_turn_records_why_it_degraded",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "test_a_turn_records_why_it_degraded()"
     },
     {
@@ -12860,7 +12860,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_a_readable_utterance_never_reaches_the_model",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "test_a_readable_utterance_never_reaches_the_model()"
     },
     {
@@ -12872,7 +12872,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_an_unreadable_utterance_does_reach_the_model",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "test_an_unreadable_utterance_does_reach_the_model()"
     },
     {
@@ -12883,8 +12883,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_general_help_alone_is_the_only_trigger",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "test_general_help_alone_is_the_only_trigger()"
     },
     {
@@ -12896,7 +12896,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_skipping_the_model_costs_nothing",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "test_skipping_the_model_costs_nothing()"
     },
     {
@@ -13063,8 +13063,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_a_faithful_rewrite_is_used",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "test_a_faithful_rewrite_is_used()"
     },
     {
@@ -13075,8 +13075,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_spelling_a_delay_in_words_is_still_faithful",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "test_spelling_a_delay_in_words_is_still_faithful()"
     },
     {
@@ -13087,8 +13087,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_an_invented_amount_is_rejected",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "test_an_invented_amount_is_rejected()"
     },
     {
@@ -13099,8 +13099,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_a_dropped_amount_is_rejected",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "test_a_dropped_amount_is_rejected()"
     },
     {
@@ -13111,8 +13111,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_amount_drift_is_recorded_so_it_can_be_noticed",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "test_amount_drift_is_recorded_so_it_can_be_noticed()"
     },
     {
@@ -13123,8 +13123,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_thousands_separators_do_not_count_as_drift",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "test_thousands_separators_do_not_count_as_drift()"
     },
     {
@@ -13135,8 +13135,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_a_thin_space_inside_a_figure_is_not_drift",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "test_a_thin_space_inside_a_figure_is_not_drift()"
     },
     {
@@ -13147,8 +13147,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_typographic_spacing_is_flattened_before_it_reaches_the_passenger",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "test_typographic_spacing_is_flattened_before_it_reaches_the_passenger()"
     },
     {
@@ -13183,8 +13183,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_factories_choose_deterministic_products_when_no_key_is_set",
-      "community": 45,
-      "community_name": "LlmFactory",
+      "community": 82,
+      "community_name": "Extraction",
       "norm_label": "test_factories_choose_deterministic_products_when_no_key_is_set()"
     },
     {
@@ -13195,8 +13195,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_factories_choose_llm_products_once_a_key_exists",
-      "community": 82,
-      "community_name": "LlmExtractor",
+      "community": 47,
+      "community_name": "LlmFactory",
       "norm_label": "test_factories_choose_llm_products_once_a_key_exists()"
     },
     {
@@ -13207,8 +13207,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_factories_share_one_budget_so_ceilings_actually_bind",
-      "community": 82,
-      "community_name": "LlmExtractor",
+      "community": 47,
+      "community_name": "LlmFactory",
       "norm_label": "test_factories_share_one_budget_so_ceilings_actually_bind()"
     },
     {
@@ -13220,7 +13220,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_extractor_falls_back_to_heuristic_when_the_provider_fails",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "test_extractor_falls_back_to_heuristic_when_the_provider_fails()"
     },
     {
@@ -13232,7 +13232,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_extractor_falls_back_when_the_model_returns_unparseable_json",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "test_extractor_falls_back_when_the_model_returns_unparseable_json()"
     },
     {
@@ -13244,7 +13244,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_test_reply_renderer_returns_the_approved_text_when_the_provider_fails",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "test_reply_renderer_returns_the_approved_text_when_the_provider_fails()"
     },
     {
@@ -13265,8 +13265,8 @@
       "source_location": "L33",
       "_origin": "ast",
       "id": "backend_tests_test_llm_rationale_33",
-      "community": 82,
-      "community_name": "LlmExtractor",
+      "community": 47,
+      "community_name": "LlmFactory",
       "norm_label": "no developer's real key leaks into a test run."
     },
     {
@@ -13298,8 +13298,8 @@
       "source_location": "L148",
       "_origin": "ast",
       "id": "backend_tests_test_llm_rationale_148",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "stands in for the policy-approved template reply."
     },
     {
@@ -13364,8 +13364,8 @@
       "source_location": "L317",
       "_origin": "ast",
       "id": "backend_tests_test_llm_rationale_317",
-      "community": 72,
-      "community_name": ".disabled",
+      "community": 73,
+      "community_name": "test_llm.py",
       "norm_label": "belt and braces: prove the none above is not a swallowed network error."
     },
     {
@@ -13464,7 +13464,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_rationale_623",
       "community": 82,
-      "community_name": "LlmExtractor",
+      "community_name": "Extraction",
       "norm_label": "measured live: the regex reads this in 4ms, the model takes 2-5 seconds."
     },
     {
@@ -13562,8 +13562,8 @@
       "source_location": "L817",
       "_origin": "ast",
       "id": "backend_tests_test_llm_rationale_817",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "only money is held to the digit. \"6 hour\" to \"six-hour\" is good writing."
     },
     {
@@ -13573,8 +13573,8 @@
       "source_location": "L832",
       "_origin": "ast",
       "id": "backend_tests_test_llm_rationale_832",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "the live failure: a rewrite that silently omits the decision."
     },
     {
@@ -13584,8 +13584,8 @@
       "source_location": "L854",
       "_origin": "ast",
       "id": "backend_tests_test_llm_rationale_854",
-      "community": 63,
-      "community_name": "client_with",
+      "community": 45,
+      "community_name": "CustomerAgentContext",
       "norm_label": "gpt-oss typesets \"1 500\" with u+202f. it is the same 1500."
     },
     {
@@ -13596,7 +13596,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_llm_rationale_924",
       "community": 45,
-      "community_name": "LlmFactory",
+      "community_name": "CustomerAgentContext",
       "norm_label": "a degraded turn still answers the passenger, with the policy-approved wording."
     },
     {
@@ -13607,7 +13607,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_onboarding",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "test_onboarding.py"
     },
     {
@@ -13631,7 +13631,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_onboarding_test_self_service_signup_and_booking",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "test_self_service_signup_and_booking()"
     },
     {
@@ -13643,7 +13643,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_onboarding_test_joined_passenger_without_a_leg_can_still_chat",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "test_joined_passenger_without_a_leg_can_still_chat()"
     },
     {
@@ -13655,7 +13655,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_onboarding_test_joiner_token_survives_empty_store",
       "community": 60,
-      "community_name": "schemas.py",
+      "community_name": "Customer",
       "norm_label": "test_joiner_token_survives_empty_store()"
     },
     {
@@ -13878,8 +13878,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_tests_test_postgres",
-      "community": 60,
-      "community_name": "schemas.py",
+      "community": 65,
+      "community_name": "PostgresKnowledgeStore",
       "norm_label": "test_postgres.py"
     },
     {
@@ -13890,8 +13890,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_postgres_test_postgres_keeps_self_service_passenger_across_store_instances",
-      "community": 60,
-      "community_name": "schemas.py",
+      "community": 65,
+      "community_name": "PostgresKnowledgeStore",
       "norm_label": "test_postgres_keeps_self_service_passenger_across_store_instances()"
     },
     {
@@ -13926,7 +13926,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_test_policy_corpus_is_clause_level_not_rule_level",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": "test_policy_corpus_is_clause_level_not_rule_level()"
     },
     {
@@ -13938,7 +13938,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_test_every_clause_stays_within_the_retrieval_char_budget",
       "community": 44,
-      "community_name": "knowledge/base.py",
+      "community_name": "corpus.py",
       "norm_label": "test_every_clause_stays_within_the_retrieval_char_budget()"
     },
     {
@@ -13949,8 +13949,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_test_status_turn_fetches_no_related_legs_fixture_or_request_policy",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "test_status_turn_fetches_no_related_legs_fixture_or_request_policy()"
     },
     {
@@ -13961,8 +13961,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_test_fare_turn_fetches_the_fixture_and_scopes_to_the_fare_rule",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "test_fare_turn_fetches_the_fixture_and_scopes_to_the_fare_rule()"
     },
     {
@@ -13973,8 +13973,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_test_recall_only_switches_on_after_the_first_turn",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "test_recall_only_switches_on_after_the_first_turn()"
     },
     {
@@ -14009,8 +14009,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_test_under_three_hour_delay_does_cite_the_500_rupee_clause",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "test_under_three_hour_delay_does_cite_the_500_rupee_clause()"
     },
     {
@@ -14033,8 +14033,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_test_narrated_prompt_still_hides_other_passengers_and_raw_policy",
-      "community": 52,
-      "community_name": "test_context.py",
+      "community": 76,
+      "community_name": "render_extract_prompt",
       "norm_label": "test_narrated_prompt_still_hides_other_passengers_and_raw_policy()"
     },
     {
@@ -14057,8 +14057,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_test_recall_and_memory_never_cross_passengers",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "test_recall_and_memory_never_cross_passengers()"
     },
     {
@@ -14070,8 +14070,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_fakeindices",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 59,
+      "community_name": "_FakeEs",
       "norm_label": "_fakeindices"
     },
     {
@@ -14082,8 +14082,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_fakeindices_exists",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 59,
+      "community_name": "_FakeEs",
       "norm_label": ".exists()"
     },
     {
@@ -14094,8 +14094,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_fakeindices_create",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 59,
+      "community_name": "_FakeEs",
       "norm_label": ".create()"
     },
     {
@@ -14106,8 +14106,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_fakeindices_refresh",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 59,
+      "community_name": "_FakeEs",
       "norm_label": ".refresh()"
     },
     {
@@ -14119,8 +14119,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_fakees",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 59,
+      "community_name": "_FakeEs",
       "norm_label": "_fakees"
     },
     {
@@ -14131,8 +14131,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_fakees_init",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 59,
+      "community_name": "_FakeEs",
       "norm_label": ".__init__()"
     },
     {
@@ -14143,8 +14143,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_fakees_ping",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 59,
+      "community_name": "_FakeEs",
       "norm_label": ".ping()"
     },
     {
@@ -14155,8 +14155,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_fakees_index",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 59,
+      "community_name": "_FakeEs",
       "norm_label": ".index()"
     },
     {
@@ -14167,8 +14167,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_fakees_search",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 59,
+      "community_name": "_FakeEs",
       "norm_label": ".search()"
     },
     {
@@ -14192,8 +14192,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_stubesstore_init",
-      "community": 68,
-      "community_name": "ElasticsearchKnowledgeStore",
+      "community": 59,
+      "community_name": "_FakeEs",
       "norm_label": ".__init__()"
     },
     {
@@ -14276,8 +14276,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_cited_clauses",
-      "community": 76,
-      "community_name": "SessionMemory",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "_cited_clauses()"
     },
     {
@@ -14336,8 +14336,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_test_session_memory_exposes_recall_and_facts_on_the_packet",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 87,
+      "community_name": "test_retrieval.py",
       "norm_label": "test_session_memory_exposes_recall_and_facts_on_the_packet()"
     },
     {
@@ -14349,7 +14349,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_retrieval_test_extract_prompt_does_not_replay_the_whole_transcript",
       "community": 76,
-      "community_name": "SessionMemory",
+      "community_name": "render_extract_prompt",
       "norm_label": "test_extract_prompt_does_not_replay_the_whole_transcript()"
     },
     {
@@ -14489,8 +14489,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_router_test_priya_upgrade_phrasing_is_business_upgrade_not_beyond_policy",
-      "community": 46,
-      "community_name": "closure.py",
+      "community": 11,
+      "community_name": "reset_session",
       "norm_label": "test_priya_upgrade_phrasing_is_business_upgrade_not_beyond_policy()"
     },
     {
@@ -14536,8 +14536,8 @@
       "source_location": "L93",
       "_origin": "ast",
       "id": "backend_tests_test_router_rationale_93",
-      "community": 46,
-      "community_name": "closure.py",
+      "community": 11,
+      "community_name": "reset_session",
       "norm_label": "for the trouble' is a reason-for-ask. the data-pack code is unknown_entitlement."
     },
     {
@@ -14547,8 +14547,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_tests_test_scenarios",
-      "community": 88,
-      "community_name": "test_scenarios.py",
+      "community": 54,
+      "community_name": "handle_chat",
       "norm_label": "test_scenarios.py"
     },
     {
@@ -14559,8 +14559,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_scenarios_reset_priya",
-      "community": 88,
-      "community_name": "test_scenarios.py",
+      "community": 54,
+      "community_name": "handle_chat",
       "norm_label": "_reset_priya()"
     },
     {
@@ -14571,8 +14571,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_scenarios_test_priya_scenario_chat",
-      "community": 88,
-      "community_name": "test_scenarios.py",
+      "community": 54,
+      "community_name": "handle_chat",
       "norm_label": "test_priya_scenario_chat()"
     },
     {
@@ -14583,8 +14583,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_scenarios_test_arvind_scenario_chat",
-      "community": 88,
-      "community_name": "test_scenarios.py",
+      "community": 54,
+      "community_name": "handle_chat",
       "norm_label": "test_arvind_scenario_chat()"
     },
     {
@@ -14595,8 +14595,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_scenarios_test_meher_scenario_chat",
-      "community": 88,
-      "community_name": "test_scenarios.py",
+      "community": 54,
+      "community_name": "handle_chat",
       "norm_label": "test_meher_scenario_chat()"
     },
     {
@@ -14607,8 +14607,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_scenarios_test_priya_distress_and_unknown_entitlement_are_both_on_the_case",
-      "community": 88,
-      "community_name": "test_scenarios.py",
+      "community": 54,
+      "community_name": "handle_chat",
       "norm_label": "test_priya_distress_and_unknown_entitlement_are_both_on_the_case()"
     },
     {
@@ -14619,8 +14619,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tests_test_scenarios_test_priya_legal_distress_and_upgrade_stack_three_distinct_reasons",
-      "community": 88,
-      "community_name": "test_scenarios.py",
+      "community": 54,
+      "community_name": "handle_chat",
       "norm_label": "test_priya_legal_distress_and_upgrade_stack_three_distinct_reasons()"
     },
     {
@@ -14630,8 +14630,8 @@
       "source_location": "L71",
       "_origin": "ast",
       "id": "backend_tests_test_scenarios_rationale_71",
-      "community": 88,
-      "community_name": "test_scenarios.py",
+      "community": 54,
+      "community_name": "handle_chat",
       "norm_label": "duty-of-care and the upgrade authority limit are independent codes."
     },
     {
@@ -14641,8 +14641,8 @@
       "source_location": "L96",
       "_origin": "ast",
       "id": "backend_tests_test_scenarios_rationale_96",
-      "community": 88,
-      "community_name": "test_scenarios.py",
+      "community": 54,
+      "community_name": "handle_chat",
       "norm_label": "legal detection must not gate distress; the engine still adds the upgrade."
     },
     {
@@ -14653,7 +14653,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_signing",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "test_signing.py"
     },
     {
@@ -14665,7 +14665,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_signing_test_signed_passenger_token_resolves_in_a_new_process",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "test_signed_passenger_token_resolves_in_a_new_process()"
     },
     {
@@ -14677,7 +14677,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_signing_test_signed_token_carries_passenger_claims",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "test_signed_token_carries_passenger_claims()"
     },
     {
@@ -14689,7 +14689,7 @@
       "_origin": "ast",
       "id": "backend_tests_test_signing_test_signed_staff_token_resolves_in_a_new_process",
       "community": 51,
-      "community_name": "InMemoryTokenSession",
+      "community_name": "AuthSession",
       "norm_label": "test_signed_staff_token_resolves_in_a_new_process()"
     },
     {
@@ -14722,8 +14722,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_tools_demo_scenarios",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 72,
+      "community_name": "demo_scenarios.py",
       "norm_label": "demo_scenarios.py"
     },
     {
@@ -14734,8 +14734,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tools_demo_scenarios_show_turn",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 72,
+      "community_name": "demo_scenarios.py",
       "norm_label": "show_turn()"
     },
     {
@@ -14746,8 +14746,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tools_demo_scenarios_summarise",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 72,
+      "community_name": "demo_scenarios.py",
       "norm_label": "summarise()"
     },
     {
@@ -14758,8 +14758,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tools_demo_scenarios_main",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 72,
+      "community_name": "demo_scenarios.py",
       "norm_label": "main()"
     },
     {
@@ -14769,8 +14769,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_tools_demo_scenarios_rationale_1",
-      "community": 54,
-      "community_name": "handle_chat",
+      "community": 72,
+      "community_name": "demo_scenarios.py",
       "norm_label": "run the three assignment scenarios and print a transcript with measurements. cd..."
     },
     {
@@ -14780,8 +14780,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_tools_probe_models",
-      "community": 69,
-      "community_name": ".create",
+      "community": 47,
+      "community_name": "LlmFactory",
       "norm_label": "probe_models.py"
     },
     {
@@ -14792,8 +14792,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "backend_tools_probe_models_main",
-      "community": 69,
-      "community_name": ".create",
+      "community": 47,
+      "community_name": "LlmFactory",
       "norm_label": "main()"
     },
     {
@@ -14803,8 +14803,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "backend_tools_probe_models_rationale_1",
-      "community": 69,
-      "community_name": ".create",
+      "community": 47,
+      "community_name": "LlmFactory",
       "norm_label": "ask the configured provider which models your key can actually serve. cd..."
     },
     {
@@ -16848,7 +16848,7 @@
       "_origin": "ast",
       "id": "frontend_app_login_page",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "login/page.tsx"
     },
     {
@@ -16860,7 +16860,7 @@
       "_origin": "ast",
       "id": "frontend_app_login_page_loginpage",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "loginpage()"
     },
     {
@@ -16894,7 +16894,7 @@
       "_origin": "ast",
       "id": "frontend_app_page",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "frontend/app/page.tsx"
     },
     {
@@ -16906,7 +16906,7 @@
       "_origin": "ast",
       "id": "frontend_app_page_resolvepage",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "resolvepage()"
     },
     {
@@ -16963,8 +16963,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "frontend_components_chat_cards_bookingcard",
-      "community": 61,
-      "community_name": "exit-board.tsx",
+      "community": 57,
+      "community_name": "cards.tsx",
       "norm_label": "bookingcard()"
     },
     {
@@ -17219,8 +17219,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "frontend_components_chat_suggested_flight_card_suggestedflightcard",
-      "community": 61,
-      "community_name": "exit-board.tsx",
+      "community": 57,
+      "community_name": "cards.tsx",
       "norm_label": "suggestedflightcard()"
     },
     {
@@ -17230,8 +17230,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_chat_thread",
-      "community": 57,
-      "community_name": "cards.tsx",
+      "community": 56,
+      "community_name": "sign-in.tsx",
       "norm_label": "thread.tsx"
     },
     {
@@ -17242,8 +17242,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "frontend_components_chat_thread_thread",
-      "community": 57,
-      "community_name": "cards.tsx",
+      "community": 56,
+      "community_name": "sign-in.tsx",
       "norm_label": "thread()"
     },
     {
@@ -17253,8 +17253,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_components_chat_typing_indicator",
-      "community": 57,
-      "community_name": "cards.tsx",
+      "community": 56,
+      "community_name": "sign-in.tsx",
       "norm_label": "typing-indicator.tsx"
     },
     {
@@ -17265,8 +17265,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "frontend_components_chat_typing_indicator_typingindicator",
-      "community": 57,
-      "community_name": "cards.tsx",
+      "community": 56,
+      "community_name": "sign-in.tsx",
       "norm_label": "typingindicator()"
     },
     {
@@ -17329,10 +17329,21 @@
       "norm_label": "mode"
     },
     {
-      "label": "SignIn()",
+      "label": "DEMO_ACCOUNTS",
       "file_type": "code",
       "source_file": "frontend/components/sign-in.tsx",
       "source_location": "L16",
+      "_origin": "ast",
+      "id": "frontend_components_sign_in_demo_accounts",
+      "community": 56,
+      "community_name": "sign-in.tsx",
+      "norm_label": "demo_accounts"
+    },
+    {
+      "label": "SignIn()",
+      "file_type": "code",
+      "source_file": "frontend/components/sign-in.tsx",
+      "source_location": "L47",
       "_callable": true,
       "_origin": "ast",
       "id": "frontend_components_sign_in_signin",
@@ -17344,7 +17355,7 @@
       "label": "PlaneWatermark()",
       "file_type": "code",
       "source_file": "frontend/components/sign-in.tsx",
-      "source_location": "L181",
+      "source_location": "L243",
       "_callable": true,
       "_origin": "ast",
       "id": "frontend_components_sign_in_planewatermark",
@@ -17641,8 +17652,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "frontend_lib_cards_previousexecuted",
-      "community": 57,
-      "community_name": "cards.tsx",
+      "community": 56,
+      "community_name": "sign-in.tsx",
       "norm_label": "previousexecuted()"
     },
     {
@@ -17838,8 +17849,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "frontend_lib_labels_flightstatuscopy",
-      "community": 61,
-      "community_name": "exit-board.tsx",
+      "community": 57,
+      "community_name": "cards.tsx",
       "norm_label": "flightstatuscopy()"
     },
     {
@@ -17862,7 +17873,7 @@
       "_origin": "ast",
       "id": "frontend_lib_ready",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "ready.ts"
     },
     {
@@ -17874,7 +17885,7 @@
       "_origin": "ast",
       "id": "frontend_lib_ready_useready",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "useready()"
     },
     {
@@ -17884,8 +17895,8 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "frontend_lib_store",
-      "community": 62,
-      "community_name": "store.ts",
+      "community": 13,
+      "community_name": "types.ts",
       "norm_label": "store.ts"
     },
     {
@@ -17897,7 +17908,7 @@
       "_origin": "ast",
       "id": "frontend_lib_store_turnid",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "turnid()"
     },
     {
@@ -17909,7 +17920,7 @@
       "_origin": "ast",
       "id": "frontend_lib_store_newsessionid",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "newsessionid()"
     },
     {
@@ -17921,8 +17932,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "frontend_lib_store_persisted",
-      "community": 62,
-      "community_name": "store.ts",
+      "community": 13,
+      "community_name": "types.ts",
       "norm_label": "persisted"
     },
     {
@@ -17934,8 +17945,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "frontend_lib_store_state",
-      "community": 62,
-      "community_name": "store.ts",
+      "community": 13,
+      "community_name": "types.ts",
       "norm_label": "state"
     },
     {
@@ -17947,7 +17958,7 @@
       "_origin": "ast",
       "id": "frontend_lib_store_greeting",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "greeting()"
     },
     {
@@ -17958,7 +17969,7 @@
       "_origin": "ast",
       "id": "frontend_lib_store_useconversation",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "useconversation"
     },
     {
@@ -17970,7 +17981,7 @@
       "_origin": "ast",
       "id": "frontend_lib_store_turnsfrommessages",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "turnsfrommessages()"
     },
     {
@@ -17982,7 +17993,7 @@
       "_origin": "ast",
       "id": "frontend_lib_store_openconversation",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "openconversation()"
     },
     {
@@ -17994,7 +18005,7 @@
       "_origin": "ast",
       "id": "frontend_lib_store_messagefor",
       "community": 62,
-      "community_name": "store.ts",
+      "community_name": "useConversation",
       "norm_label": "messagefor()"
     },
     {
@@ -18055,8 +18066,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "frontend_lib_types_passenger",
-      "community": 62,
-      "community_name": "store.ts",
+      "community": 13,
+      "community_name": "types.ts",
       "norm_label": "passenger"
     },
     {
@@ -18081,8 +18092,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "frontend_lib_types_booking",
-      "community": 57,
-      "community_name": "cards.tsx",
+      "community": 13,
+      "community_name": "types.ts",
       "norm_label": "booking"
     },
     {
@@ -18094,8 +18105,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "frontend_lib_types_eligibility",
-      "community": 62,
-      "community_name": "store.ts",
+      "community": 13,
+      "community_name": "types.ts",
       "norm_label": "eligibility"
     },
     {
@@ -18146,8 +18157,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "frontend_lib_types_contextpacket",
-      "community": 62,
-      "community_name": "store.ts",
+      "community": 13,
+      "community_name": "types.ts",
       "norm_label": "contextpacket"
     },
     {
@@ -18263,8 +18274,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "frontend_lib_types_signuppayload",
-      "community": 62,
-      "community_name": "store.ts",
+      "community": 13,
+      "community_name": "types.ts",
       "norm_label": "signuppayload"
     },
     {
@@ -18289,8 +18300,8 @@
       "_callable_class": true,
       "_origin": "ast",
       "id": "frontend_lib_types_turn",
-      "community": 57,
-      "community_name": "cards.tsx",
+      "community": 13,
+      "community_name": "types.ts",
       "norm_label": "turn"
     },
     {
@@ -18335,8 +18346,8 @@
       "_callable": true,
       "_origin": "ast",
       "id": "frontend_lib_utils_formattime",
-      "community": 57,
-      "community_name": "cards.tsx",
+      "community": 56,
+      "community_name": "sign-in.tsx",
       "norm_label": "formattime()"
     },
     {
@@ -20364,7 +20375,7 @@
       "author": null,
       "contributor": null,
       "rationale": "Policy-governed airline disruption resolution agent for AIONOS.AI Assignment 3. Simulated prototype: it does not book real flights, pay refunds, or reserve hotels.",
-      "community": 84,
+      "community": 10,
       "community_name": "AeroResolve",
       "norm_label": "aeroresolve",
       "_origin": "semantic",
@@ -20380,7 +20391,7 @@
       "author": null,
       "contributor": null,
       "rationale": "During a disruption, passengers need a trusted resolution layer that translates policy into options, takes authorized action, and knows when a human must take over.",
-      "community": 84,
+      "community": 10,
       "community_name": "AeroResolve",
       "norm_label": "product thesis",
       "_origin": "semantic",
@@ -20396,8 +20407,8 @@
       "author": null,
       "contributor": null,
       "rationale": "Not a generic LLM chatbot. LLMs handle ambiguity and wording; deterministic systems handle policy, authority, and irreversible actions. Policy outcomes are never taken from the model.",
-      "community": 84,
-      "community_name": "AeroResolve",
+      "community": 18,
+      "community_name": "PolicyEngine",
       "norm_label": "model talks, deterministic code decides",
       "_origin": "semantic",
       "id": "readme_model_talks_code_decides"
@@ -20460,7 +20471,7 @@
       "author": null,
       "contributor": null,
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "priya nair scenario",
       "_origin": "semantic",
       "id": "readme_priya_nair_scenario"
@@ -20475,7 +20486,7 @@
       "author": null,
       "contributor": null,
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "arvind kulkarni scenario",
       "_origin": "semantic",
       "id": "readme_arvind_kulkarni_scenario"
@@ -20491,7 +20502,7 @@
       "contributor": null,
       "rationale": "Meher's \u20b92,000 fare difference is from section 6 of the data pack, not from the booking table. No alternative flight number is supplied.",
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "meher kaur scenario",
       "_origin": "semantic",
       "id": "readme_meher_kaur_scenario"
@@ -20586,7 +20597,7 @@
       "contributor": null,
       "rationale": "Only allowed inputs: customer profiles, bookings, five service rules, allowed vs prohibited actions, three mandatory scenarios. Sample conversations A\u2013C are tone/style only, not policy.",
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "assignment 3 data pack",
       "_origin": "semantic",
       "id": "readme_assignment_3_data_pack"
@@ -20602,7 +20613,7 @@
       "contributor": null,
       "rationale": "Missing benefits are denied or escalated. External airline research informed UX only and did not become compensation rules. Delay bands are independent thresholds; no next-available inventory is invented.",
       "community": 12,
-      "community_name": "Policy Engine",
+      "community_name": "Context-First Loop",
       "norm_label": "unknown = allowed",
       "_origin": "semantic",
       "id": "readme_unknown_not_allowed"
@@ -20616,8 +20627,8 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 89,
-      "community_name": "ElasticsearchOrJSON",
+      "community": 84,
+      "community_name": "Optional Elasticsearch Knowledge Base",
       "norm_label": "optional elasticsearch knowledge base",
       "_origin": "semantic",
       "id": "readme_elasticsearch"
@@ -20632,8 +20643,8 @@
       "author": null,
       "contributor": null,
       "rationale": "Without Docker, the same JSON data pack is used instead of Elasticsearch.",
-      "community": 89,
-      "community_name": "ElasticsearchOrJSON",
+      "community": 84,
+      "community_name": "Optional Elasticsearch Knowledge Base",
       "norm_label": "json data pack fallback",
       "_origin": "semantic",
       "id": "readme_json_data_pack_fallback"
@@ -20664,8 +20675,8 @@
       "author": null,
       "contributor": null,
       "rationale": "Deterministic rules in backend/policy/engine.py. Delay bands are independent thresholds so lounge still applies at 6 hours. \u20b9500 is stated only for delays under 3 hours.",
-      "community": 12,
-      "community_name": "Policy Engine",
+      "community": 18,
+      "community_name": "PolicyEngine",
       "norm_label": "policy engine",
       "_origin": "semantic",
       "id": "readme_policy_engine"
@@ -20679,8 +20690,8 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 89,
-      "community_name": "ElasticsearchOrJSON",
+      "community": 84,
+      "community_name": "Optional Elasticsearch Knowledge Base",
       "norm_label": "knowledge base store",
       "_origin": "semantic",
       "id": "readme_kb_store"
@@ -20709,7 +20720,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 10,
       "community_name": "AeroResolve",
       "norm_label": "fastapi",
       "_origin": "semantic",
@@ -20724,7 +20735,7 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
+      "community": 10,
       "community_name": "AeroResolve",
       "norm_label": "uvicorn",
       "_origin": "semantic",
@@ -20739,8 +20750,8 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 89,
-      "community_name": "ElasticsearchOrJSON",
+      "community": 84,
+      "community_name": "Optional Elasticsearch Knowledge Base",
       "norm_label": "elasticsearch python client",
       "_origin": "semantic",
       "id": "backend_requirements_elasticsearch"
@@ -20769,8 +20780,8 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 12,
-      "community_name": "Policy Engine",
+      "community": 18,
+      "community_name": "PolicyEngine",
       "norm_label": "pytest",
       "_origin": "semantic",
       "id": "backend_requirements_pytest"
@@ -20785,8 +20796,8 @@
       "author": null,
       "contributor": null,
       "rationale": "Single-node Elasticsearch 8.14.3 with security disabled, exposed on 9200, for the optional passenger knowledge base.",
-      "community": 89,
-      "community_name": "ElasticsearchOrJSON",
+      "community": 84,
+      "community_name": "Optional Elasticsearch Knowledge Base",
       "norm_label": "elasticsearch service",
       "_origin": "semantic",
       "id": "docker_compose_elasticsearch"
@@ -20801,8 +20812,8 @@
       "author": null,
       "contributor": null,
       "rationale": "Customer message is retrieved for this passenger only, intent is extracted, policy is decided in code, then a context packet drives the reply, UI panel, knowledge base, and optional escalation.",
-      "community": 84,
-      "community_name": "AeroResolve",
+      "community": 12,
+      "community_name": "Context-First Loop",
       "norm_label": "context-first loop",
       "_origin": "semantic",
       "id": "docs_architecture_context_first_loop"
@@ -20939,8 +20950,8 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 18,
-      "community_name": "PolicyEngine",
+      "community": 89,
+      "community_name": "ElasticsearchOrJSON",
       "norm_label": "escalationpacket",
       "_origin": "semantic",
       "id": "docs_architecture_escalation_packet"
@@ -20954,8 +20965,8 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community": 89,
+      "community_name": "ElasticsearchOrJSON",
       "norm_label": "managerdesk",
       "_origin": "semantic",
       "id": "docs_architecture_manager_desk"
@@ -20970,8 +20981,8 @@
       "author": null,
       "contributor": null,
       "rationale": "Domain-tuned reasoning grounded in your data and policies, with human escalation and an auditable record. Split exists so the LLM cannot reinterpret other passengers or raw policy.",
-      "community": 84,
-      "community_name": "AeroResolve",
+      "community": 18,
+      "community_name": "PolicyEngine",
       "norm_label": "aionos-style constraint",
       "_origin": "semantic",
       "id": "docs_architecture_aionos_constraint"
@@ -21107,8 +21118,8 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 18,
-      "community_name": "PolicyEngine",
+      "community": 89,
+      "community_name": "ElasticsearchOrJSON",
       "norm_label": "escalate",
       "_origin": "semantic",
       "id": "docs_architecture_escalate"
@@ -21124,7 +21135,7 @@
       "contributor": null,
       "rationale": "Do not start with architecture. Start with a passenger. Frame as a resolution desk, not a chatbot wrapper.",
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "15-minute live demo",
       "_origin": "semantic",
       "id": "docs_demo_script_live_demo"
@@ -21139,7 +21150,7 @@
       "author": null,
       "contributor": null,
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "meher chip demo",
       "_origin": "semantic",
       "id": "docs_demo_script_meher_chip"
@@ -21155,7 +21166,7 @@
       "contributor": null,
       "rationale": "Hotel denied at 4 hours. The system does not invent a hotel because he is missing a meeting.",
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "arvind chip demo",
       "_origin": "semantic",
       "id": "docs_demo_script_arvind_chip"
@@ -21170,7 +21181,7 @@
       "author": null,
       "contributor": null,
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "priya chip demo",
       "_origin": "semantic",
       "id": "docs_demo_script_priya_chip"
@@ -21186,7 +21197,7 @@
       "contributor": null,
       "rationale": "Human backup does not start from zero: packet, transcript, and graph edges are already present.",
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "manager desk demo",
       "_origin": "semantic",
       "id": "docs_demo_script_manager_desk"
@@ -21217,7 +21228,7 @@
       "contributor": null,
       "rationale": "If Elasticsearch is down, JSON fallback is used; policies stay in code; unknown benefits fail closed.",
       "community": 12,
-      "community_name": "Policy Engine",
+      "community_name": "Context-First Loop",
       "norm_label": "fail closed on unknown benefits",
       "_origin": "semantic",
       "id": "docs_demo_script_fail_closed"
@@ -21232,7 +21243,7 @@
       "author": null,
       "contributor": null,
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "drive video plan",
       "_origin": "semantic",
       "id": "docs_demo_script_drive_video"
@@ -21247,7 +21258,7 @@
       "author": null,
       "contributor": null,
       "community": 12,
-      "community_name": "Policy Engine",
+      "community_name": "Context-First Loop",
       "norm_label": "passenger forced to become policy expert",
       "_origin": "semantic",
       "id": "docs_ppt_outline_problem"
@@ -21263,7 +21274,7 @@
       "contributor": null,
       "rationale": "Status-quo journey is uncertainty \u2192 queue \u2192 retell \u2192 negotiate \u2192 wait. AeroResolve compresses to identify \u2192 options \u2192 authorized action or human packet.",
       "community": 12,
-      "community_name": "Policy Engine",
+      "community_name": "Context-First Loop",
       "norm_label": "journey compression",
       "_origin": "semantic",
       "id": "docs_ppt_outline_journey_compression"
@@ -21279,7 +21290,7 @@
       "contributor": null,
       "rationale": "Chat is the front door. The product is the authority pipeline. Unknown \u2260 allowed.",
       "community": 12,
-      "community_name": "Policy Engine",
+      "community_name": "Context-First Loop",
       "norm_label": "understand ground decide act escalate audit",
       "_origin": "semantic",
       "id": "docs_ppt_outline_product_principle"
@@ -21309,8 +21320,8 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 84,
-      "community_name": "AeroResolve",
+      "community": 12,
+      "community_name": "Context-First Loop",
       "norm_label": "architecture slide",
       "_origin": "semantic",
       "id": "docs_ppt_outline_architecture"
@@ -21325,7 +21336,7 @@
       "author": null,
       "contributor": null,
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "priya scenario slide",
       "_origin": "semantic",
       "id": "docs_ppt_outline_priya_scenario"
@@ -21341,7 +21352,7 @@
       "contributor": null,
       "rationale": "Frustration does not create an exception.",
       "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community_name": "AeroResolve",
       "norm_label": "arvind scenario slide",
       "_origin": "semantic",
       "id": "docs_ppt_outline_arvind_scenario"
@@ -21355,8 +21366,8 @@
       "captured_at": null,
       "author": null,
       "contributor": null,
-      "community": 10,
-      "community_name": "15-Minute Live Demo",
+      "community": 89,
+      "community_name": "ElasticsearchOrJSON",
       "norm_label": "meher scenario and manager desk slide",
       "_origin": "semantic",
       "id": "docs_ppt_outline_meher_scenario"
@@ -21371,7 +21382,7 @@
       "author": null,
       "contributor": null,
       "community": 12,
-      "community_name": "Policy Engine",
+      "community_name": "Context-First Loop",
       "norm_label": "unknown = allowed",
       "_origin": "semantic",
       "id": "docs_ppt_outline_unknown_not_allowed"
@@ -21387,7 +21398,7 @@
       "contributor": null,
       "rationale": "Data pack only. Simulated actions. Cursor used for build; policy tests prove the model does not own decisions.",
       "community": 12,
-      "community_name": "Policy Engine",
+      "community_name": "Context-First Loop",
       "norm_label": "limits and tools",
       "_origin": "semantic",
       "id": "docs_ppt_outline_limits_and_tools"
@@ -71311,6 +71322,17 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend/components/sign-in.tsx",
+      "source_location": "L16",
+      "weight": 1.0,
+      "_origin": "ast",
+      "source": "frontend_components_sign_in",
+      "target": "frontend_components_sign_in_demo_accounts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "frontend/components/sign-in.tsx",
       "source_location": "L14",
       "weight": 1.0,
       "_origin": "ast",
@@ -71322,7 +71344,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend/components/sign-in.tsx",
-      "source_location": "L181",
+      "source_location": "L243",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_sign_in",
@@ -71333,7 +71355,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "frontend/components/sign-in.tsx",
-      "source_location": "L16",
+      "source_location": "L47",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_sign_in",
@@ -71490,7 +71512,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/sign-in.tsx",
-      "source_location": "L37",
+      "source_location": "L68",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_sign_in_signin",
@@ -71502,7 +71524,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/sign-in.tsx",
-      "source_location": "L18",
+      "source_location": "L49",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_sign_in_signin",
@@ -71514,7 +71536,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/sign-in.tsx",
-      "source_location": "L82",
+      "source_location": "L113",
       "weight": 1.0,
       "_origin": "ast",
       "source": "frontend_components_sign_in_signin",
@@ -76659,5 +76681,5 @@
       "source_file": "docs/architecture.md"
     }
   ],
-  "built_at_commit": "b6393181875da5607878f395a9733257d960fcb5"
+  "built_at_commit": "899dd9eee8aa27d252fb3ff1290d2bf6ea9b9ec3"
 }
