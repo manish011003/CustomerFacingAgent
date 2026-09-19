@@ -37,3 +37,15 @@ def score(query: str, *fields: str) -> float:
     if not hits:
         return 0.0
     return round(hits / math.sqrt(len(doc)), 4)
+
+
+def cosine(left: list[float], right: list[float]) -> float:
+    """Cosine similarity of two embedding vectors. 0.0 when either side is empty."""
+    if not left or not right or len(left) != len(right):
+        return 0.0
+    dot = sum(a * b for a, b in zip(left, right))
+    norm_left = math.sqrt(sum(a * a for a in left))
+    norm_right = math.sqrt(sum(b * b for b in right))
+    if not norm_left or not norm_right:
+        return 0.0
+    return round(dot / (norm_left * norm_right), 4)

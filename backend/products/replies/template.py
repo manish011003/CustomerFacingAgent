@@ -37,7 +37,14 @@ OFFER_LABEL = {
 
 class TemplateReplyRenderer(ReplyRenderer):
     def render(self, ctx: CustomerAgentContext, utterance: str) -> str:
-        from agent.closure import ALREADY_ESCALATED, is_greeting, wants_more
+        from agent.closure import (
+            ALREADY_ESCALATED,
+            asks_to_close_case,
+            is_greeting,
+            is_thanks,
+            reopens_resolution,
+            wants_more,
+        )
         from agent.router import missing_slots, parse_notes, SLOT_KEYS
 
         ack = ACKNOWLEDGEMENT.get(ctx.emotion or "")
@@ -57,6 +64,13 @@ class TemplateReplyRenderer(ReplyRenderer):
                 if part
             )
 
+        if is_thanks(utterance):
+            if ctx.session_memory.escalated_to_human:
+                return ALREADY_ESCALATED
+            if ctx.session_memory.resolved_by_customer:
+                return "You're welcome — this case is closed. Safe travels."
+            return "You're welcome! If anything else comes up, I'm here. Safe travels."
+
         if is_greeting(utterance):
             if ctx.session_memory.escalated_to_human:
                 return ALREADY_ESCALATED
@@ -68,6 +82,18 @@ class TemplateReplyRenderer(ReplyRenderer):
                     f"{ctx.booking.delay_hours} hours. What can I help with?"
                 )
             return f"Hi {first} — I'm here. What can I help with?"
+
+        if asks_to_close_case(utterance) and ctx.session_memory.resolved_by_customer:
+            return "All set — case closed. Safe travels!"
+
+        if reopens_resolution(utterance):
+            heard = ack or "I hear you."
+            if ctx.booking:
+                return f"{heard} I've reopened this case. What's still unresolved?"
+            return (
+                f"{heard} I've reopened this case. Tell me what's still wrong "
+                "and I'll stay on it."
+            )
 
         escalating = bool(ev and ev.escalate) or bool(
             any(d.status == DecisionStatus.ESCALATE for d in (ev.decisions if ev else []))

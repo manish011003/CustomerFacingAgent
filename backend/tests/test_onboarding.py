@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from agent.loop import handle_chat, reset_session
 from factories.onboarding_factory import OnboardingFactory
+from kb.store import store
 from models.schemas import BookingIntake, SignupRequest
 from products.onboarding.self_service import SEED_PASSWORD
 
@@ -67,3 +68,24 @@ def test_joined_passenger_without_a_leg_can_still_chat():
     out = handle_chat(sid, "what happened to my flight", customer_id)
     assert out.reply
     assert out.case_status != "error"
+
+
+def test_joiner_token_survives_empty_store():
+    onboarding = OnboardingFactory.create()
+    email = f"join-{uuid4().hex[:8]}@example.com"
+    session = onboarding.signup(
+        SignupRequest(
+            name="Manish Biswas",
+            email=email,
+            phone="+91-9000000001",
+            password="ChooseAStrong1!",
+        )
+    )
+    customer_id = session["passenger"]["id"]
+    store.passengers.pop(customer_id, None)
+    store.accounts.pop(email, None)
+    found = onboarding.current(session["token"])
+    assert found is not None
+    assert found.id == customer_id
+    assert found.name == "Manish Biswas"
+    assert store.identify(customer_id=customer_id) is not None

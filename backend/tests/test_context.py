@@ -1,5 +1,7 @@
+from agent import retrieve
 from agent.context import assemble, packet_for_ui
 from agent.extract import extract
+from agent.planner import expand_scope, plan_retrieval
 from agent.prompts import (
     COMPUTE,
     EXTRACT_FIELDS,
@@ -11,8 +13,10 @@ from agent.prompts import (
     render_respond_prompt,
 )
 from data.loader import load_bookings, load_customers, load_policies
-from models.schemas import SessionMemory
-from policy.engine import evaluate_policy
+from agent.tools import ToolRuntime
+from models.schemas import EscalationReason, ExtractedRequest, RequestType, SessionMemory
+from policy.engine import baseline_for_booking, evaluate_policy
+from policy.ops import CANCELLATION_SOURCE
 
 
 def test_prompt_contracts_name_retrieve_compute_forbid():
@@ -157,3 +161,58 @@ def test_executed_action_appears_in_next_packet():
     assert "meal_voucher" in packet_for_ui(ctx)["executed_actions"]
     prompt = render_respond_prompt(ctx, extraction.raw_text)
     assert "meal_voucher" in prompt or "meal voucher" in prompt.lower()
+
+
+def test_upgrade_on_return_leg_does_not_borrow_outbound_cancellation():
+    """BK-PRIYA-RET is UNAFFECTED. Eligibility must not cite SK-204's cancel."""
+    from kb.store import store
+
+    customers = {c.id: c for c in load_customers()}
+    bookings = {b.id: b for b in load_bookings()}
+    priya = customers["CUST-PRIYA"]
+    returning = bookings["BK-PRIYA-RET"]
+    assert returning.status == "UNAFFECTED"
+    assert returning.flight != "SK-204"
+
+    evaluation = evaluate_policy(
+        priya,
+        returning,
+        [ExtractedRequest(type=RequestType.BUSINESS_UPGRADE)],
+    )
+    upgrade = next(d for d in evaluation.decisions if d.action == "business_upgrade")
+    blob = " ".join(f"{d.action} {d.status.value} {d.reason} {d.source}" for d in evaluation.decisions)
+    assert upgrade.status.value == "ESCALATE"
+    assert upgrade.escalation_reason is EscalationReason.UNKNOWN_ENTITLEMENT
+    assert "Loyalty Tier Rule" in upgrade.source
+    assert "Allowed vs. Prohibited Actions" in upgrade.source
+    assert CANCELLATION_SOURCE not in upgrade.source
+    assert "CANCELLATION_REBOOKING_RULE" not in blob
+    assert "SK-204" not in blob
+
+    session = SessionMemory(session_id="s-ret-upgrade", customer_id="CUST-PRIYA", identified=True)
+    plan = expand_scope(
+        plan_retrieval(
+            extract("I want a free upgrade to business class on my return flight"),
+            session,
+        ),
+        priya,
+        returning,
+    )
+    retrieval = retrieve.run(plan=plan, customer=priya, evaluation=evaluation)
+    cited = {hit.rule_id for hit in retrieval.rules}
+    assert "CANCELLATION_REBOOKING_RULE" not in cited
+    assert "MUST_ESCALATE" in cited or "LOYALTY_TIER_RULE" in cited
+
+    runtime = ToolRuntime(
+        session=session,
+        customer=priya,
+        utterance="free upgrade to business class on my return",
+    )
+    runtime.booking = returning
+    runtime.evaluation = baseline_for_booking(priya, returning)
+    checked = runtime.check_eligibility("business_upgrade")
+    assert checked["status"] == "ESCALATE"
+    assert checked["escalation_reason"] == EscalationReason.UNKNOWN_ENTITLEMENT.value
+    assert CANCELLATION_SOURCE not in (checked.get("source") or "")
+    assert "SK-204" not in str(checked)
+    assert store.affected_booking(priya.id).id == "BK-PRIYA-OUT"

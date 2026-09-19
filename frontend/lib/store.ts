@@ -171,6 +171,19 @@ export const useConversation = create<State>()(
               : state.csatDismissed,
           }));
         } catch (error) {
+          if (error instanceof ApiError && error.status === 401) {
+            set({
+              sending: false,
+              token: null,
+              passenger: null,
+              sessionId: null,
+              turns: [],
+              booking: null,
+              packet: null,
+              authError: "Please sign in again.",
+            });
+            return;
+          }
           set((state) => ({
             sending: false,
             turns: [

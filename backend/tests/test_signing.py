@@ -11,6 +11,18 @@ def test_signed_passenger_token_resolves_in_a_new_process():
     assert InMemoryTokenSession().resolve(sign("staff:STAFF-OPS")) is None
 
 
+def test_signed_token_carries_passenger_claims():
+    token = InMemoryTokenSession().issue(
+        "CUST-JOIN",
+        claims={"name": "Manish Biswas", "email": "manish@example.com", "loyalty_tier": "Standard"},
+    )
+    other = InMemoryTokenSession()
+    assert other.resolve(token) == "CUST-JOIN"
+    claims = other.claims(token)
+    assert claims["name"] == "Manish Biswas"
+    assert claims["email"] == "manish@example.com"
+
+
 def test_signed_staff_token_resolves_in_a_new_process():
     token = StaffAccess().login(DEFAULT_STAFF_EMAIL, DEFAULT_STAFF_PASSWORD)["token"]
     assert StaffAccess().current(token)["role"] == "staff"

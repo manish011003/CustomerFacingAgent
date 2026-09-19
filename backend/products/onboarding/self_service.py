@@ -13,6 +13,37 @@ from products.onboarding.base import PassengerOnboarding
 SEED_PASSWORD = "Aero2026!"
 
 
+def _token_claims(customer: Customer) -> dict[str, str]:
+    return {
+        "name": customer.name,
+        "email": customer.email,
+        "loyalty_tier": customer.loyalty_tier,
+        "pnr": customer.pnr or "",
+        "phone": customer.phone or "",
+        "account_origin": customer.account_origin,
+    }
+
+
+def _customer_from_claims(claims: dict[str, Any] | None) -> Customer | None:
+    if not claims or not claims.get("id"):
+        return None
+    origin = claims.get("account_origin")
+    if origin not in {"seeded", "self_service"}:
+        origin = "self_service"
+    try:
+        return Customer(
+            id=claims["id"],
+            name=claims.get("name") or "Passenger",
+            loyalty_tier=claims.get("loyalty_tier") or "Standard",
+            pnr=claims.get("pnr") or "",
+            email=claims.get("email") or f"{str(claims['id']).lower()}@passenger.local",
+            phone=claims.get("phone") or "",
+            account_origin=origin,
+        )
+    except Exception:
+        return None
+
+
 class PassengerSelfServiceOnboarding(PassengerOnboarding):
     def __init__(self, store: PassengerKnowledgeStore, hasher: CredentialHasher, sessions: AuthSession) -> None:
         self._store = store
@@ -56,21 +87,29 @@ class PassengerSelfServiceOnboarding(PassengerOnboarding):
                 ),
             )
             customer = self._store.identify(customer_id=customer_id) or customer
-        token = self._sessions.issue(customer_id)
+        token = self._sessions.issue(customer_id, claims=_token_claims(customer))
         return {"token": token, "passenger": self._store.public_passenger(customer_id)}
 
     def login(self, email: str, password: str) -> dict[str, Any]:
         account = self._store.account_for_email(email)
         if not account or not self._hasher.verify(password, account["password_hash"]):
             raise ValueError("Email or password is incorrect.")
-        token = self._sessions.issue(account["customer_id"])
+        customer = self._store.identify(customer_id=account["customer_id"])
+        token = self._sessions.issue(account["customer_id"], claims=_token_claims(customer) if customer else None)
         return {"token": token, "passenger": self._store.public_passenger(account["customer_id"])}
 
     def current(self, token: str | None) -> Customer | None:
-        customer_id = self._sessions.resolve(token)
+        claims = self._sessions.claims(token)
+        customer_id = (claims or {}).get("id") or self._sessions.resolve(token)
         if not customer_id:
             return None
-        return self._store.identify(customer_id=customer_id)
+        found = self._store.identify(customer_id=customer_id)
+        if found:
+            return found
+        hydrated = _customer_from_claims(claims)
+        if hydrated:
+            self._store.remember_passenger(hydrated)
+        return hydrated
 
     def sign_out(self, token: str | None) -> None:
         self._sessions.revoke(token)

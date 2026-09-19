@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from dotenv import load_dotenv
 
 from products.knowledge.base import PassengerKnowledgeStore
@@ -29,6 +31,9 @@ class KnowledgeStoreFactory:
                     return PostgresKnowledgeStore()
                 except Exception:
                     pass
+            # Render sets RENDER=true. Do not probe the local Elasticsearch default there.
+            if os.getenv("RENDER") and not (os.getenv("ELASTICSEARCH_URL") or "").strip():
+                return JsonKnowledgeStore()
             try:
                 return ElasticsearchKnowledgeStore()
             except Exception:

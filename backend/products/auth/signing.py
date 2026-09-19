@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import hmac
+import json
 import os
 
 _PREFIX = "v1"
@@ -40,3 +41,23 @@ def verify(token: str | None) -> str | None:
         return base64.urlsafe_b64decode(payload + pad).decode()
     except Exception:
         return None
+
+
+def sign_claims(claims: dict) -> str:
+    return sign(json.dumps(claims, separators=(",", ":"), sort_keys=True))
+
+
+def read_claims(token: str | None) -> dict | None:
+    """Passenger claims, or `{id}` for the first signed tokens that carried only an id."""
+    subject = verify(token)
+    if not subject or subject.startswith("staff:"):
+        return None
+    if subject.startswith("{"):
+        try:
+            data = json.loads(subject)
+        except json.JSONDecodeError:
+            return None
+        if isinstance(data, dict) and data.get("id"):
+            return data
+        return None
+    return {"id": subject}

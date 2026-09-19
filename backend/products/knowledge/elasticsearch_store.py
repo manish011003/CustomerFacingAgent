@@ -3,14 +3,15 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from embeddings.client import EMBEDDING_DIMENSIONS
 from models.schemas import Customer, KnownFact, RuleHit, StyleHit, TurnHit
 from products.knowledge.base import PassengerKnowledgeStore
 
 # Indices that later turns query. Dual-write without a refresh leaves those
 # documents invisible to the next search, so isolation-by-filter would be a
 # claim the tests could not actually exercise.
-SEARCHABLE = frozenset({"passengers", "events", "policy_rules", "style_samples", "memories"})
-INDEXED = SEARCHABLE | frozenset({"bookings", "cases", "graph_edges", "sessions"})
+SEARCHABLE = frozenset({"passengers", "events", "policy_rules", "style_samples", "memories", "kb_entries"})
+INDEXED = SEARCHABLE | frozenset({"bookings", "cases", "graph_edges", "sessions", "kb_pending_entries"})
 
 
 class ElasticsearchKnowledgeStore(PassengerKnowledgeStore):
@@ -43,25 +44,47 @@ class ElasticsearchKnowledgeStore(PassengerKnowledgeStore):
             # `category` and `low_confidence` carry the frustration observation.
             # Mapped explicitly so the confidence gate stays filterable instead
             # of depending on whatever the first document made dynamic.
-            "events": {"mappings": {"properties": {"session_id": {"type": "keyword"}, "customer_id": {"type": "keyword"}, "ts": {"type": "date"}, "kind": {"type": "keyword"}, "message": {"type": "text"}, "reply": {"type": "text"}, "category": {"type": "keyword"}, "low_confidence": {"type": "boolean"}}}},
+            "events": {"mappings": {"properties": {"session_id": {"type": "keyword"}, "customer_id": {"type": "keyword"}, "ts": {"type": "date"}, "kind": {"type": "keyword"}, "message": {"type": "text"}, "reply": {"type": "text"}, "category": {"type": "keyword"}, "low_confidence": {"type": "boolean"}, "embedding": {"type": "dense_vector", "dims": EMBEDDING_DIMENSIONS, "index": True, "similarity": "cosine"}}}},
             "cases": {"mappings": {"properties": {"id": {"type": "keyword"}, "status": {"type": "keyword"}}}},
             "graph_edges": {"mappings": {"properties": {"from_id": {"type": "keyword"}, "to_id": {"type": "keyword"}, "rel": {"type": "keyword"}, "low_confidence": {"type": "boolean"}}}},
             "policy_rules": {"mappings": {"properties": {"clause_id": {"type": "keyword"}, "rule_id": {"type": "keyword"}, "kind": {"type": "keyword"}, "title": {"type": "text"}, "text": {"type": "text"}}}},
             "style_samples": {"mappings": {"properties": {"id": {"type": "keyword"}, "customer": {"type": "text"}, "agent": {"type": "text"}}}},
             "memories": {"mappings": {"properties": {"customer_id": {"type": "keyword"}, "fact": {"type": "text"}, "ts": {"type": "date"}}}},
+            "kb_entries": {"mappings": {"properties": {"id": {"type": "keyword"}, "status": {"type": "keyword"}, "message": {"type": "text"}, "phrasing": {"type": "text"}, "embedding": {"type": "dense_vector", "dims": EMBEDDING_DIMENSIONS, "index": True, "similarity": "cosine"}}}},
+            "kb_pending_entries": {"mappings": {"properties": {"id": {"type": "keyword"}, "status": {"type": "keyword"}, "message": {"type": "text"}}}},
         }
         for name, body in mappings.items():
             if not self._es.indices.exists(index=name):
                 self._es.indices.create(index=name, mappings=body["mappings"])
+        try:
+            self._es.indices.put_mapping(
+                index="kb_entries",
+                properties={
+                    "embedding": {
+                        "type": "dense_vector",
+                        "dims": EMBEDDING_DIMENSIONS,
+                        "index": True,
+                        "similarity": "cosine",
+                    },
+                    "status": {"type": "keyword"},
+                },
+            )
+        except Exception:
+            pass
 
     def _persist(self, index: str, doc_id: str, document: dict[str, Any]) -> None:
         if index not in INDEXED:
             return
+        payload = document
+        if index == "kb_entries":
+            vector = document.get("embedding")
+            if vector is not None:
+                payload = {**document, "embedding": vector}
         try:
             self._es.index(
                 index=index,
                 id=doc_id,
-                document=document,
+                document=payload,
                 refresh=index in SEARCHABLE,
             )
         except Exception:
@@ -230,3 +253,54 @@ class ElasticsearchKnowledgeStore(PassengerKnowledgeStore):
         except Exception:
             pass
         return super().known_facts(customer_id, k=k)
+
+    def semantic_search(self, text: str, k: int, min_score: float) -> list[TurnHit]:
+        embedder = self._embedding_client()
+        query = embedder.embed(text) if embedder.enabled else None
+        if not query:
+            return []
+        if not self.kb_entries:
+            return []
+        try:
+            response = self._es.search(
+                index="kb_entries",
+                size=k,
+                knn={
+                    "field": "embedding",
+                    "query_vector": query,
+                    "k": k,
+                    "num_candidates": max(100, k * 10),
+                    "filter": {
+                        "bool": {
+                            "filter": [
+                                {"term": {"status": "approved"}},
+                            ]
+                        }
+                    },
+                },
+                source=["id", "ts", "message", "phrasing", "reply"],
+            )
+            hits: list[TurnHit] = []
+            for row in response["hits"]["hits"]:
+                # ES cosine _score is (1 + cosine) / 2. Recover cosine so
+                # TurnHit.score matches the pgvector / numpy path.
+                cosine = (2.0 * float(row.get("_score") or 0.0)) - 1.0
+                if cosine < min_score:
+                    continue
+                source = row.get("_source") or {}
+                hits.append(
+                    TurnHit(
+                        id=source.get("id") or "",
+                        ts=source.get("ts") or "",
+                        message=source.get("message") or "",
+                        reply=source.get("phrasing") or source.get("reply") or "",
+                        score=round(cosine, 4),
+                    )
+                )
+            if hits:
+                return hits[:k]
+        except Exception:
+            pass
+        from products.knowledge.json_store import JsonKnowledgeStore
+
+        return JsonKnowledgeStore.semantic_search(self, text, k, min_score)

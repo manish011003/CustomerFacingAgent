@@ -344,6 +344,18 @@ def test_extract_call_is_token_capped_and_asks_for_json():
     assert sdk.requests[0]["response_format"] == {"type": "json_object"}
 
 
+def test_frustration_call_is_json_at_temperature_zero():
+    sdk = StubSdk(text="{}")
+    client = client_with(sdk)
+    client.chat(
+        purpose="frustration",
+        messages=[{"role": "user", "content": "this is ridiculous"}],
+        json_mode=True,
+    )
+    assert sdk.requests[0]["temperature"] == 0
+    assert sdk.requests[0]["response_format"] == {"type": "json_object"}
+
+
 # --- ceilings degrade, they do not raise -----------------------------------
 
 

@@ -1,3 +1,6 @@
+# Blueprint: one Docker web service, passenger + ops + API on one origin.
+# Postgres is optional. Attach a Render Postgres instance in the dashboard
+# and set DATABASE_URL to its Internal Database URL. Unset, the JSON pack loads.
 services:
   - type: web
     name: aeroresolve
@@ -7,9 +10,15 @@ services:
     envVars:
       - key: LLM_PROVIDER
         value: groq
+      - key: AERORESOLVE_KB
+        value: auto
       - key: GROQ_API_KEY
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      - key: OPENAI_API_KEY
+        sync: false
       - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
         sync: false

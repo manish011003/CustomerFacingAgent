@@ -228,7 +228,7 @@ class LlmClient:
                 "model": model,
                 "messages": messages,
                 "max_tokens": self._config.max_tokens_for(purpose),
-                "temperature": 0 if purpose == "extract" else 0.2,
+                "temperature": 0 if purpose in {"extract", "frustration"} else 0.2,
             }
             if json_mode:
                 request["response_format"] = {"type": "json_object"}

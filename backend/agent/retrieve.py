@@ -1,6 +1,31 @@
 from __future__ import annotations
 
+import re
+
 from models.schemas import Customer, PolicyEvaluation, Retrieval, RetrievalPlan
+
+# Style samples (and reused KB phrasing) are tone only. Amounts, PNRs, and
+# flight numbers belong to some other passenger's story and must not reach
+# the packet as if they were this turn's entitlements.
+_AMOUNT = re.compile(
+    r"₹\s*[0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]+)?|"
+    r"(?:rs\.?|inr)\s*[0-9]{1,3}(?:,[0-9]{3})*|"
+    r"[0-9]{1,3}(?:,[0-9]{3})+\s*(?:inr|rupees?|rs\.?)|"
+    r"\b[0-9]{3,}\s*(?:inr|rupees?)\b",
+    re.I,
+)
+_PNR_LABEL = re.compile(r"\bPNR\s+[A-Z0-9]{5,8}\b", re.I)
+_PNR = re.compile(r"\b[A-Z]{2,3}\d{3,5}[A-Z]\b|\b[A-Z]{2}\d{4,5}\b")
+_FLIGHT = re.compile(r"\b(?:flight\s+)?[A-Z]{2,3}-\d{2,4}\b", re.I)
+
+
+def strip_style_identifiers(text: str) -> str:
+    """Remove amounts, PNRs, and flight numbers from a tone sample."""
+    cleaned = _AMOUNT.sub("[amount]", text or "")
+    cleaned = _PNR_LABEL.sub("[PNR]", cleaned)
+    cleaned = _PNR.sub("[PNR]", cleaned)
+    cleaned = _FLIGHT.sub("[flight]", cleaned)
+    return re.sub(r"\s{2,}", " ", cleaned).strip()
 
 
 def run(
@@ -69,7 +94,11 @@ def run(
 
     if plan.need_style:
         style = store.search_style(plan.query, k=1)
-        retrieval.style = style[0] if style else None
+        if style:
+            hit = style[0]
+            hit.agent = strip_style_identifiers(hit.agent)
+            hit.customer = strip_style_identifiers(hit.customer)
+            retrieval.style = hit
         retrieval.queries.append(
             {"index": "style_samples", "hits": 1 if retrieval.style else 0}
         )

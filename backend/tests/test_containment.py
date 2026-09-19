@@ -241,6 +241,24 @@ def test_containment_rate_is_contained_over_measured():
     assert report["containment_rate"] == 0.75
 
 
+def test_one_turn_can_count_in_both_authority_and_distress_buckets():
+    """The two counters are independent slices, not a partition of turns."""
+    kb = fresh_store()
+    kb.append_event(
+        measured_turn(
+            contained=False,
+            escalation_reasons=[
+                EscalationReason.UNKNOWN_ENTITLEMENT.value,
+                EscalationReason.SEVERE_CUSTOMER_DISTRESS.value,
+            ],
+        )
+    )
+    report = kb.containment()
+    assert report["authority_escalations"] == 1
+    assert report["distress_escalations"] == 1
+    assert report["escalated_turns"] == 1
+
+
 def test_escalations_group_by_reason_and_sort_by_frequency():
     kb = fresh_store()
     for _ in range(2):

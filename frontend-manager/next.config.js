@@ -4,6 +4,10 @@ const onVercel = Boolean(process.env.VERCEL);
 const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const nested = exporting || onVercel;
 
+if (nested && !process.env.NEXT_PUBLIC_CUSTOMER_URL) {
+  process.env.NEXT_PUBLIC_CUSTOMER_URL = "/";
+}
+
 const nextConfig = {
   reactStrictMode: true,
   ...(nested ? { basePath: "/ops" } : {}),

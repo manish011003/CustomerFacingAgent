@@ -100,11 +100,13 @@ export const OPS_URL = process.env.NEXT_PUBLIC_OPS_URL || "http://localhost:3001
 
 export function resolveOpsUrl() {
   const base = OPS_URL;
-  if (typeof window === "undefined") return base.replace(/\/$/, "");
+  if (typeof window === "undefined") {
+    return (base.startsWith("/") ? base : "/ops").replace(/\/$/, "") || "/ops";
+  }
   try {
     const url = new URL(base, window.location.origin);
     if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
-      url.hostname = window.location.hostname;
+      return `${window.location.origin}/ops`;
     }
     return url.toString().replace(/\/$/, "");
   } catch {

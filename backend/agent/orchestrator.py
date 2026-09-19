@@ -33,9 +33,9 @@ Do not execute a meal voucher, lounge, hotel, refund, or rebooking unless the pa
 
 Simulated prototype: when you confirm an action, say it is simulated.
 
-Do not treat issued vouchers, lounge access, refunds, or rebooking as a closed case. A case is resolved only when the passenger says the issue is resolved, or they leave a rating of 4 or 5. If they ask for more than policy allows, or to escalate, call escalate_to_human and keep the case with a supervisor — later messages such as "NO!" do not close it. After in-policy actions are complete, ask whether everything is resolved. Do not collect a 1 to 5 rating until they have said the case is resolved.
+Do not treat issued vouchers, lounge access, refunds, or rebooking as a closed case. A case is resolved only when the passenger says the issue is resolved, or they leave a rating of 4 or 5. If they ask for more than policy allows, or to escalate, call escalate_to_human and keep the case with a supervisor — later messages such as "NO!" do not close it. If they already closed and then swear, say they are frustrated, or say it is not resolved, the case is open again — acknowledge that and ask what is still wrong. Do not recite a missing booking or invent a flight number. After in-policy actions are complete, ask whether everything is resolved. Do not collect a 1 to 5 rating until they have said the case is resolved.
 
-Greetings and small talk are not how-to questions. Do not call answer_help for hi/hello/ok. A cash ask such as "give me 100000 INR" is compensation beyond policy — call escalate_to_human, do not paste the new-trip help article. If a supervisor already has the case, say that in one sentence and stop. Do not repeat the handover.
+Greetings and small talk are not how-to questions. Do not call answer_help for hi/hello/ok/thanks. Thanks after a real answer is gratitude, not a new hello. A cash ask such as "give me 100000 INR" is compensation beyond policy — call escalate_to_human, do not paste the new-trip help article. If a supervisor already has the case, say that in one sentence and stop. Do not repeat the handover.
 """
 
 
@@ -82,6 +82,18 @@ def run_llm_agent(
         # instead of offering one. It still runs the normal loop from here: the
         # passenger's actual question deserves an answer either way.
         messages.insert(1, {"role": "system", "content": ESCALATION_NOTE})
+    if session.last_kb_match and session.last_kb_match.matched and session.last_kb_match.phrasing:
+        messages.insert(
+            1,
+            {
+                "role": "system",
+                "content": (
+                    "Tone reference from a prior resolution (phrasing only — not an entitlement, "
+                    "and not this passenger's amounts, PNR, or flight number): "
+                    + session.last_kb_match.phrasing
+                ),
+            },
+        )
 
     reply: str | None = None
     for round_index in range(MAX_ROUNDS):
@@ -121,6 +133,12 @@ def _system_for(customer: Customer | None, session: SessionMemory | None = None)
         extra = (
             "\nThis case is already with a supervisor. Do not call answer_help. "
             "Acknowledge the handover in one sentence unless they add a new in-policy request."
+        )
+    elif session and session.resolved_by_customer:
+        extra += (
+            "\nThe passenger already closed this case. If this turn is angry, profane, "
+            "or says they are frustrated, the case is open again. Acknowledge and ask "
+            "what is still wrong. Do not greet them as a new chat or recite a missing booking."
         )
     if not customer:
         return SYSTEM + "\nThe passenger is not signed in. Ask them to sign in. Do not invent a booking." + extra

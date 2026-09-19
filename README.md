@@ -33,31 +33,28 @@ Exactly two product surfaces, plus one look-only exit:
 
 ## Live demo
 
-Passenger chat and Operations run from one origin. Staff is at `/ops`.
-
-```bash
-npx vercel --prod
-# passenger  https://aeroresolve.vercel.app
-# operations https://aeroresolve.vercel.app/ops
-```
-
-`vercel.json` is a Vercel Services project: passenger Next.js, operations Next.js at `/ops`, and FastAPI at `/api/*`. In the Vercel project set:
-
-- `GROQ_API_KEY` or `GEMINI_API_KEY` — live phrasing; without a key the heuristic path still answers
-- `LLM_PROVIDER=groq` — recommended so a spent Gemini quota does not stall every turn
-- `DATABASE_URL` — optional. Unset, the JSON pack loads (demo accounts work; tokens reset on a cold start)
-
-Health check: `GET /api/health`.
-
-Docker / Render remain available for a long-lived process with Postgres:
+One Docker origin: passenger chat at `/`, operations at `/ops`, API at `/api/*`.
 
 ```bash
 docker compose up --build web
 # http://localhost:8000          passenger
 # http://localhost:8000/ops      operations
+# http://localhost:8000/api/health
 ```
 
-[Deploy to Render](https://render.com/deploy?repo=https://github.com/manish011003/CustomerFacingAgent) (`render.yaml` + `Dockerfile`).
+[Deploy to Render](https://render.com/deploy?repo=https://github.com/manish011003/CustomerFacingAgent) (`render.yaml` + `Dockerfile`). In the Render service set:
+
+- `GROQ_API_KEY` or `GEMINI_API_KEY` — optional. Live phrasing; without a key the heuristic path still answers
+- `LLM_PROVIDER=groq` — recommended so a spent Gemini quota does not stall every turn
+- `DATABASE_URL` — optional. Attach a Render Postgres instance and paste its Internal Database URL. Unset, the JSON pack loads (demo accounts work; tokens reset on a cold start)
+- `AUTH_SECRET` — optional. Signs login tokens. Falls back to `STAFF_PASSWORD`, then a built-in demo secret
+- `OPENAI_API_KEY` — optional. Needed only for embedding / semantic reuse of prior resolutions
+
+Do not set `NEXT_PUBLIC_API_URL` on Render. The image already talks to `/api` on the same origin.
+
+Health check: `GET /api/health`.
+
+Vercel remains available (`npx vercel --prod`, `vercel.json`) if you want a serverless origin instead.
 
 ## Run locally
 

@@ -6,9 +6,11 @@ legal/formal threat regex and the tone buckets previously copied into both
 deterministic frustration classifier.
 
 `classify()` is pure: same utterance and same prior turns produce the same
-category, confidence and signal order, with no model call and no clock. That is
-what lets the fallback path (zero LLM key) and the orchestrator path write to
-one schema, so nothing downstream has to branch on `agent_mode`.
+category, confidence and signal order, with no model call and no clock.
+`classify_llm()` asks a model for the same schema when a live client is
+present. That is what lets the fallback path (zero LLM key) and the
+orchestrator path write to one schema, so nothing downstream has to branch
+on `agent_mode`.
 
 Nothing here decides eligibility. The output can change tone, ordering, and
 whether a supervisor is brought in. It cannot grant, deny, or override anything
@@ -17,9 +19,11 @@ whether a supervisor is brought in. It cannot grant, deny, or override anything
 
 from __future__ import annotations
 
+import json
 import os
 import re
 
+from llm.client import LlmClient
 from models.schemas import FrustrationAssessment, FrustrationCategory, SessionMemory
 
 # The one copy of the legal/formal detector. `tools.py` and the heuristic
@@ -43,10 +47,13 @@ CONFUSED = re.compile(
 
 COMPLAINT = re.compile(
     r"\b(unacceptable|appalling|disgraceful|outrageous|ridiculous|pathetic|useless"
-    r"|worst|terrible|awful|incompeten\w*|disgusted|fed up|sick of)\b",
+    r"|worst|terrible|awful|incompeten\w*|disgusted|fed up|sick of|frustrated|upset)\b",
     re.I,
 )
-PROFANITY = re.compile(r"\b(damn|damn\w+|hell|bloody|crap|bullshit|wtf)\b", re.I)
+PROFANITY = re.compile(
+    r"\b(damn|damn\w+|hell|bloody|crap|bullshit|wtf|fuck(?:ing|ed|er)?|shit|asshole|piss(?:ed)?)\b",
+    re.I,
+)
 ABANDONMENT = re.compile(
     r"(never fly\w*|never book\w*|never using|cancel my account|close my account"
     r"|switch\w* to|take my business|social media|twitter|tell everyone)",
@@ -57,7 +64,8 @@ ABANDONMENT = re.compile(
 DISTRESS = re.compile(
     r"(stranded|stuck at the airport|no ?where to go|nowhere to go|my (?:child|kid|baby|son|daughter)"
     r"|medical|medicine|insulin|wheelchair|elderly|pregnan\w*|funeral|hospital"
-    r"|crying|desperate|please help|help me|scared|panic\w*|can'?t afford|no money)",
+    r"|crying|desperate|(?:please help|help me)(?!\s+(?:book|check|with|plan))"
+    r"|scared|panic\w*|can'?t afford|no money)",
     re.I,
 )
 HELPLESS = re.compile(
@@ -125,6 +133,7 @@ CAPS_RATIO = 0.6
 # Read at import so tests can monkeypatch the module attribute directly.
 KB_AUTO_STORE_THRESHOLD = float(os.getenv("KB_AUTO_STORE_THRESHOLD", "0.75"))
 FRUSTRATION_ESCALATION_THRESHOLD = float(os.getenv("FRUSTRATION_ESCALATION_THRESHOLD", "0.85"))
+FRUSTRATION_CLASSIFIER = os.getenv("FRUSTRATION_CLASSIFIER", "auto")
 
 ESCALATING_CATEGORIES = frozenset({FrustrationCategory.DISTRESSED, FrustrationCategory.HOSTILE})
 
@@ -138,6 +147,8 @@ def detect_emotion(message: str) -> str | None:
     supervisor handover.
     """
     text = message or ""
+    if PROFANITY.search(text):
+        return "angry"
     if ANGRY.search(text):
         return "angry" if ANGRY_STRONG.search(text) else "frustrated"
     if CONFUSED.search(text):
@@ -247,6 +258,28 @@ def _confidence(category: FrustrationCategory, signals: list[str]) -> float:
     return round(min(CONFIDENCE_CEILING, base + bump), 4)
 
 
+CLASSIFY_LLM_SYSTEM = """Assess how this passenger is holding up. Return JSON only.
+
+Weigh these as psychological signals of state, not as keyword matches:
+- swearing or hostile language
+- shouting in caps
+- punctuation escalation (!!, ???)
+- repeating a request already made in this conversation
+- disclosing vulnerability (stranded, a dependent, medical need, no money)
+- legal or formal-complaint language
+
+Return an object with exactly these keys:
+- category: one of neutral, annoyed, frustrated, distressed, hostile
+- confidence: a number from 0 to 1
+- signals: an array drawn only from repeated_request, explicit_complaint, caps_lock, punctuation_escalation, profanity, helplessness, abandonment_threat, vulnerability_disclosed, legal_language
+- escalation_recommended: boolean
+- low_confidence: boolean
+- source: "llm_dynamic"
+
+This assessment is a signal. It cannot grant, deny, or override eligibility.
+"""
+
+
 def classify(
     message: str,
     session: SessionMemory | None = None,
@@ -265,6 +298,74 @@ def classify(
         low_confidence=is_low_confidence(confidence),
         source=source,  # type: ignore[arg-type]
     )
+
+
+def _latest_user(memory: SessionMemory) -> str:
+    for entry in reversed(memory.messages):
+        if entry.get("role") == "user":
+            return entry.get("content") or ""
+    return ""
+
+
+def _classify_llm_user(memory: SessionMemory, message: str) -> str:
+    recent = [
+        f"{entry.get('role')}: {entry.get('content') or ''}"
+        for entry in memory.messages[-12:]
+        if entry.get("role") in {"user", "assistant"}
+    ]
+    transcript = "\n".join(recent) or f"user: {message}"
+    return f"Latest utterance:\n{message}\n\nConversation so far:\n{transcript}"
+
+
+def _assessment_from_llm(data: dict) -> FrustrationAssessment | None:
+    raw_category = str(data.get("category") or "").strip().lower()
+    try:
+        category = FrustrationCategory(raw_category)
+    except ValueError:
+        return None
+    try:
+        confidence = float(data.get("confidence", 0.0))
+    except (TypeError, ValueError):
+        return None
+    confidence = round(min(1.0, max(0.0, confidence)), 4)
+    raw_signals = data.get("signals") if isinstance(data.get("signals"), list) else []
+    found = {str(name) for name in raw_signals if str(name) in SIGNAL_ORDER}
+    signals = [name for name in SIGNAL_ORDER if name in found]
+    return FrustrationAssessment(
+        category=category,
+        confidence=confidence,
+        signals=signals,
+        escalation_recommended=should_escalate(category, confidence),
+        low_confidence=is_low_confidence(confidence),
+        source="llm_dynamic",
+    )
+
+
+def classify_llm(memory: SessionMemory, llm: LlmClient) -> FrustrationAssessment:
+    """Assess one turn via the model. Same schema as classify(); never an authority."""
+    message = _latest_user(memory)
+    mode = str(FRUSTRATION_CLASSIFIER or "auto").strip().lower()
+    if mode == "heuristic":
+        return classify(message, memory)
+    turn = llm.chat(
+        purpose="frustration",
+        messages=[
+            {"role": "system", "content": CLASSIFY_LLM_SYSTEM},
+            {"role": "user", "content": _classify_llm_user(memory, message)},
+        ],
+        session_id=memory.session_id,
+        json_mode=True,
+    )
+    if turn is None:
+        return classify(message, memory)
+    try:
+        data = json.loads(turn.text or "{}")
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return classify(message, memory)
+    if not isinstance(data, dict):
+        return classify(message, memory)
+    assessment = _assessment_from_llm(data)
+    return assessment if assessment is not None else classify(message, memory)
 
 
 def should_escalate(category: FrustrationCategory, confidence: float) -> bool:

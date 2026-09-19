@@ -19,7 +19,8 @@ import pytest
 
 os.environ["AERORESOLVE_KB"] = "json"
 
-from factories import llm_factory
+from factories import embedding_factory, llm_factory
+from factories.embedding_factory import EmbeddingFactory
 from factories.llm_factory import LlmFactory
 from llm.config import PROVIDERS
 
@@ -30,9 +31,14 @@ def no_real_provider_key(monkeypatch):
         monkeypatch.delenv(spec["key_env"], raising=False)
     monkeypatch.delenv("LLM_PROVIDER", raising=False)
     monkeypatch.setattr(llm_factory, "load_dotenv", lambda *args, **kwargs: None)
+    monkeypatch.setattr(embedding_factory, "load_dotenv", lambda *args, **kwargs: None)
+    monkeypatch.delenv("EMBEDDING_PROVIDER", raising=False)
+    monkeypatch.delenv("EMBEDDING_MODEL", raising=False)
     LlmFactory.reset()
+    EmbeddingFactory.reset()
     yield
     LlmFactory.reset()
+    EmbeddingFactory.reset()
 
 
 @pytest.fixture(autouse=True)
@@ -53,4 +59,9 @@ def isolate_passenger_chats():
     for customer_id in list(store.sessions):
         reset_session(f"isolate-{customer_id}", customer_id)
     SESSIONS.clear()
+    store.events.clear()
+    store.graph_edges.clear()
+    store.kb_pending_entries.clear()
+    store.kb_entries.clear()
+    store._embedder = None
     yield

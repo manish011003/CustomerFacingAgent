@@ -301,6 +301,15 @@ class ToolRuntime:
             assessment,
             session_id=self.session.session_id,
             customer_id=self.customer.id if self.customer else None,
+            message=self.utterance,
+        )
+        from agent.kb_match import ground_prior_resolution
+
+        ground_prior_resolution(
+            self.utterance,
+            session=self.session,
+            customer_id=self.customer.id if self.customer else None,
+            assessment=assessment,
         )
         return assessment.payload()
 
@@ -732,5 +741,61 @@ def _accepted(handler: Callable, payload: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in payload.items() if key in names}
 
 
+# Digit groups of three or more — every rupee figure in this domain. The same
+# floor as `_invented_money`'s claimed-side parser, so delay hours and two-digit
+# confidence fragments cannot license a grant.
+_MONEY_DIGITS = re.compile(r"\d[\d,]{2,}")
+
+# json.dumps defaults to ensure_ascii=True, so ₹ becomes the six-character
+# escape \u20b9. The trailing 9 sits flush against the following digits:
+# "₹1500" serialises as "...u20b91500..." and a regex over that dump reads a
+# phantom 91500 that no tool returned. Split on both the escape and the raw
+# glyph so neither form (this codebase's dumps, or ensure_ascii=False later)
+# can fuse with an adjacent amount.
+_RUPEE_BOUNDARY = re.compile(r"(?:\\u20b9|₹)", re.I)
+
+
 def money_in(payload: Any) -> set[str]:
-    return {match.group().replace(",", "") for match in re.finditer(r"\d[\d,]{2,}", json.dumps(payload, default=str))}
+    """Figures a tool (or the passenger) actually stated.
+
+    Walks the payload instead of regexing json.dumps of the whole blob. A dump
+    is what created the 91500 ghost: the default ASCII escape for ₹ has no
+    boundary the digit regex can see. Walking ints/floats/strings also stops
+    key names and JSON delimiters concatenating into a figure.
+    """
+    found: set[str] = set()
+    _collect_money(payload, found)
+    return found
+
+
+def _collect_money(value: Any, found: set[str]) -> None:
+    if value is None or isinstance(value, bool):
+        # bool is a subclass of int; True must not become "1".
+        return
+    if isinstance(value, int):
+        if abs(value) >= 100:
+            found.add(str(abs(value)))
+        return
+    if isinstance(value, float):
+        # 0.91 and 0.755 are confidence, not rupees. A whole number that
+        # arrived as a float is still an amount.
+        if value.is_integer() and abs(value) >= 100:
+            found.add(str(abs(int(value))))
+        return
+    if isinstance(value, str):
+        found.update(_money_in_text(value))
+        return
+    if isinstance(value, dict):
+        for item in value.values():
+            _collect_money(item, found)
+        return
+    if isinstance(value, (list, tuple, set)):
+        for item in value:
+            _collect_money(item, found)
+        return
+    _collect_money(str(value), found)
+
+
+def _money_in_text(text: str) -> set[str]:
+    scrubbed = _RUPEE_BOUNDARY.sub(" ", text)
+    return {match.group().replace(",", "") for match in _MONEY_DIGITS.finditer(scrubbed)}

@@ -66,8 +66,15 @@ class HeuristicExtractor(IntentExtractor):
 
         from agent.closure import wants_escalation, wants_more
 
+        # "for the trouble" justifies the upgrade already extracted above. It
+        # must not also mint compensation_beyond_policy — that reason code is
+        # a different data-pack boundary from unknown_entitlement.
         if wants_more(text) or wants_escalation(text, session):
-            if not any(r.type == RequestType.COMPENSATION_BEYOND_POLICY for r in extraction.requests):
+            already = {r.type for r in extraction.requests}
+            if (
+                RequestType.COMPENSATION_BEYOND_POLICY not in already
+                and RequestType.BUSINESS_UPGRADE not in already
+            ):
                 extraction.requests.append(ExtractedRequest(type=RequestType.COMPENSATION_BEYOND_POLICY))
 
         if re.search(r"status|what happened|my flight|cancelled|delayed|where's my", lower) and not extraction.requests:

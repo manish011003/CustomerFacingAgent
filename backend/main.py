@@ -20,7 +20,7 @@ app = FastAPI(title="AeroResolve", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -134,8 +134,17 @@ def me(authorization: str | None = Header(default=None)):
     customer = require_passenger(authorization)
     related = store.bookings_for(customer.id)
     booking = store.affected_booking(customer.id)
+    passenger = store.public_passenger(customer.id) or {
+        "id": customer.id,
+        "name": customer.name,
+        "email": customer.email,
+        "loyalty_tier": customer.loyalty_tier,
+        "pnr": customer.pnr,
+        "phone": customer.phone,
+        "account_origin": customer.account_origin,
+    }
     return {
-        "passenger": store.public_passenger(customer.id),
+        "passenger": passenger,
         "bookings": [b.model_dump() for b in related],
         "affected_booking": booking.model_dump() if booking else None,
         "eligibility": _eligibility(customer, booking),
@@ -253,6 +262,31 @@ def assess(case_id: str, payload: dict, authorization: str | None = Header(defau
     return found
 
 
+@app.get("/api/kb/pending")
+def pending_kb(authorization: str | None = Header(default=None)):
+    """Low-confidence knowledge writes waiting for a supervisor to count or drop."""
+    require_staff(authorization)
+    return store.pending_kb()
+
+
+@app.post("/api/kb/{entry_id}/approve")
+def approve_kb(entry_id: str, authorization: str | None = Header(default=None)):
+    require_staff(authorization)
+    found = store.review_kb(entry_id, "approved")
+    if not found:
+        raise HTTPException(404, "Unknown knowledge entry")
+    return found
+
+
+@app.post("/api/kb/{entry_id}/reject")
+def reject_kb(entry_id: str, authorization: str | None = Header(default=None)):
+    require_staff(authorization)
+    found = store.review_kb(entry_id, "rejected")
+    if not found:
+        raise HTTPException(404, "Unknown knowledge entry")
+    return found
+
+
 @app.get("/api/analytics/summary")
 def analytics(authorization: str | None = Header(default=None)):
     require_staff(authorization)
@@ -264,6 +298,32 @@ def containment(authorization: str | None = Header(default=None)):
     """The headline metric: what share of turns needed no human, and why the rest did."""
     require_staff(authorization)
     return store.containment()
+
+
+@app.post("/api/kb/pending/{entry_id}/approve")
+def approve_pending_kb(entry_id: str, authorization: str | None = Header(default=None)):
+    """Staff only. Embed and index into the corpus semantic_search reads."""
+    require_staff(authorization)
+    try:
+        return store.approve_pending_kb_entry(entry_id)
+    except KeyError as exc:
+        raise HTTPException(404, "Unknown pending entry") from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(503, str(exc)) from exc
+
+
+@app.post("/api/kb/pending/{entry_id}/reject")
+def reject_pending_kb(entry_id: str, authorization: str | None = Header(default=None)):
+    """Staff only. Leave the row pending-store rejected; do not index."""
+    require_staff(authorization)
+    try:
+        return store.reject_pending_kb_entry(entry_id)
+    except KeyError as exc:
+        raise HTTPException(404, "Unknown pending entry") from exc
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @app.get("/api/analytics/frustration")

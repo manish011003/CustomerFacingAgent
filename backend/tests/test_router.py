@@ -89,6 +89,22 @@ def test_cash_ask_is_beyond_policy_not_help():
     assert any(r.type == RequestType.COMPENSATION_BEYOND_POLICY for r in extraction.requests)
 
 
+def test_priya_upgrade_phrasing_is_business_upgrade_not_beyond_policy():
+    """'for the trouble' is a reason-for-ask. The data-pack code is unknown_entitlement."""
+    from agent.closure import wants_more
+
+    line = (
+        "I want a full cash refund and a free upgrade to business class "
+        "on my return flight for the trouble."
+    )
+    assert wants_more(line) is False
+    extraction = HeuristicExtractor().extract(line)
+    types = [r.type for r in extraction.requests]
+    assert RequestType.BUSINESS_UPGRADE in types
+    assert RequestType.REFUND_ORIGINAL in types
+    assert RequestType.COMPENSATION_BEYOND_POLICY not in types
+
+
 def test_classify_helpers():
     assert classify("book me a ticket") == IssueFamily.ASSIST
     assert classify("how do I check in") == IssueFamily.HELP

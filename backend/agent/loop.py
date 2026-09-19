@@ -7,6 +7,7 @@ from agent import closure as case_closure
 from agent import frustration as frustration_detector
 from agent import retrieve
 from agent.context import assemble, packet_for_ui
+from agent.kb_match import ground_prior_resolution
 from agent.orchestrator import run_llm_agent
 from agent.planner import expand_scope, plan_retrieval
 from factories.extractor_factory import ExtractorFactory
@@ -116,6 +117,12 @@ def _trace(step: str, detail: str, status: str = "ok") -> dict:
     return {"step": step, "detail": detail, "status": status}
 
 
+def _kb_match_trace(match) -> dict:
+    if match.matched:
+        return _trace("kb_match", f"reused prior phrasing @ {match.score}")
+    return _trace("kb_match", f"queued pending {match.pending_id}", "pending")
+
+
 def _frustration_trace(assessment: FrustrationAssessment) -> dict:
     """One trace line, identical on both agent paths, so a reviewer can see the
     signal and its confidence without knowing which path ran."""
@@ -202,6 +209,7 @@ def _identify(session: SessionMemory, authenticated_customer_id: str | None, ext
 def handle_chat(session_id: str, message: str, authenticated_customer_id: str | None = None) -> ChatResponse:
     started = time.perf_counter()
     session = get_session(session_id, authenticated_customer_id)
+    session.last_kb_match = None
     session.messages.append({"role": "user", "content": message})
 
     llm = LlmFactory.create()
@@ -254,11 +262,14 @@ def handle_chat(session_id: str, message: str, authenticated_customer_id: str | 
                     kb_backend=store.backend,
                     retrieval=retrieval,
                     frustration=runtime.frustration,
+                    kb_match=session.last_kb_match,
                 )
                 reply = TemplateReplyRenderer().render(ctx, message)
             trace = [_trace("agent", "llm orchestrator" if agent_mode == "llm" else "fallback after tools")]
             if runtime.frustration:
                 trace.append(_frustration_trace(runtime.frustration))
+            if session.last_kb_match:
+                trace.append(_kb_match_trace(session.last_kb_match))
             for event in runtime.trace:
                 trace.append(_trace(event.get("tool", "tool"), event.get("status", "ok"), event.get("status", "ok")))
             if runtime.frustration_escalation:
@@ -322,7 +333,12 @@ def _speak_this_turn(message: str, reply: str, session: SessionMemory, ctx) -> s
     text = reply or ""
     lower = text.lower()
     asked = {request.type.value for request in (getattr(ctx, "requests_this_turn", None) or [])}
-    if case_closure.is_greeting(message) or "booking_assist" in asked:
+    if (
+        case_closure.is_greeting(message)
+        or case_closure.asks_to_close_case(message)
+        or case_closure.reopens_resolution(message)
+        or "booking_assist" in asked
+    ):
         return TemplateReplyRenderer().render(ctx, message)
     if "already on this case" in lower:
         return TemplateReplyRenderer().render(ctx, message)
@@ -350,9 +366,15 @@ def _deterministic_turn(
     session.last_extraction = extraction
     trace.append(_trace("extract", f"{len(extraction.requests)} request(s), legal={extraction.legal_or_formal}"))
 
-    # Same classifier, same schema, no model. This is the whole reason
-    # downstream code never has to ask which agent path produced the signal.
-    assessment = assessed or frustration_detector.classify(message, session)
+    # Same schema on both paths. A live client is the same test that labels
+    # agent_mode; FRUSTRATION_CLASSIFIER can still pin heuristic or llm.
+    # Downstream never asks which path produced the signal.
+    if assessed is not None:
+        assessment = assessed
+    elif llm.enabled:
+        assessment = frustration_detector.classify_llm(session, llm)
+    else:
+        assessment = frustration_detector.classify(message, session)
     session.last_frustration = assessment
     trace.append(_frustration_trace(assessment))
 
@@ -380,7 +402,15 @@ def _deterministic_turn(
             assessment,
             session_id=session.session_id,
             customer_id=customer.id if customer else None,
+            message=message,
         )
+    kb_match = ground_prior_resolution(
+        message,
+        session=session,
+        customer_id=customer.id if customer else None,
+        assessment=assessment,
+    )
+    trace.append(_kb_match_trace(kb_match))
     distress = assessment if assessment.escalation_recommended else None
     if distress:
         trace.append(
@@ -488,6 +518,7 @@ def _deterministic_turn(
         plan=plan,
         retrieval=retrieval,
         frustration=assessment,
+        kb_match=session.last_kb_match,
     )
     trace.append(_trace("context", f"kb={ctx.kb_backend} unidentified={ctx.unidentified} missing={ctx.missing_slots}"))
 
@@ -547,6 +578,7 @@ def _finish(
             kb_backend=store.backend,
             retrieval=retrieval,
             frustration=frustration,
+            kb_match=session.last_kb_match,
         )
 
     # A duty-of-care handover is an escalation with no PolicyDecision behind it,
@@ -579,12 +611,23 @@ def _finish(
 
     escalating = bool(session.escalated_to_human or (evaluation and evaluation.escalate) or distress)
     reply = _speak_this_turn(message, reply, session, ctx)
+    if session.last_kb_match and session.last_kb_match.pending_id:
+        store.update_pending_kb_phrasing(
+            session.last_kb_match.pending_id,
+            retrieve.strip_style_identifiers(reply),
+        )
     ask_feedback = case_closure.should_prompt_feedback(
         session=session, evaluation=evaluation, escalating=escalating
     )
     if ask_feedback and not case_closure.is_greeting(message):
         if not session.awaiting_feedback and not case_closure.already_asked_feedback(reply):
             reply = reply.rstrip() + " " + case_closure.FEEDBACK_PROMPT
+        session.awaiting_feedback = True
+    elif (
+        case_closure.asked_if_resolved(reply)
+        and not session.feedback
+        and not session.escalated_to_human
+    ):
         session.awaiting_feedback = True
     elif session.feedback or session.resolved_by_customer or session.escalated_to_human:
         session.awaiting_feedback = False
@@ -750,9 +793,9 @@ def _apply_passenger_close(session: SessionMemory, message: str) -> dict:
     from products.knowledge.base import ISO
 
     parsed = case_closure.parse_feedback(message, session)
-    if case_closure.wants_escalation(message, session):
+    if case_closure.wants_escalation(message, session) or case_closure.reopens_resolution(message):
         session.resolved_by_customer = False
-    elif case_closure.confirms_resolution(message, session):
+    elif case_closure.confirms_resolution(message, session) or case_closure.thread_declares_resolved(session):
         session.resolved_by_customer = True
     if parsed:
         parsed.ts = parsed.ts or ISO()

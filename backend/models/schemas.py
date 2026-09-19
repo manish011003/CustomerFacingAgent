@@ -165,6 +165,7 @@ class TurnHit(BaseModel):
     message: str = ""
     reply: str = ""
     score: float = 0.0
+    id: str = ""
 
 
 class StyleHit(BaseModel):
@@ -172,6 +173,26 @@ class StyleHit(BaseModel):
     customer: str
     agent: str
     score: float = 0.0
+
+
+class KbHit(BaseModel):
+    """One approved prior resolution, ranked by embedding cosine."""
+
+    id: str
+    message: str = ""
+    phrasing: str = ""
+    score: float = 0.0
+
+
+class KbMatch(BaseModel):
+    """Whether this turn reused a prior resolution or queued one for ops."""
+
+    matched: bool = False
+    score: float = 0.0
+    threshold: float = 0.82
+    phrasing: Optional[str] = None
+    entry_id: Optional[str] = None
+    pending_id: Optional[str] = None
 
 
 class KnownFact(BaseModel):
@@ -234,10 +255,10 @@ class FrustrationAssessment(BaseModel):
     audit fields: they travel to the knowledge store and the ops dashboard, not
     into the model's context.
 
-    `source` records which path invoked the classifier, not how it decided.
-    Both paths run the same deterministic code in `agent/frustration.py`:
-    `llm_tool` means the orchestrating model chose to call the tool this turn,
-    `heuristic` means the fallback turn called it directly.
+    `source` records which path produced the assessment.
+    `heuristic` is the regex floor. `llm_tool` means the orchestrating model
+    called the tool (still the deterministic classifier). `llm_dynamic` means
+    `classify_llm` judged the turn. The schema is the same on every path.
     """
 
     category: FrustrationCategory = FrustrationCategory.NEUTRAL
@@ -245,7 +266,7 @@ class FrustrationAssessment(BaseModel):
     signals: list[str] = Field(default_factory=list)
     escalation_recommended: bool = False
     low_confidence: bool = False
-    source: Literal["heuristic", "llm_tool"] = "heuristic"
+    source: Literal["heuristic", "llm_tool", "llm_dynamic"] = "heuristic"
 
     def payload(self) -> dict[str, Any]:
         """The strict tool schema. Audit fields are deliberately absent."""
@@ -335,6 +356,7 @@ class SessionMemory(BaseModel):
     last_extraction: Optional[Extraction] = None
     last_evaluation: Optional[PolicyEvaluation] = None
     last_frustration: Optional[FrustrationAssessment] = None
+    last_kb_match: Optional[KbMatch] = None
     # What this conversation remembered, shown on the context panel so a reviewer
     # can see the cross-session facts and retrieved earlier turns, not just the
     # live transcript.
@@ -351,6 +373,7 @@ class CustomerAgentContext(BaseModel):
     session_memory: SessionMemory
     emotion: Optional[str] = None
     frustration: Optional[FrustrationAssessment] = None
+    kb_match: Optional[KbMatch] = None
     requests_this_turn: list[ExtractedRequest] = Field(default_factory=list)
     policy_decision: Optional[PolicyEvaluation] = None
     scenario_fixture: Optional[ScenarioFixture] = None

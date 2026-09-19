@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from uuid import uuid4
 
 from agent.loop import handle_chat
-from agent.orchestrator import run_llm_agent
-from agent.tools import ToolRuntime
+from agent.orchestrator import _invented_money, run_llm_agent
+from agent.tools import ToolRuntime, money_in
 from factories.llm_factory import LlmFactory
 from kb.store import store
 from models.schemas import SessionMemory
@@ -153,3 +154,60 @@ def test_agent_chat_sends_tools_to_the_model():
     names = [item["function"]["name"] for item in sdk.requests[0]["tools"]]
     assert "check_eligibility" in names
     assert "escalate_to_human" in names
+
+
+def test_rupee_escape_in_json_dumps_does_not_license_a_phantom_amount():
+    """json.dumps(ensure_ascii=True) writes ₹ as \\u20b9. The 9 used to bleed
+    into the following digits so ₹1500 licensed a hallucinated ₹91,500."""
+    payload = {
+        "ok": True,
+        "action": "fare_waiver",
+        "authority_limit_inr": 1500,
+        "reason": "The agent waiver cap is ₹1500.",
+    }
+    dumped = json.dumps(payload)
+    assert "\\u20b9" in dumped
+    assert "₹" not in dumped
+    assert money_in(dumped) == {"1500"}
+    assert "91500" not in money_in(dumped)
+    assert money_in(payload) == {"1500"}
+
+    runtime = ToolRuntime(
+        session=SessionMemory(session_id="s-ghost-rupee"),
+        customer=store.identify(customer_id="CUST-PRIYA"),
+        utterance="This cancellation has been so frustrating.",
+    )
+    runtime.trace.append({"tool": "check_eligibility", "result": payload})
+
+    assert _invented_money("I've applied a ₹91,500 credit.", runtime) is True
+    assert _invented_money("The agent waiver limit is ₹1500.", runtime) is False
+
+
+def test_frustration_confidence_does_not_flatten_into_a_rupee_figure():
+    """0.91 and 0.15 must stay scores. They must not become 910 / 1500."""
+    high = {
+        "category": "distressed",
+        "confidence": 0.91,
+        "signals": ["helplessness"],
+        "escalation_recommended": True,
+    }
+    low = {**high, "confidence": 0.15, "escalation_recommended": False}
+    assert money_in(high) == set()
+    assert money_in(low) == set()
+    assert "910" not in money_in(high) | money_in(json.dumps(high))
+    assert "1500" not in money_in(low) | money_in(json.dumps(low))
+
+    runtime = ToolRuntime(
+        session=SessionMemory(session_id="s-confidence-not-money"),
+        customer=store.identify(customer_id="CUST-PRIYA"),
+        utterance="I am stranded and nobody is helping me!!",
+    )
+    runtime.trace.append({"tool": "classify_frustration", "result": high})
+    runtime.trace.append(
+        {
+            "tool": "check_eligibility",
+            "result": {"authority_limit_inr": 1500, "reason": "Cap is ₹1500."},
+        }
+    )
+    assert _invented_money("I've credited ₹910.", runtime) is True
+    assert _invented_money("The waiver cap is ₹1500.", runtime) is False

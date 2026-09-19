@@ -11,7 +11,7 @@ class PostgresTokenSession(AuthSession):
 
         connect()
 
-    def issue(self, customer_id: str) -> str:
+    def issue(self, customer_id: str, claims: dict | None = None) -> str:
         from persistence.postgres import connect
 
         token = secrets.token_urlsafe(32)

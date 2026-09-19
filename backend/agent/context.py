@@ -92,6 +92,7 @@ def assemble(
     plan: RetrievalPlan | None = None,
     retrieval: Retrieval | None = None,
     frustration: FrustrationAssessment | None = None,
+    kb_match=None,
 ) -> CustomerAgentContext:
     unidentified = customer is None
     missing = list(evaluation.missing_slots) if evaluation else []
@@ -142,6 +143,7 @@ def assemble(
         session_memory=session,
         emotion=extraction.emotion,
         frustration=frustration,
+        kb_match=kb_match,
         requests_this_turn=extraction.requests,
         policy_decision=evaluation,
         scenario_fixture=fixture,
@@ -180,6 +182,10 @@ def packet_for_ui(ctx: CustomerAgentContext) -> dict:
         "disruption": ctx.disruption,
         "emotion": ctx.emotion,
         "frustration": None if not ctx.frustration else ctx.frustration.model_dump(),
+        "kb_match": None if not ctx.kb_match else ctx.kb_match.model_dump(),
+        "prior_resolution_phrasing": (
+            ctx.kb_match.phrasing if ctx.kb_match and ctx.kb_match.matched else None
+        ),
         "retrieved_facts": ctx.retrieved_facts,
         "requests_this_turn": [r.model_dump() for r in ctx.requests_this_turn],
         "policy_decision": None if not ctx.policy_decision else ctx.policy_decision.model_dump(),
@@ -316,6 +322,10 @@ def narrate(ctx: CustomerAgentContext) -> list[str]:
         lines.append("This case is with a supervisor. Do not treat later messages as a resolution.")
     if ctx.session_memory.resolved_by_customer:
         lines.append("The passenger has said this case is resolved.")
+    elif ctx.frustration and ctx.frustration.category.value not in {"neutral", ""}:
+        lines.append(
+            "The passenger is still unhappy. This case is open — do not treat an earlier close as current."
+        )
     if ctx.session_memory.feedback:
         fb = ctx.session_memory.feedback
         lines.append(
@@ -337,7 +347,13 @@ def render_respond_prompt(ctx: CustomerAgentContext, utterance: str) -> str:
     facts = "\n".join(narrate(ctx))
     tone = ""
     style = ctx.retrieval.style if ctx.retrieval else None
-    if style:
+    prior = ctx.kb_match.phrasing if ctx.kb_match and ctx.kb_match.matched else None
+    if prior:
+        tone = (
+            "\ntone reference (phrasing only — a prior resolution; strip leftover "
+            f"amounts, PNRs, and flight numbers, do not treat as entitlement):\n  {prior}"
+        )
+    elif style:
         # One retrieved sample instead of all three. Sample numbers belong to an
         # unrelated flight, so the grounding rule above has to override them.
         tone = (

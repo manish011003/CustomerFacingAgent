@@ -51,6 +51,13 @@ DDL = (
     """,
 )
 
+# CREATE EXTENSION vector is required (pgvector) for semantic_search.
+# Applied separately so a vanilla Postgres still boots the rest of the schema.
+VECTOR_DDL = (
+    "CREATE EXTENSION IF NOT EXISTS vector",
+    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS embedding vector(1536)",
+)
+
 
 def database_url() -> str | None:
     url = (os.getenv("DATABASE_URL") or "").strip()
@@ -74,6 +81,11 @@ def connect() -> Any:
     conn = psycopg.connect(url, autocommit=True, connect_timeout=5)
     for statement in DDL:
         conn.execute(statement)
+    for statement in VECTOR_DDL:
+        try:
+            conn.execute(statement)
+        except Exception:
+            break
     _local.conn = conn
     return conn
 

@@ -3,6 +3,7 @@ from factories.onboarding_factory import OnboardingFactory
 from factories.policy_factory import PolicyHandlerFactory
 from factories.reply_factory import ReplyFactory
 from factories.extractor_factory import ExtractorFactory
+from factories.embedding_factory import EmbeddingFactory
 from factories.knowledge_factory import KnowledgeStoreFactory
 from models.schemas import RequestType
 from products.extractors.base import IntentExtractor
@@ -31,6 +32,12 @@ def test_policy_factory_returns_handler_interface_for_each_type():
         assert isinstance(product, PolicyHandler)
 
 
+def test_embedding_factory_disabled_is_a_noop():
+    client = EmbeddingFactory.disabled()
+    assert client.enabled is False
+    assert client.embed("anything") is None
+
+
 def test_knowledge_factory_json_product_is_interface_not_elasticsearch():
     product = KnowledgeStoreFactory.create("json")
     assert isinstance(product, PassengerKnowledgeStore)
@@ -46,6 +53,14 @@ def test_knowledge_factory_auto_never_raises_when_es_is_down():
     product = KnowledgeStoreFactory.create("auto")
     assert isinstance(product, PassengerKnowledgeStore)
     assert product.backend in {"json", "elasticsearch", "postgres"}
+
+
+def test_knowledge_factory_auto_skips_local_elasticsearch_on_render(monkeypatch):
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("ELASTICSEARCH_URL", raising=False)
+    monkeypatch.setenv("RENDER", "true")
+    product = KnowledgeStoreFactory.create("auto")
+    assert product.backend == "json"
 
 
 def test_knowledge_factory_postgres_requires_database_url(monkeypatch):

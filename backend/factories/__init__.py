@@ -1,4 +1,5 @@
 from factories.auth_factory import AuthFactory
+from factories.embedding_factory import EmbeddingFactory
 from factories.extractor_factory import ExtractorFactory
 from factories.hasher_factory import HasherFactory
 from factories.knowledge_factory import KnowledgeStoreFactory
@@ -14,6 +15,7 @@ __all__ = [
     "PolicyHandlerFactory",
     "KnowledgeStoreFactory",
     "LlmFactory",
+    "EmbeddingFactory",
     "HasherFactory",
     "AuthFactory",
     "OnboardingFactory",

@@ -60,6 +60,13 @@ def _category_counts(events: list[dict[str, Any]]) -> dict[str, int]:
     return ordered
 
 
+def _message_excerpt(text: str, limit: int = 140) -> str:
+    compact = " ".join((text or "").split())
+    if len(compact) <= limit:
+        return compact
+    return compact[: limit - 1].rstrip() + "…"
+
+
 def _percentile(ordered: list[int], pct: int) -> int | None:
     """Nearest-rank percentile over a pre-sorted list."""
     if not ordered:
@@ -88,6 +95,9 @@ class PassengerKnowledgeStore(ABC):
         # Live chat per passenger. Keyed by customer_id so a new browser session
         # can pick up the same transcript instead of starting empty.
         self.sessions: dict[str, dict[str, Any]] = {}
+        # Approved resolutions semantic_search reads. Pending rows never live here.
+        self.kb_entries: dict[str, dict[str, Any]] = {}
+        self.kb_pending_entries: dict[str, dict[str, Any]] = {}
         self._init_backend()
         self.seed()
 
@@ -176,6 +186,12 @@ class PassengerKnowledgeStore(ABC):
                 }
             )
         return rows
+
+    def remember_passenger(self, customer: Customer) -> None:
+        """Keep a passenger on this process without a password (Vercel isolate hop)."""
+        if customer.id in self.passengers:
+            return
+        self.passengers[customer.id] = customer.model_dump() | {"known_facts": []}
 
     def register_passenger(self, customer: Customer, password_hash: str) -> Customer:
         record = customer.model_dump() | {"known_facts": []}
@@ -312,6 +328,98 @@ class PassengerKnowledgeStore(ABC):
         hits.sort(key=lambda h: (-h.score, h.ts))
         return [h for h in hits if h.score > 0][:k]
 
+    @abstractmethod
+    def semantic_search(self, text: str, k: int, min_score: float) -> list[TurnHit]:
+        """Nearest approved prior resolutions by embedding similarity.
+
+        Reads `kb_entries` only. Pending rows are invisible here. Additive to
+        lexical `recall_turns`. Eligibility still goes through `search_policy`.
+        """
+        raise NotImplementedError
+
+    def queue_pending_kb_entry(self, row: dict[str, Any]) -> dict[str, Any]:
+        """Park an unseen phrasing for ops. Does not embed or index."""
+        entry = {
+            "id": row.get("id") or str(uuid4()),
+            "status": "pending",
+            "message": row.get("message") or "",
+            "phrasing": row.get("phrasing") or "",
+            "customer_id": row.get("customer_id"),
+            "session_id": row.get("session_id"),
+            "frustration_category": row.get("frustration_category"),
+            "ts": row.get("ts") or ISO(),
+        }
+        self.kb_pending_entries[entry["id"]] = entry
+        self._persist("kb_pending_entries", entry["id"], entry)
+        return entry
+
+    def get_pending_kb_entry(self, entry_id: str) -> dict[str, Any] | None:
+        return self.kb_pending_entries.get(entry_id)
+
+    def update_pending_kb_phrasing(self, entry_id: str, phrasing: str) -> dict[str, Any] | None:
+        entry = self.kb_pending_entries.get(entry_id)
+        if not entry or entry.get("status") != "pending":
+            return entry
+        entry["phrasing"] = phrasing
+        self._persist("kb_pending_entries", entry_id, entry)
+        return entry
+
+    def index_kb_entry(self, row: dict[str, Any], embedding: list[float] | None = None) -> dict[str, Any]:
+        """Write one approved resolution into the corpus semantic_search reads."""
+        entry_id = row.get("id") or str(uuid4())
+        phrasing = row.get("phrasing") or row.get("reply") or ""
+        vector = embedding
+        if vector is None:
+            embedder = self._embedding_client()
+            vector = embedder.embed(row.get("message") or "") if embedder.enabled else None
+        entry = {
+            "id": entry_id,
+            "status": "approved",
+            "message": row.get("message") or "",
+            "phrasing": phrasing,
+            "reply": phrasing,
+            "customer_id": row.get("customer_id"),
+            "session_id": row.get("session_id"),
+            "ts": row.get("ts") or ISO(),
+            "embedding": vector,
+        }
+        self.kb_entries[entry_id] = entry
+        self._persist("kb_entries", entry_id, entry)
+        return entry
+
+    def approve_pending_kb_entry(self, entry_id: str) -> dict[str, Any]:
+        """Embed and index. The only write path into the searchable KB."""
+        pending = self.kb_pending_entries.get(entry_id)
+        if not pending:
+            raise KeyError(entry_id)
+        if pending.get("status") != "pending":
+            raise ValueError(f"Entry is not pending ({pending.get('status')})")
+        embedder = self._embedding_client()
+        vector = embedder.embed(pending.get("message") or "") if embedder.enabled else None
+        if not vector:
+            raise RuntimeError("Embedding unavailable — approve cannot index without a vector")
+        pending["status"] = "approved"
+        self._persist("kb_pending_entries", entry_id, pending)
+        return self.index_kb_entry(pending, vector)
+
+    def reject_pending_kb_entry(self, entry_id: str) -> dict[str, Any]:
+        pending = self.kb_pending_entries.get(entry_id)
+        if not pending:
+            raise KeyError(entry_id)
+        if pending.get("status") != "pending":
+            raise ValueError(f"Entry is not pending ({pending.get('status')})")
+        pending["status"] = "rejected"
+        self._persist("kb_pending_entries", entry_id, pending)
+        return pending
+
+    def _embedding_client(self):
+        custom = getattr(self, "_embedder", None)
+        if custom is not None:
+            return custom
+        from factories.embedding_factory import EmbeddingFactory
+
+        return EmbeddingFactory.create()
+
     def search_style(self, query: str, *, k: int = 1) -> list[StyleHit]:
         hits = [StyleHit(**doc, score=score(query, doc["customer"])) for doc in self.style_samples]
         hits.sort(key=lambda h: (-h.score, h.id))
@@ -358,6 +466,7 @@ class PassengerKnowledgeStore(ABC):
         *,
         session_id: str,
         customer_id: str | None = None,
+        message: str | None = None,
     ) -> dict[str, Any]:
         """Record one frustration observation as an event plus a graph edge.
 
@@ -386,6 +495,8 @@ class PassengerKnowledgeStore(ABC):
                 "escalation_recommended": assessment.escalation_recommended,
                 "low_confidence": assessment.low_confidence,
                 "detector": assessment.source,
+                "message": (message or "").strip(),
+                "review_status": "pending" if assessment.low_confidence else "auto",
             }
         )
         if assessment.category is not FrustrationCategory.NEUTRAL:
@@ -405,6 +516,65 @@ class PassengerKnowledgeStore(ABC):
                     "low_confidence": assessment.low_confidence,
                 }
             )
+        return event
+
+    def pending_kb(self) -> list[dict[str, Any]]:
+        """Low-confidence frustration writes waiting for a supervisor.
+
+        Confident observations are already counted. This queue is only the
+        unreviewed guesses — approve moves them into the primary buckets,
+        reject leaves them logged and uncounted.
+        """
+        turns_by_session: dict[str, str] = {}
+        for event in self.events:
+            if event.get("kind") == "turn" and event.get("session_id") and event.get("message"):
+                turns_by_session[event["session_id"]] = event["message"]
+
+        pending: list[dict[str, Any]] = []
+        for event in self.events:
+            if event.get("kind") != "frustration":
+                continue
+            if not event.get("low_confidence"):
+                continue
+            if event.get("review_status") in {"approved", "rejected", "auto"}:
+                continue
+            category = event.get("category") or "unknown"
+            raw = event.get("message") or turns_by_session.get(event.get("session_id") or "") or ""
+            excerpt = _message_excerpt(raw) or ", ".join(event.get("signals") or []) or "No message captured."
+            pending.append(
+                {
+                    "id": event["id"],
+                    "tag": category,
+                    "message_excerpt": excerpt,
+                    "frustration_score": event.get("confidence") or 0,
+                    "proposed_direction": f"EXHIBITS_FRUSTRATION → {category}",
+                }
+            )
+        pending.reverse()
+        return pending
+
+    def review_kb(self, entry_id: str, decision: Literal["approved", "rejected"]) -> dict[str, Any] | None:
+        """Supervisor decision on one pending observation. Same event row, no new index."""
+        event = next(
+            (row for row in self.events if row.get("id") == entry_id and row.get("kind") == "frustration"),
+            None,
+        )
+        if not event or not event.get("low_confidence"):
+            return None
+        if event.get("review_status") in {"approved", "rejected"}:
+            return None
+        event["review_status"] = decision
+        if decision == "approved":
+            event["low_confidence"] = False
+            for edge in self.graph_edges:
+                if (
+                    edge.get("session_id") == event.get("session_id")
+                    and edge.get("rel") == "EXHIBITS_FRUSTRATION"
+                    and edge.get("to_id") == event.get("category")
+                ):
+                    edge["low_confidence"] = False
+                    self._persist("graph_edges", edge["id"], edge)
+        self._persist("events", event["id"], event)
         return event
 
     def record_feedback(
@@ -521,15 +691,28 @@ class PassengerKnowledgeStore(ABC):
         case["id"] = case_id
         case["created_at"] = case.get("created_at") or existing.get("created_at") or ISO()
         case["updated_at"] = ISO()
+        if case.get("status") == "resolved":
+            case["resolved_at"] = case.get("resolved_at") or existing.get("resolved_at") or ISO()
         self.cases[case_id] = case
         self._persist("cases", case_id, case)
         return case
 
+    def _refresh_case_close(self, case: dict[str, Any]) -> dict[str, Any]:
+        from agent.closure import reconcile_open_case
+
+        updated = reconcile_open_case(case)
+        if updated.get("status") != case.get("status"):
+            return self.upsert_case(updated)
+        return case
+
     def list_cases(self) -> list[dict[str, Any]]:
-        return sorted(self.cases.values(), key=lambda c: c.get("updated_at", ""), reverse=True)
+        cases = [self._refresh_case_close(case) for case in self.cases.values()]
+        return sorted(cases, key=lambda c: c.get("updated_at", ""), reverse=True)
 
     def get_case(self, case_id: str) -> dict[str, Any] | None:
         found = self.cases.get(case_id)
+        if found:
+            found = self._refresh_case_close(found)
         if not found:
             return None
         customer_id = found.get("customer_id")
@@ -548,7 +731,7 @@ class PassengerKnowledgeStore(ABC):
             "passenger": p,
             "bookings": [b for b in self.bookings if b["customer_id"] == customer_id],
             "events": [e for e in self.events if e.get("customer_id") == customer_id],
-            "cases": [c for c in self.cases.values() if c.get("customer_id") == customer_id],
+            "cases": [self._refresh_case_close(c) for c in self.cases.values() if c.get("customer_id") == customer_id],
         }
 
     def graph_for(self, customer_id: str) -> dict[str, Any]:
@@ -658,7 +841,7 @@ class PassengerKnowledgeStore(ABC):
 
     def operations(self) -> dict[str, Any]:
         """Lightweight dashboard numbers. Policy is not computed here."""
-        cases = list(self.cases.values())
+        cases = [self._refresh_case_close(c) for c in self.cases.values()]
         total = len(cases)
         resolved = [c for c in cases if c.get("status") == "resolved"]
         escalated = [c for c in cases if c.get("status") == "escalated"]

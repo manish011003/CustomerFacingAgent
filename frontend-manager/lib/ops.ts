@@ -179,6 +179,15 @@ export interface KnowledgeGraph {
   note?: string;
 }
 
+/** GET /api/kb/pending — low-confidence writes waiting for a supervisor. */
+export interface PendingKbEntry {
+  id: string;
+  tag: string;
+  message_excerpt: string;
+  frustration_score: number;
+  proposed_direction: string;
+}
+
 /** Mildest to most severe, so the panel never reshuffles between refreshes. */
 export const FRUSTRATION_ORDER = ["neutral", "annoyed", "frustrated", "distressed", "hostile"];
 
@@ -209,9 +218,10 @@ export class OpsAuthError extends Error {
   }
 }
 
-export async function fetchJson<T>(path: string, token: string): Promise<T> {
+export async function fetchJson<T>(path: string, token: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
-    headers: { Authorization: `Bearer ${token}` },
+    ...init,
+    headers: { Authorization: `Bearer ${token}`, ...(init?.headers || {}) },
   });
   if (response.status === 401) throw new OpsAuthError();
   if (!response.ok) throw new Error("Request failed");

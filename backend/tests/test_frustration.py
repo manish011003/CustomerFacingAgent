@@ -12,6 +12,8 @@ confidence, may change a single eligibility outcome.
 
 from __future__ import annotations
 
+import json
+import os
 from uuid import uuid4
 
 import pytest
@@ -21,6 +23,7 @@ from agent import frustration as detector
 from agent.loop import handle_chat, reset_session
 from agent.tools import TOOL_SCHEMAS, ToolRuntime
 from data.loader import load_bookings, load_customers
+from factories.llm_factory import LlmFactory
 from factories.onboarding_factory import OnboardingFactory
 from factories.staff_factory import StaffFactory
 from kb.store import store
@@ -31,6 +34,8 @@ from models.schemas import (
     ExtractedRequest,
     FrustrationAssessment,
     FrustrationCategory,
+    PolicyDecision,
+    PolicyEvaluation,
     RequestType,
     SessionMemory,
 )
@@ -39,6 +44,7 @@ from policy.exclusivity import offered_actions
 from products.auth.staff import DEFAULT_STAFF_EMAIL, DEFAULT_STAFF_PASSWORD
 from products.knowledge.json_store import JsonKnowledgeStore
 from products.onboarding.self_service import SEED_PASSWORD
+from tests.test_llm import ExplodingSdk, StubSdk, client_with, config
 
 SCHEMA_KEYS = {"category", "confidence", "signals", "escalation_recommended"}
 
@@ -120,6 +126,19 @@ def test_a_calm_question_is_neutral_with_no_signals():
     assert assessment.escalation_recommended is False
 
 
+def test_fuck_is_profanity_and_not_neutral():
+    assessment = detector.classify("fuck you", SessionMemory(session_id="s"))
+    assert "profanity" in assessment.signals
+    assert assessment.category is FrustrationCategory.ANNOYED
+    assert detector.detect_emotion("fuck off") == "angry"
+
+
+def test_help_me_book_is_not_vulnerability():
+    assessment = detector.classify("help me book new flight", SessionMemory(session_id="s"))
+    assert "vulnerability_disclosed" not in assessment.signals
+    assert assessment.category is FrustrationCategory.NEUTRAL
+
+
 def test_distress_outranks_mere_hostility():
     """A stranded passenger with a child is a care case, not an angry one."""
     assert detector.classify(DISTRESSED, SessionMemory(session_id="s")).category is (
@@ -149,6 +168,119 @@ def test_shouting_needs_more_than_a_short_acronym():
         "WHY HAS NOBODY TOLD ME ANYTHING ABOUT THIS FLIGHT", SessionMemory(session_id="s")
     )
     assert "caps_lock" in shouted.signals
+
+
+def test_frustration_classifier_is_read_from_the_environment_like_the_store_threshold():
+    """Same import-time getenv as KB_AUTO_STORE_THRESHOLD, so tests can pin it."""
+    assert detector.FRUSTRATION_CLASSIFIER == os.getenv("FRUSTRATION_CLASSIFIER", "auto")
+
+
+def test_classify_llm_returns_the_same_fields_as_classify():
+    session = SessionMemory(session_id="s-llm", messages=[{"role": "user", "content": HOSTILE}])
+    sdk = StubSdk(
+        text=json.dumps(
+            {
+                "category": "hostile",
+                "confidence": 0.88,
+                "signals": ["explicit_complaint", "profanity", "abandonment_threat"],
+                "escalation_recommended": True,
+                "low_confidence": False,
+                "source": "llm_dynamic",
+            }
+        )
+    )
+    assessment = detector.classify_llm(session, client_with(sdk))
+    payload = assessment.payload()
+    assert set(payload) == SCHEMA_KEYS
+    assert assessment.source == "llm_dynamic"
+    assert assessment.category is FrustrationCategory.HOSTILE
+    assert assessment.signals == ["explicit_complaint", "profanity", "abandonment_threat"]
+    assert assessment.escalation_recommended is True
+    assert "low_confidence" not in payload
+    assert "source" not in payload
+
+
+def test_classify_llm_asks_for_json_at_temperature_zero():
+    session = SessionMemory(session_id="s-temp", messages=[{"role": "user", "content": ANNOYED}])
+    sdk = StubSdk(text=json.dumps({"category": "annoyed", "confidence": 0.6, "signals": ["explicit_complaint"]}))
+    detector.classify_llm(session, client_with(sdk))
+    request = sdk.requests[0]
+    assert request["temperature"] == 0
+    assert request["response_format"] == {"type": "json_object"}
+    assert request["max_tokens"] >= 1
+    assert any(
+        "psychological" in (message.get("content") or "").lower()
+        or "not as keyword" in (message.get("content") or "").lower()
+        for message in request["messages"]
+    )
+
+
+def test_classify_llm_falls_back_to_classify_when_the_model_is_silent():
+    session = SessionMemory(session_id="s-silent", messages=[{"role": "user", "content": DISTRESSED}])
+    assessment = detector.classify_llm(session, LlmFactory.disabled())
+    assert assessment.source == "heuristic"
+    assert assessment.category is FrustrationCategory.DISTRESSED
+    assert assessment.model_dump() == detector.classify(DISTRESSED, session).model_dump()
+
+
+def test_classify_llm_orders_signals_canonically_and_drops_unknowns():
+    session = SessionMemory(session_id="s-order", messages=[{"role": "user", "content": DISTRESSED}])
+    sdk = StubSdk(
+        text=json.dumps(
+            {
+                "category": "distressed",
+                "confidence": 0.9,
+                "signals": ["made_up", "legal_language", "caps_lock", "vulnerability_disclosed"],
+            }
+        )
+    )
+    assessment = detector.classify_llm(session, client_with(sdk))
+    assert assessment.signals == ["caps_lock", "vulnerability_disclosed", "legal_language"]
+    assert assessment.source == "llm_dynamic"
+
+
+def test_a_heuristic_pin_does_not_call_the_model(monkeypatch):
+    monkeypatch.setattr(detector, "FRUSTRATION_CLASSIFIER", "heuristic")
+    session = SessionMemory(session_id="s-pin", messages=[{"role": "user", "content": ANNOYED}])
+    sdk = StubSdk(text=json.dumps({"category": "hostile", "confidence": 0.99, "signals": ["profanity"]}))
+    assessment = detector.classify_llm(session, client_with(sdk))
+    assert sdk.requests == []
+    assert assessment.source == "heuristic"
+    assert assessment.category is FrustrationCategory.ANNOYED
+
+
+def test_loop_calls_classify_llm_when_the_client_is_live(monkeypatch):
+    """The same live-client test as agent_mode, not a third branch."""
+    called = {"llm": 0}
+
+    def fake_llm(memory, llm):
+        called["llm"] += 1
+        return FrustrationAssessment(
+            category=FrustrationCategory.ANNOYED,
+            confidence=0.6,
+            signals=["explicit_complaint"],
+            source="llm_dynamic",
+        )
+
+    monkeypatch.setattr(detector, "classify_llm", fake_llm)
+    client = client_with(ExplodingSdk(), config(provider="groq"))
+    monkeypatch.setattr(LlmFactory, "create", classmethod(lambda cls, refresh=False: client))
+    LlmFactory._client = client
+    handle_chat(str(uuid4()), ANNOYED)
+    LlmFactory.reset()
+    assert called["llm"] == 1
+
+
+def test_loop_calls_classify_when_there_is_no_live_client(monkeypatch):
+    called = {"llm": 0}
+
+    def forbidden(memory, llm):
+        called["llm"] += 1
+        raise AssertionError("classify_llm must not run without a live client")
+
+    monkeypatch.setattr(detector, "classify_llm", forbidden)
+    handle_chat(str(uuid4()), CALM, "CUST-ARVIND")
+    assert called["llm"] == 0
 
 
 def test_the_legal_detector_is_shared_not_duplicated():
@@ -430,11 +562,51 @@ def test_a_delay_keeps_its_goodwill_because_no_resolution_track_is_open():
 
 
 def test_exclusivity_is_inert_when_there_is_no_track():
-    from models.schemas import PolicyEvaluation
-
     empty = PolicyEvaluation()
     assert offered_actions(empty) == []
     assert offered_actions(empty, FrustrationCategory.HOSTILE) == []
+
+
+@pytest.mark.parametrize("track_action", ["refund_original", "rebook_24h"])
+def test_distress_reorder_cannot_reinstate_track_excluded_goodwill(track_action, monkeypatch):
+    """Exclusion first. DISTRESSED only sorts what survived.
+
+    meal_voucher / lounge stay out even when they sit earlier in
+    URGENCY_ORDER than the active refund/rebook action. The live constant
+    already ranks refund first, so a test against it would still pass if
+    someone accidentally sorted the full list and then filtered.
+    """
+    import policy.exclusivity as exclusivity
+
+    monkeypatch.setattr(
+        exclusivity,
+        "URGENCY_ORDER",
+        ("meal_voucher", "lounge", track_action, "hotel_delayed_hours"),
+    )
+    evaluation = PolicyEvaluation(
+        decisions=[
+            PolicyDecision(
+                action=action,
+                status=DecisionStatus.ALLOW,
+                eligible=True,
+                reason="synthetic",
+                source="test",
+            )
+            for action in ("meal_voucher", "lounge", track_action, "hotel_delayed_hours")
+        ]
+    )
+    offerable = {
+        d.action
+        for d in evaluation.decisions
+        if d.status in {DecisionStatus.ALLOW, DecisionStatus.ASK}
+    }
+    offered = exclusivity.offered_actions(evaluation, FrustrationCategory.DISTRESSED)
+
+    assert set(offered) < offerable
+    assert "meal_voucher" not in offered
+    assert "lounge" not in offered
+    assert track_action in offered
+    assert offered == [track_action, "hotel_delayed_hours"]
 
 
 # --- the escalation hook ----------------------------------------------------
@@ -828,3 +1000,105 @@ def test_the_knowledge_graph_endpoint_is_staff_gated_and_correctly_shaped(monkey
     assert {node["type"] for node in body["nodes"]} >= {"Customer", "Booking"}
     assert any(edge["rel"] == "HAS_BOOKING" for edge in body["edges"])
     assert any(edge["rel"] == "EXHIBITS_FRUSTRATION" for edge in body["edges"])
+
+
+# --- the review queue -------------------------------------------------------
+
+
+def test_pending_kb_lists_only_unreviewed_low_confidence():
+    kb = fresh_store()
+    kb.append_frustration(
+        observation(confidence=0.9),
+        session_id="s-hot",
+        customer_id="CUST-A",
+        message="I am STRANDED and this is completely unacceptable!!",
+    )
+    kb.append_frustration(
+        observation(confidence=0.3, low_confidence=True, category=FrustrationCategory.ANNOYED),
+        session_id="s-guess",
+        customer_id="CUST-B",
+        message="This is ridiculous.",
+    )
+    queue = kb.pending_kb()
+    assert [row["tag"] for row in queue] == ["annoyed"]
+    assert queue[0]["message_excerpt"] == "This is ridiculous."
+    assert queue[0]["frustration_score"] == 0.3
+    assert queue[0]["proposed_direction"] == "EXHIBITS_FRUSTRATION → annoyed"
+
+
+def test_approve_moves_an_observation_into_the_counted_buckets():
+    kb = fresh_store()
+    event = kb.append_frustration(
+        observation(confidence=0.4, low_confidence=True),
+        session_id="s1",
+        customer_id="CUST-ARVIND",
+        message="This is ridiculous.",
+    )
+    assert kb.frustration()["counted_observations"] == 0
+    reviewed = kb.review_kb(event["id"], "approved")
+    assert reviewed is not None
+    assert reviewed["low_confidence"] is False
+    assert reviewed["review_status"] == "approved"
+    assert kb.pending_kb() == []
+    assert kb.frustration()["by_category"] == {"frustrated": 1}
+    assert kb.frustration()["counted_observations"] == 1
+
+
+def test_reject_leaves_the_observation_uncounted_and_drops_it_from_the_queue():
+    kb = fresh_store()
+    event = kb.append_frustration(
+        observation(confidence=0.4, low_confidence=True),
+        session_id="s1",
+        customer_id="CUST-ARVIND",
+        message="This is ridiculous.",
+    )
+    reviewed = kb.review_kb(event["id"], "rejected")
+    assert reviewed is not None
+    assert reviewed["low_confidence"] is True
+    assert reviewed["review_status"] == "rejected"
+    assert kb.pending_kb() == []
+    assert kb.frustration()["counted_observations"] == 0
+    assert kb.frustration()["low_confidence_observations"] == 1
+
+
+def test_kb_review_endpoints_are_staff_gated_and_correctly_shaped(monkeypatch):
+    monkeypatch.setenv("STAFF_EMAIL", DEFAULT_STAFF_EMAIL)
+    monkeypatch.setenv("STAFF_PASSWORD", DEFAULT_STAFF_PASSWORD)
+    StaffFactory.reset()
+    client = TestClient(app)
+
+    assert client.get("/api/kb/pending").status_code == 401
+
+    passenger = OnboardingFactory.create().login("priya.nair@example.com", SEED_PASSWORD)
+    as_passenger = client.get(
+        "/api/kb/pending",
+        headers={"Authorization": f"Bearer {passenger['token']}"},
+    )
+    assert as_passenger.status_code == 401
+
+    staff = client.post(
+        "/api/auth/staff/login",
+        json={"email": DEFAULT_STAFF_EMAIL, "password": DEFAULT_STAFF_PASSWORD},
+    )
+    token = staff.json()["token"]
+
+    handle_chat(str(uuid4()), ANNOYED, "CUST-PRIYA")
+
+    listed = client.get("/api/kb/pending", headers={"Authorization": f"Bearer {token}"})
+    assert listed.status_code == 200
+    queue = listed.json()
+    entry = next(
+        (row for row in queue if "ridiculous" in (row.get("message_excerpt") or "").lower()),
+        None,
+    )
+    assert entry is not None
+    for key in ("id", "tag", "message_excerpt", "frustration_score", "proposed_direction"):
+        assert key in entry
+    assert entry["tag"] == "annoyed"
+    assert entry["proposed_direction"] == "EXHIBITS_FRUSTRATION → annoyed"
+
+    missing = client.post(
+        "/api/kb/does-not-exist/reject",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert missing.status_code == 404

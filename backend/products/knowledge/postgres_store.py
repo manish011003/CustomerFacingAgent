@@ -4,8 +4,30 @@ from typing import Any
 
 from data.loader import load_bookings, load_customers
 from products.knowledge.base import ISO, PassengerKnowledgeStore
+from models.schemas import TurnHit
 
-DOCUMENTS = frozenset({"events", "cases", "graph_edges", "memories", "sessions"})
+DOCUMENTS = frozenset(
+    {"events", "cases", "graph_edges", "memories", "sessions", "kb_entries", "kb_pending_entries"}
+)
+
+# CREATE EXTENSION vector is required (pgvector) before this query can run.
+# `<=>` is cosine distance; text-embedding-3-small is normalized, so similarity
+# is 1 - distance. The corpus is approved kb_entries only — never pending rows
+# and never policy clauses.
+SEMANTIC_SEARCH_SQL = """
+SELECT body, 1 - (embedding <=> %s::vector) AS score
+FROM documents
+WHERE collection = 'kb_entries'
+  AND embedding IS NOT NULL
+  AND coalesce(body->>'status', 'approved') = 'approved'
+  AND 1 - (embedding <=> %s::vector) >= %s
+ORDER BY embedding <=> %s::vector
+LIMIT %s
+"""
+
+
+def _as_vector(values: list[float]) -> str:
+    return "[" + ",".join(str(float(x)) for x in values) + "]"
 
 
 def _json(document: dict[str, Any]):
@@ -57,6 +79,8 @@ class PostgresKnowledgeStore(PassengerKnowledgeStore):
         self.graph_edges = []
         self.memories = []
         self.sessions = {}
+        self.kb_entries = {}
+        self.kb_pending_entries = {}
         for collection, _doc_id, body in conn.execute("SELECT collection, id, body FROM documents"):
             document = dict(body)
             if collection == "events":
@@ -71,6 +95,10 @@ class PostgresKnowledgeStore(PassengerKnowledgeStore):
                 customer_id = document.get("customer_id")
                 if customer_id:
                     self.sessions[customer_id] = document
+            elif collection == "kb_entries":
+                self.kb_entries[document.get("id") or _doc_id] = document
+            elif collection == "kb_pending_entries":
+                self.kb_pending_entries[document.get("id") or _doc_id] = document
 
         self.events.sort(key=lambda e: e.get("ts") or "")
         self.graph_edges.sort(key=lambda e: e.get("ts") or "")
@@ -153,17 +181,79 @@ class PostgresKnowledgeStore(PassengerKnowledgeStore):
             )
             return
         if index in DOCUMENTS:
-            conn.execute(
-                """
-                INSERT INTO documents (collection, id, customer_id, body) VALUES (%s, %s, %s, %s)
-                ON CONFLICT (collection, id) DO UPDATE SET
-                    customer_id = EXCLUDED.customer_id,
-                    body = EXCLUDED.body,
-                    updated_at = now()
-                """,
-                (index, doc_id, document.get("customer_id"), _json(document)),
-            )
+            self._upsert_document(conn, index, doc_id, document)
             return
+
+    def _upsert_document(self, conn, index: str, doc_id: str, document: dict[str, Any]) -> None:
+        vector = self._embedding_literal(index, document)
+        if vector is not None:
+            try:
+                conn.execute(
+                    """
+                    INSERT INTO documents (collection, id, customer_id, body, embedding)
+                    VALUES (%s, %s, %s, %s, %s::vector)
+                    ON CONFLICT (collection, id) DO UPDATE SET
+                        customer_id = EXCLUDED.customer_id,
+                        body = EXCLUDED.body,
+                        embedding = COALESCE(EXCLUDED.embedding, documents.embedding),
+                        updated_at = now()
+                    """,
+                    (index, doc_id, document.get("customer_id"), _json(document), vector),
+                )
+                return
+            except Exception:
+                pass
+        conn.execute(
+            """
+            INSERT INTO documents (collection, id, customer_id, body) VALUES (%s, %s, %s, %s)
+            ON CONFLICT (collection, id) DO UPDATE SET
+                customer_id = EXCLUDED.customer_id,
+                body = EXCLUDED.body,
+                updated_at = now()
+            """,
+            (index, doc_id, document.get("customer_id"), _json(document)),
+        )
+
+    def _embedding_literal(self, index: str, document: dict[str, Any]) -> str | None:
+        if index != "kb_entries" or document.get("status") != "approved":
+            return None
+        stored = document.get("embedding")
+        if stored:
+            return _as_vector(stored)
+        embedder = self._embedding_client()
+        if not embedder.enabled:
+            return None
+        vector = embedder.embed(document.get("message") or "")
+        return _as_vector(vector) if vector else None
+
+    def semantic_search(self, text: str, k: int, min_score: float) -> list[TurnHit]:
+        embedder = self._embedding_client()
+        query = embedder.embed(text) if embedder.enabled else None
+        if not query:
+            return []
+        try:
+            from persistence.postgres import connect
+
+            # CREATE EXTENSION vector is required (pgvector) for the <=> operator.
+            rows = connect().execute(SEMANTIC_SEARCH_SQL, (_as_vector(query), _as_vector(query), min_score, _as_vector(query), k))
+            hits = [
+                TurnHit(
+                    id=body.get("id") or "",
+                    ts=body.get("ts") or "",
+                    message=body.get("message") or "",
+                    reply=body.get("phrasing") or body.get("reply") or "",
+                    score=round(float(score), 4),
+                )
+                for body, score in ((dict(row[0]), row[1]) for row in rows)
+                if float(score) >= min_score
+            ]
+            if hits:
+                return hits
+        except Exception:
+            pass
+        from products.knowledge.json_store import JsonKnowledgeStore
+
+        return JsonKnowledgeStore.semantic_search(self, text, k, min_score)
 
     def _drop(self, index: str, doc_id: str) -> None:
         from persistence.postgres import connect

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CaseBoard } from "@/components/case-board";
 import { CaseDrawer } from "@/components/case-drawer";
 import { OpsDashboard } from "@/components/dashboard";
+import { KbReviewQueue } from "@/components/kb-review-queue";
 import { KnowledgeGraphPanel } from "@/components/knowledge-graph";
 import { StaffLogin } from "@/components/staff-login";
 import { clearStaffToken, readStaffToken, staffLogout, takeStaffTokenFromHash } from "@/lib/auth";
@@ -14,11 +15,12 @@ import {
   type CaseSummary,
   type Frustration,
   type KnowledgeGraph,
+  type PendingKbEntry,
   OpsAuthError,
   fetchJson,
 } from "@/lib/ops";
 
-type View = "dashboard" | "cases" | "graph";
+type View = "dashboard" | "cases" | "graph" | "review";
 
 export default function OperationsPage() {
   const [token, setToken] = useState<string | null>(null);
@@ -29,6 +31,7 @@ export default function OperationsPage() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [frustration, setFrustration] = useState<Frustration | null>(null);
   const [graph, setGraph] = useState<KnowledgeGraph | null>(null);
+  const [pendingKb, setPendingKb] = useState<PendingKbEntry[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<CaseDetail | null>(null);
   const [error, setError] = useState("");
@@ -49,6 +52,7 @@ export default function OperationsPage() {
       setAnalytics(null);
       setFrustration(null);
       setGraph(null);
+      setPendingKb([]);
       setDetail(null);
       setSelectedId(null);
     }
@@ -59,12 +63,14 @@ export default function OperationsPage() {
         fetchJson<Analytics>("/api/analytics/summary", token as string),
         fetchJson<Frustration>("/api/analytics/frustration", token as string),
         fetchJson<KnowledgeGraph>("/api/graph", token as string),
+        fetchJson<PendingKbEntry[]>("/api/kb/pending", token as string),
       ])
-        .then(([list, summary, distress, kb]) => {
+        .then(([list, summary, distress, kb, queue]) => {
           setError("");
           setCases(list);
           setAnalytics(summary);
           setFrustration(distress);
+          setPendingKb(queue);
           setGraph((current) => {
             if (
               current &&
@@ -79,7 +85,7 @@ export default function OperationsPage() {
         })
         .catch((err) => {
           if (err instanceof OpsAuthError) expire();
-          else setError("Operations service is offline. Start the API on port 8000.");
+          else setError("Operations service is offline.");
         })
         .finally(() => setLoaded(true));
     }
@@ -144,6 +150,9 @@ export default function OperationsPage() {
           <NavButton active={view === "graph"} onClick={() => setView("graph")}>
             Knowledge graph
           </NavButton>
+          <NavButton active={view === "review"} onClick={() => setView("review")}>
+            KB review
+          </NavButton>
         </nav>
         <div className="border-t border-line px-3 py-4">
           <button
@@ -161,14 +170,14 @@ export default function OperationsPage() {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center gap-3 border-b border-line bg-canvas/80 px-5 py-3 backdrop-blur">
           <div className="flex gap-1 md:hidden">
-            {(["dashboard", "cases", "graph"] as View[]).map((item) => (
+            {(["dashboard", "cases", "graph", "review"] as View[]).map((item) => (
               <button
                 key={item}
                 type="button"
                 onClick={() => setView(item)}
                 className={`rounded-lg px-2.5 py-1.5 text-xs capitalize ${view === item ? "bg-brand text-white" : "text-ink-muted"}`}
               >
-                {item === "graph" ? "Graph" : item}
+                {item === "graph" ? "Graph" : item === "review" ? "Review" : item}
               </button>
             ))}
           </div>
@@ -229,6 +238,47 @@ export default function OperationsPage() {
 
           {view === "graph" && (
             <KnowledgeGraphPanel data={graph} highlightCustomerId={detail?.customer_id} />
+          )}
+
+          {view === "review" && (
+            <div>
+              <div className="mb-3 flex items-end justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold">Knowledge review</h2>
+                  <p className="mt-1 text-xs text-ink-muted">
+                    Approve a guess to count it. Reject leaves it logged and out of the staffing numbers.
+                  </p>
+                </div>
+                <span className="text-[11px] text-ink-faint">{pendingKb.length} pending</span>
+              </div>
+              <KbReviewQueue
+                entries={pendingKb}
+                onApprove={(id) => {
+                  if (!token) return;
+                  setPendingKb((current) => current.filter((entry) => entry.id !== id));
+                  fetchJson(`/api/kb/${id}/approve`, token, { method: "POST" }).catch((err) => {
+                    if (err instanceof OpsAuthError) {
+                      clearStaffToken();
+                      setToken(null);
+                    } else {
+                      setError("Could not approve that entry.");
+                    }
+                  });
+                }}
+                onReject={(id) => {
+                  if (!token) return;
+                  setPendingKb((current) => current.filter((entry) => entry.id !== id));
+                  fetchJson(`/api/kb/${id}/reject`, token, { method: "POST" }).catch((err) => {
+                    if (err instanceof OpsAuthError) {
+                      clearStaffToken();
+                      setToken(null);
+                    } else {
+                      setError("Could not reject that entry.");
+                    }
+                  });
+                }}
+              />
+            </div>
           )}
         </main>
       </div>

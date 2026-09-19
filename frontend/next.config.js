@@ -3,7 +3,7 @@ const exporting = process.env.EXPORT === "1";
 const onVercel = Boolean(process.env.VERCEL);
 const api = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-if (onVercel && !process.env.NEXT_PUBLIC_OPS_URL) {
+if ((onVercel || exporting) && !process.env.NEXT_PUBLIC_OPS_URL) {
   process.env.NEXT_PUBLIC_OPS_URL = "/ops";
 }
 
